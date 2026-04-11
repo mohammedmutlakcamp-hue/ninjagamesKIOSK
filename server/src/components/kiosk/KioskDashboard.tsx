@@ -1260,6 +1260,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             {navItems.filter(item => !['games', 'tournaments', 'software'].includes(item.id)).map((item) => {
               const isActive = activePopup === item.id;
               const itemColor = item.color || (isPlayerVIP ? '#FFD700' : '#39FF14');
+              const isVIPButton = item.id === 'vip';
               return (
                 <motion.button
                   key={item.id}
@@ -1273,9 +1274,17 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   }}
                   whileHover={{ x: 3 }}
                   whileTap={{ scale: 0.97 }}
-                  className={`${sidebarCollapsed ? 'w-full justify-center' : 'w-full'} flex items-center gap-3 px-3 py-2.5 text-left transition-all relative group rounded-lg overflow-hidden`}
+                  className={`${sidebarCollapsed ? 'w-full justify-center' : 'w-full'} flex items-center gap-3 px-3 ${isVIPButton ? 'py-3' : 'py-2.5'} text-left transition-all relative group rounded-lg overflow-hidden`}
                   title={sidebarCollapsed ? item.label : undefined}
-                  style={isActive ? {
+                  style={isVIPButton ? (isActive ? {
+                    background: 'linear-gradient(135deg, rgba(57,255,20,0.12), rgba(120,80,255,0.08), rgba(0,200,255,0.06))',
+                    border: '1px solid rgba(57,255,20,0.45)',
+                    boxShadow: '0 0 20px rgba(57,255,20,0.15), 0 0 40px rgba(120,80,255,0.08), inset 0 0 25px rgba(57,255,20,0.06)',
+                  } : {
+                    background: 'linear-gradient(135deg, rgba(57,255,20,0.06), rgba(120,80,255,0.04), rgba(0,200,255,0.03))',
+                    border: '1px solid rgba(57,255,20,0.18)',
+                    boxShadow: '0 0 12px rgba(57,255,20,0.08)',
+                  }) : (isActive ? {
                     background: `linear-gradient(135deg, ${itemColor}18, ${itemColor}08)`,
                     border: `1px solid ${itemColor}40`,
                     boxShadow: `0 0 18px ${itemColor}15, inset 0 0 20px ${itemColor}08`,
@@ -1283,7 +1292,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     border: `1px solid ${itemColor}12`,
                     background: `linear-gradient(135deg, ${itemColor}06, transparent)`,
                     boxShadow: `0 0 6px ${itemColor}06`,
-                  }}
+                  })}
                 >
                   {/* Hover glow bg */}
                   <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300" style={{ background: `radial-gradient(ellipse at 30% 50%, ${itemColor}12, transparent 70%)` }} />
@@ -1304,18 +1313,41 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   {!isActive && (
                     <div className="absolute left-[3px] top-1/2 -translate-y-1/2 w-[4px] h-[4px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: itemColor, boxShadow: `0 0 4px ${itemColor}` }} />
                   )}
+                  {/* VIP button animated shimmer */}
+                  {isVIPButton && !isActive && (
+                    <motion.div className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
+                      animate={{ backgroundPosition: ['0% 50%', '200% 50%'] }}
+                      transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                      style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(57,255,20,0.04) 25%, rgba(120,80,255,0.06) 50%, rgba(57,255,20,0.04) 75%, transparent 100%)', backgroundSize: '200% 100%' }} />
+                  )}
                   <span
                     className="relative z-10 transition-all"
-                    style={{ color: isActive ? itemColor : `${itemColor}90`, filter: isActive ? `drop-shadow(0 0 8px ${itemColor})` : `drop-shadow(0 0 3px ${itemColor}50)` }}
+                    style={{
+                      color: isVIPButton ? (isActive ? '#39FF14' : '#39FF14CC') : (isActive ? itemColor : `${itemColor}90`),
+                      filter: isVIPButton
+                        ? (isActive ? 'drop-shadow(0 0 10px rgba(57,255,20,0.9))' : 'drop-shadow(0 0 5px rgba(57,255,20,0.5))')
+                        : (isActive ? `drop-shadow(0 0 8px ${itemColor})` : `drop-shadow(0 0 3px ${itemColor}50)`),
+                    }}
                   >{item.icon}</span>
                   {!sidebarCollapsed && (
                     <span
-                      className="relative z-10 font-ninja text-[12px] tracking-wider transition-all"
+                      className={`relative z-10 font-ninja tracking-wider transition-all ${isVIPButton ? 'text-[13px]' : 'text-[12px]'}`}
                       style={{
-                        color: isActive ? itemColor : 'rgba(200,200,200,0.6)',
-                        textShadow: isActive ? `0 0 12px ${itemColor}60` : 'none',
+                        color: isVIPButton
+                          ? (isActive ? '#39FF14' : 'rgba(57,255,20,0.75)')
+                          : (isActive ? itemColor : 'rgba(200,200,200,0.6)'),
+                        textShadow: isVIPButton
+                          ? '0 0 15px rgba(57,255,20,0.5)'
+                          : (isActive ? `0 0 12px ${itemColor}60` : 'none'),
                       }}
                     >{item.label}</span>
+                  )}
+                  {/* VIP badge */}
+                  {isVIPButton && !sidebarCollapsed && isPlayerVIP && (
+                    <span className="relative z-10 ml-auto px-1.5 py-0.5 rounded text-[7px] font-ninja tracking-wider"
+                      style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.2)' }}>
+                      ACTIVE
+                    </span>
                   )}
                 </motion.button>
               );
