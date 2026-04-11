@@ -9,13 +9,46 @@ import { useEscapeKey } from '@/lib/useEscapeKey';
 import {
   Coins, CheckCircle2, Sparkles, Calendar, Flame,
   LogIn, Package, Send, UtensilsCrossed, Gamepad2, Target, UserPlus,
-  Loader2, ArrowRight, X,
+  Loader2, ArrowRight, X, Gift, Lock,
 } from 'lucide-react';
 
 export type DailyShortcutAction = 'food' | 'chests' | 'send-coins' | 'add-friend';
 
 // Bonus awarded when every daily task is claimed.
-const DAILY_FULL_BONUS_COINS = 10;
+const DAILY_FULL_BONUS_COINS = 5;
+
+// Bonus awarded when the full 7-day streak is completed
+const STREAK_COMPLETION_BONUS = 10;
+
+// ==================== LOGIN STREAK REWARDS ====================
+const STREAK_REWARDS = [
+  { day: 1, coins: 1 },
+  { day: 2, coins: 2 },
+  { day: 3, coins: 3 },
+  { day: 4, coins: 4 },
+  { day: 5, coins: 5 },
+  { day: 6, coins: 6 },
+  { day: 7, coins: 7, chest: true },
+];
+
+// Simple free chest rewards (given on day 7)
+const FREE_CHEST_REWARDS = [
+  { name: '5 Tokens', value: 5, weight: 40 },
+  { name: '10 Tokens', value: 10, weight: 30 },
+  { name: '15 Tokens', value: 15, weight: 15 },
+  { name: '20 Tokens', value: 20, weight: 10 },
+  { name: '25 Tokens', value: 25, weight: 5 },
+];
+
+function pickFreeChestReward(): { name: string; value: number } {
+  const totalWeight = FREE_CHEST_REWARDS.reduce((s, r) => s + r.weight, 0);
+  let roll = Math.random() * totalWeight;
+  for (const r of FREE_CHEST_REWARDS) {
+    roll -= r.weight;
+    if (roll <= 0) return { name: r.name, value: r.value };
+  }
+  return FREE_CHEST_REWARDS[0];
+}
 
 interface Props {
   player: any;
@@ -39,13 +72,13 @@ interface DailyTask {
 }
 
 const DAILY_TASKS: DailyTask[] = [
-  { id: 'daily_login',  title: 'Check-in',      description: 'Log in to the kiosk today',       icon: <CheckCircle2 size={32} />,     color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 3 },
-  { id: 'play_game',    title: 'Play a Game',    description: 'Launch any game',                 icon: <Gamepad2 size={32} />,          color: '#A855F7', glowColor: '168,85,247',  target: 1,  reward: 5 },
-  { id: 'open_chest',   title: 'Open Chest',     description: 'Open any chest',                  icon: <Package size={32} />,           color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 5, shortcut: 'chests',     shortcutLabel: 'OPEN' },
-  { id: 'send_coins',   title: 'Send Coins',     description: 'Send coins to a friend',          icon: <Send size={32} />,              color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 5, shortcut: 'send-coins', shortcutLabel: 'SEND' },
-  { id: 'order_food',   title: 'Order Food',     description: 'Order something from the menu',   icon: <UtensilsCrossed size={32} />,   color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 3, shortcut: 'food',       shortcutLabel: 'ORDER' },
-  { id: 'add_friend',   title: 'Add Friend',     description: 'Send a friend request',           icon: <UserPlus size={32} />,          color: '#FACC15', glowColor: '250,204,21',  target: 1,  reward: 3, shortcut: 'add-friend', shortcutLabel: 'ADD' },
-  { id: 'play_30_min',  title: 'Play 30 Min',    description: 'Play for at least 30 minutes',    icon: <Target size={32} />,            color: '#39FF14', glowColor: '57,255,20',   target: 30, reward: 10 },
+  { id: 'daily_login',  title: 'Check-in',      description: 'Log in to the kiosk today',       icon: <CheckCircle2 size={32} />,     color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 2 },
+  { id: 'play_game',    title: 'Play a Game',    description: 'Launch any game',                 icon: <Gamepad2 size={32} />,          color: '#A855F7', glowColor: '168,85,247',  target: 1,  reward: 3 },
+  { id: 'open_chest',   title: 'Open Chest',     description: 'Open any chest',                  icon: <Package size={32} />,           color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN' },
+  { id: 'send_coins',   title: 'Send Coins',     description: 'Send coins to a friend',          icon: <Send size={32} />,              color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND' },
+  { id: 'order_food',   title: 'Order Food',     description: 'Order something from the menu',   icon: <UtensilsCrossed size={32} />,   color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER' },
+  { id: 'add_friend',   title: 'Add Friend',     description: 'Send a friend request',           icon: <UserPlus size={32} />,          color: '#FACC15', glowColor: '250,204,21',  target: 1,  reward: 2, shortcut: 'add-friend', shortcutLabel: 'ADD' },
+  { id: 'play_30_min',  title: 'Play 30 Min',    description: 'Play for at least 30 minutes',    icon: <Target size={32} />,            color: '#39FF14', glowColor: '57,255,20',   target: 30, reward: 8 },
 ];
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
@@ -55,6 +88,11 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
   const [fullBonusClaimed, setFullBonusClaimed] = useState(false);
   const [claimingBonus, setClaimingBonus] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  // Streak reward state
+  const [claimingStreak, setClaimingStreak] = useState(false);
+  const [streakRewardClaimed, setStreakRewardClaimed] = useState(false);
+  const [chestRevealed, setChestRevealed] = useState<{ name: string; value: number } | null>(null);
+  const [chestOpening, setChestOpening] = useState(false);
   const todayKey = getDateKey();
   const yesterdayKey = getYesterdayKey();
   const checkin = player?.dailyCheckin || {};
@@ -62,6 +100,12 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
 
   // ESC safety net — closes the popup even if the parent handler misfires.
   useEscapeKey(() => onClose?.(), !!onClose);
+
+  // Check if streak reward already claimed today
+  useEffect(() => {
+    const claimedDate = player?.dailyCheckin?.streakRewardClaimedDate || '';
+    setStreakRewardClaimed(claimedDate === todayKey);
+  }, [player?.dailyCheckin?.streakRewardClaimedDate, todayKey]);
 
   useEffect(() => {
     if (!player?.uid) return;
@@ -117,6 +161,50 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
       setTimeout(() => setShowReward(null), 1500);
     } catch (err) { console.error('Task claim failed', err); }
     setClaimingId(null);
+  };
+
+  // ── Streak reward logic ──
+  const checkinClaimed = taskProgress['daily_login']?.claimed === true;
+  const currentStreak = streak; // live value from player doc
+  const streakDay = currentStreak >= 1 ? ((currentStreak - 1) % 7) + 1 : 0;
+  const streakCanClaim = checkinClaimed && streakDay >= 1 && !streakRewardClaimed;
+  const todayStreakReward = streakDay >= 1 ? STREAK_REWARDS[streakDay - 1] : null;
+
+  const handleClaimStreakReward = async (e: React.MouseEvent) => {
+    if (claimingStreak || !streakCanClaim || !todayStreakReward) return;
+    setClaimingStreak(true);
+    const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+    try {
+      const playerRef = doc(db, 'players', player.uid);
+      let totalCoins = todayStreakReward.coins;
+
+      // On day 7, also give the +10 streak completion bonus + a free chest reward
+      if (todayStreakReward.chest) {
+        totalCoins += STREAK_COMPLETION_BONUS;
+        const chestDrop = pickFreeChestReward();
+        totalCoins += chestDrop.value;
+        setChestOpening(true);
+        await new Promise(r => setTimeout(r, 800));
+        setChestOpening(false);
+        setChestRevealed(chestDrop);
+      }
+
+      await updateDoc(playerRef, {
+        coins: increment(totalCoins),
+        'dailyCheckin.streakRewardClaimedDate': todayKey,
+      });
+      setStreakRewardClaimed(true);
+      setShowReward({ amount: totalCoins, x: rect.left + rect.width / 2, y: rect.top });
+      setTimeout(() => setShowReward(null), 1500);
+      // Auto-dismiss chest reveal after 3s
+      if (todayStreakReward.chest) {
+        setTimeout(() => setChestRevealed(null), 4000);
+      }
+    } catch (err) {
+      console.error('Streak reward claim failed', err);
+      setChestOpening(false);
+    }
+    setClaimingStreak(false);
   };
 
   const completedCount = DAILY_TASKS.filter(t => { const tp = taskProgress[t.id]; return tp && tp.progress >= t.target; }).length;
@@ -261,8 +349,265 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           </motion.div>
         </div>
 
+        {/* ═══ LOGIN STREAK REWARDS (TOP) ═══ */}
+        <motion.div
+          initial={{ opacity: 0, y: 15 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+          className="mb-5 relative"
+          style={{
+            background: 'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(0,15,25,0.6))',
+            border: '2px solid rgba(249,115,22,0.25)',
+            borderRadius: '12px',
+            padding: '16px 20px',
+          }}
+        >
+          {/* HUD corners - orange */}
+          {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
+            <div key={i} className={`absolute ${pos} w-6 h-6`} style={{
+              ...(pos.includes('top') ? { borderTop: '3px solid #F97316' } : { borderBottom: '3px solid #F97316' }),
+              ...(pos.includes('left') ? { borderLeft: '3px solid #F97316' } : { borderRight: '3px solid #F97316' }),
+            }} />
+          ))}
+
+          {/* Header */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <Flame size={18} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.8))' }} />
+              <span className="font-ninja text-base text-orange-300 tracking-wider">
+                LOGIN STREAK — DAY {streakDay || 1}/7
+              </span>
+            </div>
+            {!checkinClaimed && (
+              <span className="font-body text-xs text-gray-500">Claim check-in first</span>
+            )}
+          </div>
+
+          {/* 7-day strip + bonus */}
+          <div className="flex items-center gap-2">
+            {STREAK_REWARDS.map((sr, i) => {
+              const isPast = streakDay > sr.day || (streakDay === sr.day && streakRewardClaimed);
+              const isCurrent = streakDay === sr.day && !streakRewardClaimed;
+              const isFuture = streakDay < sr.day || streakDay === 0;
+              const isDay7 = sr.day === 7;
+
+              return (
+                <motion.div
+                  key={sr.day}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.2 + i * 0.05 }}
+                  className="flex-1 relative"
+                >
+                  <div
+                    className={`relative rounded-lg flex flex-col items-center justify-center py-2.5 px-1 transition-all ${
+                      isCurrent && checkinClaimed ? 'cursor-pointer' : ''
+                    }`}
+                    onClick={isCurrent && checkinClaimed ? handleClaimStreakReward : undefined}
+                    style={{
+                      background: isPast
+                        ? 'linear-gradient(180deg, rgba(57,255,20,0.12), rgba(57,255,20,0.04))'
+                        : isCurrent
+                        ? 'linear-gradient(180deg, rgba(249,115,22,0.2), rgba(249,115,22,0.06))'
+                        : 'rgba(255,255,255,0.02)',
+                      border: isPast
+                        ? '1.5px solid rgba(57,255,20,0.4)'
+                        : isCurrent
+                        ? `2px solid rgba(249,115,22,${checkinClaimed ? '0.8' : '0.3'})`
+                        : '1.5px solid rgba(255,255,255,0.08)',
+                      boxShadow: isCurrent && checkinClaimed
+                        ? '0 0 15px rgba(249,115,22,0.3), inset 0 0 10px rgba(249,115,22,0.1)'
+                        : isPast
+                        ? '0 0 8px rgba(57,255,20,0.1)'
+                        : 'none',
+                    }}
+                  >
+                    {/* Pulse animation on claimable day */}
+                    {isCurrent && checkinClaimed && (
+                      <motion.div
+                        className="absolute inset-0 rounded-lg pointer-events-none"
+                        style={{ border: '2px solid rgba(249,115,22,0.5)' }}
+                        animate={{ opacity: [0.3, 0.8, 0.3] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                    )}
+
+                    {/* Day label */}
+                    <span className="font-ninja text-[10px] tracking-wider mb-1" style={{
+                      color: isPast ? '#39FF14' : isCurrent ? '#F97316' : '#555',
+                    }}>
+                      D{sr.day}
+                    </span>
+
+                    {/* Icon / Status */}
+                    {isPast ? (
+                      <CheckCircle2 size={20} style={{ color: '#39FF14', filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
+                    ) : isCurrent ? (
+                      isDay7 ? (
+                        <Gift size={20} style={{ color: checkinClaimed ? '#F97316' : '#555', filter: checkinClaimed ? 'drop-shadow(0 0 6px rgba(249,115,22,0.6))' : 'none' }} />
+                      ) : (
+                        <Coins size={20} style={{ color: checkinClaimed ? '#F97316' : '#555', filter: checkinClaimed ? 'drop-shadow(0 0 4px rgba(249,115,22,0.5))' : 'none' }} />
+                      )
+                    ) : (
+                      <Lock size={16} style={{ color: '#333' }} />
+                    )}
+
+                    {/* Reward amount */}
+                    <span className="font-ninja text-sm mt-1" style={{
+                      color: isPast ? '#39FF14' : isCurrent ? (checkinClaimed ? '#FFD700' : '#555') : '#333',
+                      textShadow: isPast ? '0 0 6px rgba(57,255,20,0.4)' : isCurrent && checkinClaimed ? '0 0 6px rgba(255,215,0,0.4)' : 'none',
+                    }}>
+                      +{sr.coins}
+                    </span>
+                  </div>
+
+                  {/* Connector line between days */}
+                  {i < 6 && (
+                    <div className="absolute top-1/2 -right-1.5 w-2 h-[2px]" style={{
+                      background: isPast && (streakDay > sr.day + 1 || (streakDay === sr.day + 1 && streakRewardClaimed))
+                        ? '#39FF14'
+                        : 'rgba(255,255,255,0.08)',
+                    }} />
+                  )}
+                </motion.div>
+              );
+            })}
+
+            {/* ── +10 BONUS card after day 7 ── */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6 }}
+              className="flex-1 relative"
+            >
+              {(() => {
+                const allStreakDone = streakDay === 7 && streakRewardClaimed;
+                return (
+                  <div
+                    className="relative rounded-lg flex flex-col items-center justify-center py-2.5 px-1 transition-all"
+                    style={{
+                      background: allStreakDone
+                        ? 'linear-gradient(180deg, rgba(255,215,0,0.18), rgba(255,215,0,0.06))'
+                        : 'rgba(255,255,255,0.02)',
+                      border: allStreakDone
+                        ? '2px solid rgba(255,215,0,0.6)'
+                        : '1.5px solid rgba(255,255,255,0.08)',
+                      boxShadow: allStreakDone
+                        ? '0 0 18px rgba(255,215,0,0.25), inset 0 0 12px rgba(255,215,0,0.08)'
+                        : 'none',
+                    }}
+                  >
+                    {/* Shimmer on bonus when unlocked */}
+                    {allStreakDone && (
+                      <motion.div
+                        className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden"
+                        style={{ border: '2px solid rgba(255,215,0,0.5)' }}
+                        animate={{ opacity: [0.3, 0.9, 0.3] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      />
+                    )}
+                    <span className="font-ninja text-[9px] tracking-wider mb-1" style={{
+                      color: allStreakDone ? '#FFD700' : '#333',
+                    }}>
+                      BONUS
+                    </span>
+                    <Sparkles size={20} style={{
+                      color: allStreakDone ? '#FFD700' : '#333',
+                      filter: allStreakDone ? 'drop-shadow(0 0 6px rgba(255,215,0,0.8))' : 'none',
+                    }} />
+                    <span className="font-ninja text-sm mt-1" style={{
+                      color: allStreakDone ? '#FFD700' : '#333',
+                      textShadow: allStreakDone ? '0 0 8px rgba(255,215,0,0.5)' : 'none',
+                    }}>
+                      +{STREAK_COMPLETION_BONUS}
+                    </span>
+                  </div>
+                );
+              })()}
+            </motion.div>
+          </div>
+
+          {/* Claim button row — only when current day is claimable */}
+          {streakCanClaim && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mt-3 flex items-center justify-center"
+            >
+              <motion.button
+                whileHover={{ scale: 1.05, boxShadow: '0 0 20px rgba(249,115,22,0.5)' }}
+                whileTap={{ scale: 0.92 }}
+                onClick={handleClaimStreakReward}
+                disabled={claimingStreak}
+                className="px-6 py-2 rounded-lg font-ninja text-sm tracking-wider text-black flex items-center gap-2"
+                style={{
+                  background: 'linear-gradient(135deg, #F97316, #FB923C)',
+                  boxShadow: '0 0 14px rgba(249,115,22,0.4)',
+                }}
+              >
+                {claimingStreak ? (
+                  <Loader2 size={14} className="animate-spin" />
+                ) : chestOpening ? (
+                  <>
+                    <Package size={14} className="animate-bounce" /> OPENING...
+                  </>
+                ) : (
+                  <>
+                    <Flame size={14} /> CLAIM DAY {streakDay} {todayStreakReward?.chest ? '+ CHEST' : ''}
+                  </>
+                )}
+              </motion.button>
+            </motion.div>
+          )}
+
+          {/* Streak reward already claimed today */}
+          {streakRewardClaimed && checkinClaimed && (
+            <div className="mt-3 flex items-center justify-center gap-2">
+              <CheckCircle2 size={14} className="text-green-500" />
+              <span className="font-body text-xs text-gray-500">Day {streakDay} reward claimed — come back tomorrow!</span>
+            </div>
+          )}
+        </motion.div>
+
+        {/* ═══ FREE CHEST REVEAL (Day 7) ═══ */}
+        <AnimatePresence>
+          {chestRevealed && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
+              className="mb-5 relative rounded-xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(249,115,22,0.15), rgba(255,215,0,0.1))',
+                border: '2px solid rgba(255,215,0,0.5)',
+                boxShadow: '0 0 30px rgba(255,215,0,0.2)',
+                padding: '20px',
+              }}
+            >
+              <div className="flex flex-col items-center gap-3">
+                <motion.div
+                  animate={{ rotate: [0, -5, 5, -3, 3, 0], scale: [1, 1.1, 1] }}
+                  transition={{ duration: 0.6 }}
+                >
+                  <Gift size={40} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 12px rgba(255,215,0,0.8))' }} />
+                </motion.div>
+                <span className="font-ninja text-2xl text-yellow-400 tracking-wider" style={{ textShadow: '0 0 15px rgba(255,215,0,0.5)' }}>
+                  STREAK CHEST OPENED!
+                </span>
+                <div className="flex items-center gap-2">
+                  <Coins size={22} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.6))' }} />
+                  <span className="font-ninja text-3xl text-yellow-400" style={{ textShadow: '0 0 12px rgba(255,215,0,0.6)' }}>
+                    {chestRevealed.name}
+                  </span>
+                </div>
+                <span className="font-body text-xs text-gray-400">Bonus reward for 7-day streak!</span>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         {/* ═══ PROGRESS BAR ═══ */}
-        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}
+        <motion.div initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
           className="mb-5 relative"
           style={{
             background: 'linear-gradient(135deg, rgba(0,20,30,0.8), rgba(0,15,25,0.6))',
