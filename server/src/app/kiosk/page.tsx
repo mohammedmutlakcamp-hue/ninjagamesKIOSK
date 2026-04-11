@@ -749,12 +749,15 @@ export default function KioskPage() {
                             type="text"
                             value={username}
                             onChange={(e) => setUsername(e.target.value.replace(/[^a-zA-Z0-9_\u0600-\u06FF\u0750-\u077F]/g, ''))}
-                            className="relative w-full rounded-lg pl-11 pr-4 py-4 text-white font-mono text-base tracking-wider outline-none transition-all z-[1]"
+                            className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-base tracking-wider outline-none transition-all z-[1]"
                             style={{
-                              background: 'rgba(8,12,18,0.7)',
+                              background: 'rgba(8,12,18,0.9)',
                               backdropFilter: 'blur(8px)',
                               border: '1px solid rgba(57,255,20,0.2)',
                               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.4)',
+                              color: '#ffffff',
+                              colorScheme: 'dark',
+                              WebkitTextFillColor: '#ffffff',
                             }}
                             placeholder={t(lang, 'username_placeholder')}
                             autoFocus
@@ -775,13 +778,16 @@ export default function KioskPage() {
                             type="password"
                             value={pin}
                             onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="relative w-full rounded-lg pl-11 pr-4 py-4 text-white font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
+                            className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
                             style={{
-                              background: 'rgba(8,12,18,0.7)',
+                              background: 'rgba(8,12,18,0.9)',
                               backdropFilter: 'blur(8px)',
                               border: '1px solid rgba(57,255,20,0.2)',
                               boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.4)',
                               textShadow: '0 0 10px rgba(57,255,20,0.6)',
+                              color: '#ffffff',
+                              colorScheme: 'dark',
+                              WebkitTextFillColor: '#ffffff',
                             }}
                             placeholder="• • • • • •"
                             maxLength={6}
