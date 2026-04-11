@@ -494,9 +494,9 @@ export function AdminChatDashboard({ admin }: Props) {
     const activeChat = chats.find(c => c.id === activeChatId);
     return (
       <div className="min-h-screen bg-[#0a0a0a] flex flex-col" style={{ height: '100dvh' }}>
-        {/* Header */}
+        {/* Header — pushed below iPhone status bar */}
         <div className="flex items-center gap-3 px-4 py-3 border-b border-white/5 shrink-0"
-          style={{ background: 'rgba(10,10,10,0.98)' }}>
+          style={{ background: 'rgba(10,10,10,0.98)', paddingTop: 'max(12px, env(safe-area-inset-top, 12px))' }}>
           <button onClick={() => setActiveChatId(null)} className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/5 active:bg-white/10 transition-all">
             <ArrowLeft size={20} />
           </button>

@@ -59,6 +59,8 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
   // Bubble position for dragging
   const [bubblePos, setBubblePos] = useState({ x: 0, y: 0 });
   const dragConstraintsRef = useRef<HTMLDivElement>(null);
+  const isDraggingRef = useRef(false);
+  const dragStartPos = useRef({ x: 0, y: 0 });
 
   // Find or create support chat for this player
   useEffect(() => {
@@ -207,12 +209,26 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             dragConstraints={dragConstraintsRef}
             dragElastic={0.1}
             dragMomentum={false}
+            onDragStart={(_, info) => {
+              isDraggingRef.current = false;
+              dragStartPos.current = { x: info.point.x, y: info.point.y };
+            }}
+            onDrag={(_, info) => {
+              const dx = Math.abs(info.point.x - dragStartPos.current.x);
+              const dy = Math.abs(info.point.y - dragStartPos.current.y);
+              if (dx > 5 || dy > 5) isDraggingRef.current = true;
+            }}
+            onDragEnd={() => {
+              // Small delay so onPointerUp can check isDragging
+              setTimeout(() => { isDraggingRef.current = false; }, 100);
+            }}
+            onPointerUp={() => {
+              if (!isDraggingRef.current) openChat();
+            }}
             initial={{ scale: 0, opacity: 0, x: 0, y: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onTap={openChat}
             className={`fixed ${isMobile ? 'bottom-20 left-4' : 'bottom-6 left-6'} ${bubbleSize} z-[90] rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing`}
             style={{
               background: 'linear-gradient(135deg, #39ff14 0%, #00cc44 100%)',
