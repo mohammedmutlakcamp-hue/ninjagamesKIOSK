@@ -134,9 +134,31 @@ export function MenuManagement() {
 
             <h3 className="text-sm font-semibold text-[#1d1d1f] mb-1">{item.name}</h3>
             <p className="text-xs text-[#86868b] mb-2 line-clamp-2">{item.description}</p>
-            <p className="text-lg font-semibold text-[#0071e3] mb-3 flex items-center gap-1">
-              <Coins size={14} /> {item.price}
-            </p>
+
+            {/* Inline editable price + prep time */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <div>
+                <label className="text-[9px] text-[#86868b] font-medium uppercase">Price</label>
+                <div className="flex items-center gap-1 mt-0.5">
+                  <Coins size={12} className="text-[#0071e3] shrink-0" />
+                  <input type="number" defaultValue={item.price}
+                    onBlur={(e) => {
+                      const val = parseInt(e.target.value);
+                      if (val > 0 && val !== item.price) updateDoc(doc(db, 'menu', item.id), { price: val });
+                    }}
+                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-2 py-1 text-sm font-semibold text-[#0071e3] focus:border-[#0071e3] outline-none" />
+                </div>
+              </div>
+              <div>
+                <label className="text-[9px] text-[#86868b] font-medium uppercase">Prep (min)</label>
+                <input type="number" defaultValue={item.preparationTime}
+                  onBlur={(e) => {
+                    const val = parseInt(e.target.value);
+                    if (val >= 0 && val !== item.preparationTime) updateDoc(doc(db, 'menu', item.id), { preparationTime: val });
+                  }}
+                  className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-2 py-1 text-sm text-[#1d1d1f] focus:border-[#0071e3] outline-none mt-0.5" />
+              </div>
+            </div>
 
             <div className="flex gap-2">
               <button onClick={() => openEdit(item)}
