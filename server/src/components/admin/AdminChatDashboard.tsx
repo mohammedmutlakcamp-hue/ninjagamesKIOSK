@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
 import {
-  collection, onSnapshot, doc, updateDoc, addDoc, query, orderBy, limit, where, getDoc
+  collection, onSnapshot, doc, updateDoc, addDoc, query, orderBy, limit, where, getDoc, getDocs
 } from 'firebase/firestore';
 import {
   MessageCircle, ShoppingBag, Coins, Crown, UserPlus, Flame,
@@ -243,6 +243,12 @@ export function AdminChatDashboard({ admin }: Props) {
   const [guestTimeSelection, setGuestTimeSelection] = useState<Record<string, number>>({});
   const [processing, setProcessing] = useState<string | null>(null);
 
+  // Add coins
+  const [addCoinsUsername, setAddCoinsUsername] = useState('');
+  const [addCoinsAmount, setAddCoinsAmount] = useState('');
+  const [addCoinsLoading, setAddCoinsLoading] = useState(false);
+  const [addCoinsMsg, setAddCoinsMsg] = useState<{ text: string; ok: boolean } | null>(null);
+
   // New alert
   const [alertText, setAlertText] = useState<string | null>(null);
   const prevFoodRef = useRef(0);
@@ -418,6 +424,37 @@ export function AdminChatDashboard({ admin }: Props) {
     setProcessing(id);
     await updateDoc(doc(db, 'topup-requests', id), { status: 'rejected', rejectedAt: Date.now() });
     setProcessing(null);
+  };
+
+  const addCoinsToPlayer = async () => {
+    const username = addCoinsUsername.trim().toLowerCase();
+    const amount = parseInt(addCoinsAmount);
+    if (!username || !amount || amount <= 0) {
+      setAddCoinsMsg({ text: 'Enter username and valid amount', ok: false });
+      return;
+    }
+    setAddCoinsLoading(true);
+    setAddCoinsMsg(null);
+    try {
+      const q = query(collection(db, 'players'), where('username', '==', username));
+      const snap = await getDocs(q);
+      if (snap.empty) {
+        setAddCoinsMsg({ text: 'Player not found', ok: false });
+        setAddCoinsLoading(false);
+        return;
+      }
+      const playerDoc = snap.docs[0];
+      const currentCoins = playerDoc.data().coins || 0;
+      await updateDoc(doc(db, 'players', playerDoc.id), { coins: currentCoins + amount });
+      setAddCoinsMsg({ text: `Added ${amount} coins to ${username.toUpperCase()}`, ok: true });
+      setAddCoinsUsername('');
+      setAddCoinsAmount('');
+      setTimeout(() => setAddCoinsMsg(null), 4000);
+    } catch (err) {
+      console.error(err);
+      setAddCoinsMsg({ text: 'Failed to add coins', ok: false });
+    }
+    setAddCoinsLoading(false);
   };
 
   const approveVIP = async (req: VIPRequest) => {
@@ -759,6 +796,42 @@ export function AdminChatDashboard({ admin }: Props) {
             </div>
 
             <div className="px-4 pb-4 space-y-3">
+              {/* ADD COINS — always visible */}
+              <div className="rounded-xl border border-yellow-500/15 p-3.5" style={{ background: 'rgba(255,215,0,0.03)' }}>
+                <p className="font-ninja text-xs text-yellow-400 mb-2.5 flex items-center gap-1.5">
+                  <Coins size={13} /> ADD COINS TO PLAYER
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={addCoinsUsername}
+                    onChange={(e) => setAddCoinsUsername(e.target.value)}
+                    placeholder="Username"
+                    className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-body placeholder-gray-600 focus:border-yellow-500/30 outline-none"
+                  />
+                  <input
+                    type="number"
+                    value={addCoinsAmount}
+                    onChange={(e) => setAddCoinsAmount(e.target.value)}
+                    placeholder="Amount"
+                    className="w-24 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-sm text-white font-body placeholder-gray-600 focus:border-yellow-500/30 outline-none"
+                  />
+                  <button
+                    onClick={addCoinsToPlayer}
+                    disabled={addCoinsLoading || !addCoinsUsername.trim() || !addCoinsAmount}
+                    className="px-4 py-2 rounded-lg font-ninja text-xs bg-yellow-500/15 text-yellow-400 border border-yellow-500/20 active:bg-yellow-500/30 transition-all disabled:opacity-40 flex items-center gap-1.5"
+                  >
+                    {addCoinsLoading ? <Loader2 size={13} className="animate-spin" /> : <Coins size={13} />}
+                    ADD
+                  </button>
+                </div>
+                {addCoinsMsg && (
+                  <p className={`font-body text-xs mt-2 ${addCoinsMsg.ok ? 'text-green-400' : 'text-red-400'}`}>
+                    {addCoinsMsg.text}
+                  </p>
+                )}
+              </div>
+
               {/* TOP-UPS */}
               {requestFilter === 'topups' && (
                 topUpRequests.length === 0 ? (
