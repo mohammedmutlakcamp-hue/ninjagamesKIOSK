@@ -61,106 +61,7 @@ function GlowOrb({ color, size, x, y, delay = 0 }: { color: string; size: number
   );
 }
 
-// ── Loading intro animation ─────────────────────────────────────
-function VIPLoadingIntro({ onComplete }: { onComplete: () => void }) {
-  const [phase, setPhase] = useState(0);
-
-  useEffect(() => {
-    const t1 = setTimeout(() => setPhase(1), 300);
-    const t2 = setTimeout(() => setPhase(2), 900);
-    const t3 = setTimeout(() => setPhase(3), 1500);
-    const t4 = setTimeout(() => onComplete(), 2200);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); clearTimeout(t4); };
-  }, [onComplete]);
-
-  return (
-    <motion.div
-      initial={{ opacity: 1 }}
-      exit={{ opacity: 0, scale: 1.1 }}
-      transition={{ duration: 0.5 }}
-      className="absolute inset-0 z-[50] flex flex-col items-center justify-center"
-      style={{ background: 'radial-gradient(ellipse at center, #0a1628 0%, #050a14 40%, #020408 100%)' }}
-    >
-      {/* Radial pulse rings */}
-      {phase >= 0 && (
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: [0, 3], opacity: [0.5, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut' }}
-          className="absolute rounded-full"
-          style={{ width: 100, height: 100, border: '2px solid rgba(57,255,20,0.3)' }}
-        />
-      )}
-      {phase >= 1 && (
-        <motion.div
-          initial={{ scale: 0, opacity: 0 }}
-          animate={{ scale: [0, 3], opacity: [0.4, 0] }}
-          transition={{ duration: 2, repeat: Infinity, ease: 'easeOut', delay: 0.5 }}
-          className="absolute rounded-full"
-          style={{ width: 100, height: 100, border: '2px solid rgba(120,80,255,0.3)' }}
-        />
-      )}
-
-      {/* Shield / crown icon */}
-      <motion.div
-        initial={{ scale: 0, rotate: -180 }}
-        animate={phase >= 1 ? { scale: 1, rotate: 0 } : {}}
-        transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-        className="relative z-10"
-      >
-        <motion.div
-          animate={phase >= 2 ? { boxShadow: ['0 0 30px rgba(57,255,20,0.3)', '0 0 60px rgba(57,255,20,0.6)', '0 0 30px rgba(57,255,20,0.3)'] } : {}}
-          transition={{ duration: 1.5, repeat: Infinity }}
-          className="w-24 h-24 rounded-2xl flex items-center justify-center"
-          style={{
-            background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(120,80,255,0.1))',
-            border: '2px solid rgba(57,255,20,0.4)',
-          }}
-        >
-          <Crown size={48} style={{ color: '#39FF14', filter: 'drop-shadow(0 0 15px rgba(57,255,20,0.8))' }} />
-        </motion.div>
-      </motion.div>
-
-      {/* Text reveal */}
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={phase >= 2 ? { opacity: 1, y: 0 } : {}}
-        transition={{ duration: 0.5 }}
-        className="mt-6 text-center z-10"
-      >
-        <h2 className="font-ninja text-2xl tracking-[0.3em]" style={{ color: '#39FF14', textShadow: '0 0 30px rgba(57,255,20,0.5)' }}>
-          VIP ZONE
-        </h2>
-        <motion.div
-          initial={{ width: 0 }}
-          animate={phase >= 2 ? { width: 120 } : {}}
-          transition={{ duration: 0.6, delay: 0.2 }}
-          className="h-[2px] mx-auto mt-2"
-          style={{ background: 'linear-gradient(90deg, transparent, #39FF14, rgba(120,80,255,0.8), transparent)' }}
-        />
-      </motion.div>
-
-      {/* Loading dots */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={phase >= 3 ? { opacity: 1 } : {}}
-        className="flex gap-2 mt-6"
-      >
-        {[0, 1, 2].map(i => (
-          <motion.div
-            key={i}
-            animate={{ scale: [1, 1.5, 1], opacity: [0.3, 1, 0.3] }}
-            transition={{ duration: 0.8, repeat: Infinity, delay: i * 0.15 }}
-            className="w-2 h-2 rounded-full"
-            style={{ background: '#39FF14' }}
-          />
-        ))}
-      </motion.div>
-
-      <FloatingParticles color="rgba(57,255,20,0.6)" count={15} />
-    </motion.div>
-  );
-}
+// No loading intro — direct content reveal
 
 export function VIPTab({ player }: Props) {
   const isVIP = player.vip?.active === true && (player.vip?.expiresAt || 0) > Date.now();
@@ -172,8 +73,7 @@ export function VIPTab({ player }: Props) {
   const hasFreePlay = freePlayUntil > Date.now();
   const freePlayMinutes = hasFreePlay ? Math.ceil((freePlayUntil - Date.now()) / 60000) : 0;
 
-  const [showLoading, setShowLoading] = useState(true);
-  const [contentReady, setContentReady] = useState(false);
+  // No loading gate — content shows immediately
   const [vipPlayers, setVipPlayers] = useState<any[]>([]);
   const [vipStats, setVipStats] = useState({ totalVip: 0, totalSpent: 0, avgPlaytime: 0 });
 
@@ -256,13 +156,6 @@ export function VIPTab({ player }: Props) {
       className="relative w-full h-full overflow-hidden"
       style={{ background: `radial-gradient(ellipse at 50% 0%, rgba(57,255,20,0.03) 0%, ${DARK_BG} 60%)` }}
     >
-      {/* Loading intro */}
-      <AnimatePresence>
-        {showLoading && (
-          <VIPLoadingIntro onComplete={() => { setShowLoading(false); setContentReady(true); }} />
-        )}
-      </AnimatePresence>
-
       {/* Background decorations */}
       <div className="absolute inset-0 pointer-events-none">
         <GlowOrb color={GREEN} size={300} x="-5%" y="-10%" delay={0} />
@@ -280,15 +173,9 @@ export function VIPTab({ player }: Props) {
       />
 
       {/* Main content */}
-      <AnimatePresence>
-        {contentReady && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6 }}
-            className="relative z-10 w-full h-full overflow-y-auto overflow-x-hidden"
-            style={{ scrollbarWidth: 'thin', scrollbarColor: `${GREEN}30 transparent` }}
-          >
+      <div className="relative z-10 w-full h-full overflow-y-auto overflow-x-hidden"
+        style={{ scrollbarWidth: 'thin', scrollbarColor: `${GREEN}30 transparent` }}
+      >
             <div className="max-w-[780px] mx-auto px-6 py-6 space-y-5">
 
               {/* ══════════════════ HERO CARD ══════════════════ */}
@@ -909,9 +796,7 @@ export function VIPTab({ player }: Props) {
                 {VIP_CONFIG.priceCoins.toLocaleString()} coins · 30 days · {VIP_CONFIG.cafeDiscountPercent}% cafe discount · exclusive skins · daily gifts
               </motion.p>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      </div>
 
       {/* ══════════════════ INVITE MODAL ══════════════════ */}
       <AnimatePresence>

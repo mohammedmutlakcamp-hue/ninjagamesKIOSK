@@ -654,7 +654,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     { id: 'store' as Tab, label: 'Store', icon: <ShoppingBag size={20} />, color: '#FF6F00' },
     { id: 'food' as Tab, label: 'Food & Snacks', icon: <UtensilsCrossed size={20} />, color: '#F97316' },
     { id: 'hubbly' as Tab, label: 'Hubbly Bubbly', icon: <Flame size={20} />, color: '#06B6D4' },
-    { id: 'vip' as Tab, label: 'VIP', icon: <Crown size={20} />, color: '#FFD700' },
+    { id: 'vip' as Tab, label: 'VIP', icon: <Crown size={20} />, color: '#39FF14' },
     { id: 'plinko' as Tab, label: 'Plinko', icon: <CircleDot size={20} />, color: '#FF2D55' },
   ] as { id: Tab; label: string; icon: React.ReactNode; color?: string }[])
     .filter(item => visibleTabs[item.id] !== false);
@@ -1277,13 +1277,13 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   className={`${sidebarCollapsed ? 'w-full justify-center' : 'w-full'} flex items-center gap-3 px-3 ${isVIPButton ? 'py-3' : 'py-2.5'} text-left transition-all relative group rounded-lg overflow-hidden`}
                   title={sidebarCollapsed ? item.label : undefined}
                   style={isVIPButton ? (isActive ? {
-                    background: 'linear-gradient(135deg, rgba(57,255,20,0.12), rgba(120,80,255,0.08), rgba(0,200,255,0.06))',
-                    border: '1px solid rgba(57,255,20,0.45)',
-                    boxShadow: '0 0 20px rgba(57,255,20,0.15), 0 0 40px rgba(120,80,255,0.08), inset 0 0 25px rgba(57,255,20,0.06)',
+                    background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(120,80,255,0.10), rgba(0,200,255,0.08))',
+                    border: '1px solid rgba(57,255,20,0.5)',
+                    boxShadow: '0 0 25px rgba(57,255,20,0.2), 0 0 50px rgba(120,80,255,0.1), inset 0 1px 0 rgba(255,255,255,0.08)',
                   } : {
-                    background: 'linear-gradient(135deg, rgba(57,255,20,0.06), rgba(120,80,255,0.04), rgba(0,200,255,0.03))',
-                    border: '1px solid rgba(57,255,20,0.18)',
-                    boxShadow: '0 0 12px rgba(57,255,20,0.08)',
+                    background: 'linear-gradient(180deg, rgba(57,255,20,0.08) 0%, rgba(120,80,255,0.05) 50%, rgba(0,200,255,0.04) 100%)',
+                    border: '1px solid rgba(57,255,20,0.22)',
+                    boxShadow: '0 0 15px rgba(57,255,20,0.1), inset 0 1px 0 rgba(255,255,255,0.06)',
                   }) : (isActive ? {
                     background: `linear-gradient(135deg, ${itemColor}18, ${itemColor}08)`,
                     border: `1px solid ${itemColor}40`,
@@ -1313,12 +1313,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   {!isActive && (
                     <div className="absolute left-[3px] top-1/2 -translate-y-1/2 w-[4px] h-[4px] rounded-full opacity-0 group-hover:opacity-100 transition-opacity" style={{ background: itemColor, boxShadow: `0 0 4px ${itemColor}` }} />
                   )}
-                  {/* VIP button animated shimmer */}
-                  {isVIPButton && !isActive && (
+                  {/* VIP metallic shimmer sweep */}
+                  {isVIPButton && (
                     <motion.div className="absolute inset-0 pointer-events-none rounded-lg overflow-hidden"
-                      animate={{ backgroundPosition: ['0% 50%', '200% 50%'] }}
-                      transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
-                      style={{ background: 'linear-gradient(90deg, transparent 0%, rgba(57,255,20,0.04) 25%, rgba(120,80,255,0.06) 50%, rgba(57,255,20,0.04) 75%, transparent 100%)', backgroundSize: '200% 100%' }} />
+                      animate={{ backgroundPosition: ['200% 0%', '-100% 0%'] }}
+                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 3 }}
+                      style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.08) 45%, rgba(57,255,20,0.12) 50%, rgba(255,255,255,0.08) 55%, transparent 70%)', backgroundSize: '200% 100%' }} />
                   )}
                   <span
                     className="relative z-10 transition-all"
