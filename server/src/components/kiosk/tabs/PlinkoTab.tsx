@@ -129,7 +129,12 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
   const luckRef = useRef(50);
 
   const playerCoins = player?.coins ?? 0;
+  const pendingBetsRef = useRef(0);
+  const effectiveCoins = playerCoins - pendingBetsRef.current;
   const isAdmin = player?.username === 'مالبورو' || player?.isAdmin;
+
+  // Reset pending bets when Firestore updates coin balance
+  useEffect(() => { pendingBetsRef.current = 0; }, [playerCoins]);
 
   // Keep luckRef in sync
   useEffect(() => { luckRef.current = luckFactor; }, [luckFactor]);
@@ -257,12 +262,15 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
 
   // ─── Drop Ball ────────────────────────────────────────────────────────────
   const dropBall = useCallback(async () => {
-    if (playerCoins < betAmount || betAmount <= 0) return;
+    const available = playerCoins - pendingBetsRef.current;
+    if (available < betAmount || betAmount <= 0) return;
+    pendingBetsRef.current += betAmount;
 
     try {
       await updateDoc(doc(db, 'players', player.uid), { coins: increment(-betAmount) });
     } catch (e) {
       console.error('Failed to deduct coins:', e);
+      pendingBetsRef.current = Math.max(0, pendingBetsRef.current - betAmount);
       return;
     }
 
@@ -626,7 +634,7 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
 
           <div className="flex items-center gap-2 mt-2.5">
             <Coins size={12} className="text-yellow-400" />
-            <span className="text-[11px] text-gray-500">Balance: <span className="text-white font-bold">{Math.floor(playerCoins).toLocaleString()}</span></span>
+            <span className="text-[11px] text-gray-500">Balance: <span className="text-white font-bold">{Math.floor(effectiveCoins).toLocaleString()}</span></span>
           </div>
         </div>
 
@@ -685,14 +693,14 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
         {/* Drop Button */}
         <button
           onClick={dropBall}
-          disabled={playerCoins < betAmount || betAmount <= 0}
+          disabled={effectiveCoins < betAmount || betAmount <= 0}
           className="w-full py-3.5 rounded-xl text-base font-black uppercase tracking-widest transition-all active:scale-[0.97]"
           style={{
-            background: playerCoins >= betAmount && betAmount > 0
+            background: effectiveCoins >= betAmount && betAmount > 0
               ? 'linear-gradient(135deg, #39FF14, #00C853)'
               : 'rgba(255,255,255,0.04)',
-            color: playerCoins >= betAmount && betAmount > 0 ? '#000' : '#444',
-            boxShadow: playerCoins >= betAmount && betAmount > 0 ? '0 0 25px rgba(57,255,20,0.25)' : 'none',
+            color: effectiveCoins >= betAmount && betAmount > 0 ? '#000' : '#444',
+            boxShadow: effectiveCoins >= betAmount && betAmount > 0 ? '0 0 25px rgba(57,255,20,0.25)' : 'none',
           }}
         >
           Drop Ball
