@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 28 28">
+  <defs>
+    <filter id="glow">
+      <feGaussianBlur stdDeviation="1" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <!-- Blade -->
+  <polygon points="2,2 6,14 4,13 2,14" fill="#39FF14" filter="url(#glow)"/>
+  <polygon points="2,2 6,14 4,13 2,14" fill="#5fff44" opacity="0.6"/>
+  <!-- Handle -->
+  <line x1="4" y1="14" x2="8" y2="22" stroke="#666" stroke-width="2" stroke-linecap="round"/>
+  <line x1="4" y1="14" x2="8" y2="22" stroke="#39FF14" stroke-width="0.5" stroke-linecap="round" opacity="0.5"/>
+  <!-- Wrap bands -->
+  <line x1="4.8" y1="15.5" x2="6.5" y2="16.5" stroke="#39FF14" stroke-width="0.8" opacity="0.7"/>
+  <line x1="5.5" y1="17" x2="7.2" y2="18" stroke="#39FF14" stroke-width="0.8" opacity="0.7"/>
+  <line x1="6.2" y1="18.5" x2="7.9" y2="19.5" stroke="#39FF14" stroke-width="0.8" opacity="0.7"/>
+  <!-- Ring -->
+  <circle cx="9.5" cy="24" r="2.5" fill="none" stroke="#39FF14" stroke-width="1.2" filter="url(#glow)"/>
+</svg>

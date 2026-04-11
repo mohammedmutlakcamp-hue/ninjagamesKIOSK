@@ -1,0 +1,21 @@
+{
+  "firestore": {
+    "rules": "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    // Players - read by username+pin combo, write by admin\n    match /players/{playerId} {\n      allow read: if true;\n      allow write: if true;\n    }\n    \n    // PCs - readable by all, writable by admins and kiosk\n    match /pcs/{pcId} {\n      allow read: if true;\n      allow write: if true;\n    }\n    \n    // Menu items - readable by all, writable by admins\n    match /menu/{itemId} {\n      allow read: if true;\n      allow write: if true;\n    }\n    \n    // Orders\n    match /orders/{orderId} {\n      allow read: if true;\n      allow write: if true;\n    }\n    \n    // Reservations\n    match /reservations/{resId} {\n      allow read: if true;\n      allow write: if true;\n    }\n    \n    // Admins - only authenticated admins\n    match /admins/{adminId} {\n      allow read: if request.auth != null;\n      allow write: if false;\n    }\n    \n    // Config\n    match /config/{doc} {\n      allow read: if true;\n      allow write: if true;\n    }\n  }\n}"
+  },
+  "database": {
+    "rules": {
+      "commands": {
+        "$pcId": {
+          ".read": true,
+          ".write": true
+        }
+      },
+      "heartbeats": {
+        "$pcId": {
+          ".read": true,
+          ".write": true
+        }
+      }
+    }
+  }
+}

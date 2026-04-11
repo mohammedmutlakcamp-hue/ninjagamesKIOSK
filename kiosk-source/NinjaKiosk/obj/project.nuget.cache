@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "dgSpecHash": "WJQM8Oi7gBs=",
+  "success": true,
+  "projectFilePath": "C:\\Users\\vip-2\\Desktop\\Ninja Games Kiosk Final 2026\\kiosk-source\\NinjaKiosk\\NinjaKiosk.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\vip-2\\.nuget\\packages\\microsoft.web.webview2\\1.0.3856.49\\microsoft.web.webview2.1.0.3856.49.nupkg.sha512",
+    "C:\\Users\\vip-2\\.nuget\\packages\\system.security.cryptography.protecteddata\\8.0.0\\system.security.cryptography.protecteddata.8.0.0.nupkg.sha512",
+    "C:\\Users\\vip-2\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.25\\microsoft.netcore.app.runtime.win-x64.8.0.25.nupkg.sha512",
+    "C:\\Users\\vip-2\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.25\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.25.nupkg.sha512",
+    "C:\\Users\\vip-2\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.25\\microsoft.aspnetcore.app.runtime.win-x64.8.0.25.nupkg.sha512"
+  ],
+  "logs": []
+}

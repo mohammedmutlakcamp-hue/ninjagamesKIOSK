@@ -1,0 +1,21 @@
+{
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/admin-notify/route": "app/api/admin-notify/route.js",
+  "/api/notify-admin/route": "app/api/notify-admin/route.js",
+  "/api/reset-pins/route": "app/api/reset-pins/route.js",
+  "/api/notifications/route": "app/api/notifications/route.js",
+  "/api/cleanup-calls/route": "app/api/cleanup-calls/route.js",
+  "/api/reset-players/route": "app/api/reset-players/route.js",
+  "/api/seed-menu/route": "app/api/seed-menu/route.js",
+  "/api/stats/lol/route": "app/api/stats/lol/route.js",
+  "/api/stats/fortnite/route": "app/api/stats/fortnite/route.js",
+  "/api/stats/valorant/route": "app/api/stats/valorant/route.js",
+  "/info/page": "app/info/page.js",
+  "/page": "app/page.js",
+  "/reserve/page": "app/reserve/page.js",
+  "/api/stats/steam/route": "app/api/stats/steam/route.js",
+  "/kiosk/page": "app/kiosk/page.js",
+  "/ghanimadmin/page": "app/ghanimadmin/page.js",
+  "/app/page": "app/app/page.js",
+  "/adminchat/page": "app/adminchat/page.js"
+}

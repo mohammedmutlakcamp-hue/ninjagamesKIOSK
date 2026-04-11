@@ -1,0 +1,24 @@
+{
+  "components\\admin\\AdminDashboard.tsx -> firebase/firestore": {
+    "id": 5978,
+    "files": []
+  },
+  "components\\admin\\TopUpRequests.tsx -> firebase/firestore": {
+    "id": 5978,
+    "files": []
+  },
+  "components\\kiosk\\KioskDashboard.tsx -> firebase/firestore": {
+    "id": 5978,
+    "files": []
+  },
+  "components\\kiosk\\tabs\\InventoryTab.tsx -> firebase/firestore": {
+    "id": 5978,
+    "files": []
+  },
+  "lib\\voice-call.ts -> peerjs": {
+    "id": 4370,
+    "files": [
+      "static/chunks/370.e97423550c37d540.js"
+    ]
+  }
+}

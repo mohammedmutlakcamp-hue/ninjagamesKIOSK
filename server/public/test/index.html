@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OneSignal Test</title>
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(function(OneSignal) {
+      OneSignal.init({
+        appId: "236a3577-a482-4cb5-a810-8daccc0272ff",
+        safari_web_id: "web.onesignal.auto.3cfe9839-ceab-4809-9212-172318dbfb2e",
+        notifyButton: { enable: true },
+      }).then(function() {
+        document.getElementById('status').textContent = 'OneSignal initialized!';
+
+        // Check permission
+        OneSignal.Notifications.permission.then(function(perm) {
+          document.getElementById('permission').textContent = 'Permission: ' + perm;
+        });
+
+        // Get subscription
+        OneSignal.User.PushSubscription.addEventListener('change', function(event) {
+          document.getElementById('sub').textContent = 'Subscription: ' + JSON.stringify(event.current);
+        });
+
+        var sub = OneSignal.User.PushSubscription;
+        document.getElementById('sub').textContent = 'Push ID: ' + (sub.id || 'none') + ', Token: ' + (sub.token ? sub.token.slice(0,20)+'...' : 'none') + ', Opted in: ' + sub.optedIn;
+      });
+    });
+
+    function requestPerm() {
+      window.OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.Notifications.requestPermission().then(function() {
+          document.getElementById('permission').textContent = 'Permission granted!';
+          var sub = OneSignal.User.PushSubscription;
+          document.getElementById('sub').textContent = 'Push ID: ' + (sub.id || 'none') + ', Token: ' + (sub.token ? sub.token.slice(0,20)+'...' : 'none') + ', Opted in: ' + sub.optedIn;
+        });
+      });
+    }
+
+    function testLogin() {
+      window.OneSignalDeferred.push(function(OneSignal) {
+        OneSignal.login('test-user-123').then(function() {
+          document.getElementById('login').textContent = 'Logged in as test-user-123';
+        });
+      });
+    }
+  </script>
+  <style>
+    body { font-family: system-ui; background: #111; color: #fff; padding: 20px; }
+    button { background: #39FF14; color: #000; border: none; padding: 12px 24px; border-radius: 8px; font-size: 16px; margin: 8px; cursor: pointer; }
+    #status, #permission, #sub, #login { padding: 10px; margin: 8px 0; background: #222; border-radius: 8px; font-size: 14px; word-break: break-all; }
+  </style>
+</head>
+<body>
+  <h1>OneSignal Push Test</h1>
+  <div id="status">Loading OneSignal...</div>
+  <div id="permission">Permission: checking...</div>
+  <div id="sub">Subscription: checking...</div>
+  <div id="login">Not logged in</div>
+  <br>
+  <button onclick="requestPerm()">Request Notification Permission</button>
+  <button onclick="testLogin()">Login as test-user-123</button>
+</body>
+</html>
