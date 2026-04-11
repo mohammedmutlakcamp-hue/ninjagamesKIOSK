@@ -112,8 +112,8 @@ export function FoodTab({ player }: Props) {
         }}
         onClick={() => !selected && addToCart(item.id)}>
 
-        {/* Big image */}
-        <div className="w-full h-32 relative overflow-hidden" style={{ background: '#0c0c10' }}>
+        {/* Square image */}
+        <div className="w-full aspect-square relative overflow-hidden" style={{ background: '#0c0c10' }}>
           {hasImage ? (
             <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
           ) : (
