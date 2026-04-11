@@ -31,6 +31,7 @@ import { SoftwareTab } from '../kiosk/tabs/SoftwareTab';
 import { FoodTab } from '../kiosk/tabs/FoodTab';
 import { VIPTab } from '../kiosk/tabs/VIPTab';
 import { StoreTab } from '../kiosk/tabs/StoreTab';
+import { SupportBubble } from '../kiosk/SupportBubble';
 
 // ─── Types ──────────────────────────────────────────────────
 type Screen = 'home' | 'chests' | 'chat' | 'reserve' | 'inventory' | 'friends' | 'tasks' | 'leaderboard' | 'profile' | 'store' | 'games' | 'tournaments' | 'software' | 'vip' | 'food';
@@ -1975,6 +1976,9 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
 
       {/* ─── Drawer ──────────────────────────────────────────── */}
       {renderDrawer()}
+
+      {/* ─── Support Chat Bubble ────────────────────────────── */}
+      <SupportBubble player={livePlayer} isMobile />
 
       {/* ─── Chest opening overlay ───────────────────────────── */}
       <AnimatePresence>

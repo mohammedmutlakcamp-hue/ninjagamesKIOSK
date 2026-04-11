@@ -21,6 +21,7 @@ import { StoreTab } from './tabs/StoreTab';
 import { VIPTab } from './tabs/VIPTab';
 import { PlinkoTab } from './tabs/PlinkoTab';
 import { ChatBubble } from './ChatBubble';
+import { SupportBubble } from './SupportBubble';
 import { KioskVoiceCall } from './KioskVoiceCall';
 import { TopUpScreen } from './TopUpScreen';
 import { FriendNotification, FriendToast } from './FriendNotification';
@@ -2601,6 +2602,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
       {/* Chat Panel — no floating bubble, opens via events */}
       <ChatBubble player={player} hideBubble />
+
+      {/* Support Chat Bubble — floating bubble for contacting admin */}
+      <SupportBubble player={player} />
 
       {/* Voice Call — listens for start-voice-call events + incoming calls */}
       <KioskVoiceCall player={player} />
