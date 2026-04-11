@@ -605,13 +605,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
   const handleSendCoinsQuick = async () => {
     if (sendLoading) return;
-    if (!sendPinVerified) {
-      if (!sendPin || sendPin.length !== 6) { setSendError('Enter your 6-digit PIN'); return; }
-      if (sendPin !== String(player.pin)) { setSendError('Wrong PIN'); setSendPin(''); return; }
-      setSendPinVerified(true);
-      setSendError('');
-      return;
-    }
+    if (!sendPin || sendPin.length !== 6) { setSendError('Enter your 6-digit PIN'); return; }
+    if (sendPin !== String(player.pin)) { setSendError('Wrong PIN'); setSendPin(''); return; }
     const amount = parseInt(sendAmount);
     if (!sendTarget.trim()) { setSendError('Enter a username'); return; }
     if (!amount || amount <= 0) { setSendError('Enter a valid amount'); return; }
