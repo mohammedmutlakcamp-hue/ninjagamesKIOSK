@@ -96,7 +96,7 @@ export function VIPTab({ player }: Props) {
   ];
 
   return (
-    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative max-w-[900px] mx-auto">
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="relative w-full h-full overflow-y-auto overflow-x-hidden p-6 pb-10" style={{ maxHeight: '100%' }}>
 
       {/* Toast */}
       <AnimatePresence>
@@ -133,18 +133,18 @@ export function VIPTab({ player }: Props) {
               transition={{ duration: 2, repeat: Infinity }}
               style={{ border: '2px solid #39FF14', boxShadow: '0 0 30px rgba(57,255,20,0.3), inset 0 0 30px rgba(57,255,20,0.05)' }} />
 
-            <div className="relative flex items-center gap-6 px-8 py-6">
+            <div className="relative flex items-center gap-4 px-6 py-4">
               {/* Timer circle */}
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity }}
-                className="w-20 h-20 rounded-full flex flex-col items-center justify-center shrink-0"
-                style={{ background: 'rgba(57,255,20,0.1)', border: '3px solid #39FF14', boxShadow: '0 0 40px rgba(57,255,20,0.4), 0 0 80px rgba(57,255,20,0.15)' }}
+                className="w-16 h-16 rounded-full flex flex-col items-center justify-center shrink-0"
+                style={{ background: 'rgba(57,255,20,0.1)', border: '2px solid #39FF14', boxShadow: '0 0 30px rgba(57,255,20,0.4)' }}
               >
-                <span className="font-ninja text-2xl text-[#39FF14]" style={{ textShadow: '0 0 15px rgba(57,255,20,0.8)' }}>
+                <span className="font-ninja text-xl text-[#39FF14]" style={{ textShadow: '0 0 15px rgba(57,255,20,0.8)' }}>
                   {freePlayMinutes}
                 </span>
-                <span className="font-ninja text-[8px] text-[#39FF14]/70 tracking-wider">MIN</span>
+                <span className="font-ninja text-[7px] text-[#39FF14]/70 tracking-wider">MIN</span>
               </motion.div>
 
               <div className="flex-1">
@@ -257,14 +257,14 @@ export function VIPTab({ player }: Props) {
               </>
             )}
 
-            <div className="relative flex items-center gap-6 px-7 py-6">
+            <div className="relative flex items-center gap-4 px-5 py-4">
 
               {/* Left: Gift icon with animated ring */}
               <div className="shrink-0">
                 <motion.div
                   animate={inviteUsedToday ? {} : { scale: [1, 1.08, 1] }}
                   transition={{ duration: 2.5, repeat: Infinity }}
-                  className="relative w-[90px] h-[90px] flex items-center justify-center"
+                  className="relative w-[70px] h-[70px] flex items-center justify-center"
                 >
                   {/* Outer ring */}
                   {!inviteUsedToday && (
@@ -273,13 +273,13 @@ export function VIPTab({ player }: Props) {
                       animate={{ scale: [1, 1.3], opacity: [0.5, 0] }}
                       transition={{ duration: 2, repeat: Infinity }} />
                   )}
-                  <div className="w-[72px] h-[72px] rounded-full flex items-center justify-center"
+                  <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center"
                     style={{
                       background: inviteUsedToday ? 'rgba(100,100,100,0.1)' : 'rgba(57,255,20,0.1)',
                       border: `2px solid ${inviteUsedToday ? 'rgba(100,100,100,0.2)' : 'rgba(57,255,20,0.4)'}`,
                       boxShadow: inviteUsedToday ? 'none' : '0 0 30px rgba(57,255,20,0.25)',
                     }}>
-                    <Gift size={32} className={inviteUsedToday ? 'text-gray-600' : 'text-[#39FF14]'}
+                    <Gift size={24} className={inviteUsedToday ? 'text-gray-600' : 'text-[#39FF14]'}
                       style={inviteUsedToday ? {} : { filter: 'drop-shadow(0 0 8px rgba(57,255,20,0.6))' }} />
                   </div>
                 </motion.div>
@@ -377,10 +377,10 @@ export function VIPTab({ player }: Props) {
       {/* ═══════════════════════════════════════════════════════════ */}
       {/*  PERKS GRID + PRICING                                     */}
       {/* ═══════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-12 gap-5">
+      <div className="grid grid-cols-12 gap-5 max-w-[850px] mx-auto">
 
-        {/* ── Left: Perks (8 cols) ───────────────────────────────── */}
-        <div className="col-span-8">
+        {/* ── Left: Perks (7 cols) ───────────────────────────────── */}
+        <div className="col-span-7">
           <h3 className="font-ninja text-sm text-gray-500 tracking-wider mb-3">VIP PERKS</h3>
           <div className="grid grid-cols-3 gap-3">
             {PERKS.map((perk, i) => (
@@ -430,8 +430,8 @@ export function VIPTab({ player }: Props) {
           )}
         </div>
 
-        {/* ── Right: Pricing card (4 cols) ───────────────────────── */}
-        <div className="col-span-4 space-y-4">
+        {/* ── Right: Pricing card (5 cols) ───────────────────────── */}
+        <div className="col-span-5 space-y-4">
           {/* Price card */}
           <motion.div initial={{ opacity: 0, x: 15 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.15 }}
             className="rounded-2xl overflow-hidden"
