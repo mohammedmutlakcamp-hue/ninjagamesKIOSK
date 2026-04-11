@@ -703,7 +703,7 @@ export default function KioskPage() {
                             filter: 'blur(12px)',
                           }}
                         />
-                        <Image src="/img/ninja-games-logo.png" alt="Ninja Games" width={240} height={240}
+                        <Image src="/img/ninja-logo.png" alt="Ninja Games" width={240} height={240}
                           className="relative mx-auto" priority
                           style={{ filter: 'drop-shadow(0 0 18px rgba(57,255,20,0.4))' }} />
                       </div>
