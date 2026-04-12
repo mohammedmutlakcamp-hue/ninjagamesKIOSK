@@ -21,6 +21,7 @@ import { StoreTab } from './tabs/StoreTab';
 import { VIPTab } from './tabs/VIPTab';
 import { PlinkoTab } from './tabs/PlinkoTab';
 import { ChatBubble } from './ChatBubble';
+import { OrderBubble } from './OrderBubble';
 import { SupportBubble } from './SupportBubble';
 import { KioskVoiceCall } from './KioskVoiceCall';
 import { TopUpScreen } from './TopUpScreen';
@@ -2672,6 +2673,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
       {/* Friend Notifications */}
       <FriendNotification toasts={friendToasts} onDismiss={dismissToast} />
+
+      {/* Floating Order Bubble (food + shisha) */}
+      {!isGuest && player?.uid && <OrderBubble playerUid={player.uid} />}
 
       {/* Chat Panel — no floating bubble, opens via events */}
       <ChatBubble player={player} hideBubble />

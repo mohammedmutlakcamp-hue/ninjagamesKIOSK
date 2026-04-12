@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, addDoc, onSnapshot, query, where, orderBy } from 'firebase/firestore';
-import { Wind, Loader2, CheckCircle2, Clock, Send, Coins } from 'lucide-react';
+import { Wind, Loader2, CheckCircle2, Clock, Send, Coins, Snowflake, ChevronLeft, ChevronRight, Droplet } from 'lucide-react';
 import { notifyAdmin } from '@/lib/notify-admin';
 
 interface Props {
@@ -42,10 +42,15 @@ interface ActiveOrder {
   status: string;
   createdAt: number;
   price: number;
+  iceInWater?: boolean;
 }
 
+type Step = 'flavor' | 'ice' | 'confirm';
+
 export function HubblyTab({ player }: Props) {
+  const [step, setStep] = useState<Step>('flavor');
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
+  const [iceInWater, setIceInWater] = useState<boolean | null>(null);
   const [ordering, setOrdering] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
@@ -64,41 +69,85 @@ export function HubblyTab({ player }: Props) {
     return () => unsub();
   }, [player?.uid]);
 
+  const selected = SHISHA_FLAVORS.find(f => f.id === selectedFlavor);
+
   const handleOrder = async () => {
-    if (!selectedFlavor || ordering) return;
-    const flavor = SHISHA_FLAVORS.find(f => f.id === selectedFlavor);
-    if (!flavor) return;
+    if (!selected || ordering || iceInWater === null) return;
     setOrdering(true);
     try {
       await addDoc(collection(db, 'shisha-orders'), {
         playerId: player.uid,
         playerName: player.username,
-        flavor: flavor.id,
-        flavorName: flavor.name,
-        price: flavor.price,
+        pcName: player.pcName || 'Kiosk',
+        flavor: selected.id,
+        flavorName: selected.name,
+        price: selected.price,
+        iceInWater,
+        prepTime: 10, // shisha takes ~10 minutes
         status: 'pending',
         createdAt: Date.now(),
       });
-      notifyAdmin('shisha_order', 'Shisha Order', `${player.username} ordered ${flavor.name}`);
+      notifyAdmin('shisha_order', 'Shisha Order', `${player.username} ordered ${selected.name}${iceInWater ? ' (with ice)' : ''}`);
       setOrderSent(true);
-      setTimeout(() => { setOrderSent(false); setSelectedFlavor(null); }, 2000);
+      setTimeout(() => {
+        setOrderSent(false);
+        setSelectedFlavor(null);
+        setIceInWater(null);
+        setStep('flavor');
+      }, 2000);
     } catch (err) {
       console.error('Shisha order failed:', err);
     }
     setOrdering(false);
   };
 
-  const selected = SHISHA_FLAVORS.find(f => f.id === selectedFlavor);
+  const goNext = () => {
+    if (step === 'flavor' && selectedFlavor) setStep('ice');
+    else if (step === 'ice' && iceInWater !== null) setStep('confirm');
+  };
+
+  const goBack = () => {
+    if (step === 'confirm') setStep('ice');
+    else if (step === 'ice') setStep('flavor');
+  };
 
   return (
     <div className="relative w-full h-full overflow-y-auto">
       <div className="max-w-[650px] mx-auto p-5 pb-8">
 
-        {/* Header */}
-        <div className="text-center pt-2 pb-4">
-          <span className="text-4xl block mb-2">💨</span>
-          <h1 className="font-ninja text-xl tracking-wider" style={{ color: '#06B6D4' }}>HUBBLY BUBBLY</h1>
-          <p className="font-body text-[10px] text-gray-600 mt-0.5">Pick a flavor, we bring it to you</p>
+        {/* Header with steps indicator */}
+        <div className="text-center pt-2 pb-5">
+          <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-4xl block mb-2">💨</motion.span>
+          <h1 className="font-ninja text-2xl tracking-wider" style={{ color: '#06B6D4' }}>HUBBLY BUBBLY</h1>
+          <p className="font-body text-xs text-gray-500 mt-1">
+            {step === 'flavor' && 'Step 1 · Pick your flavor'}
+            {step === 'ice' && 'Step 2 · Ice in water?'}
+            {step === 'confirm' && 'Step 3 · Confirm order'}
+          </p>
+
+          {/* Step indicator dots */}
+          <div className="flex items-center justify-center gap-2 mt-4">
+            {(['flavor', 'ice', 'confirm'] as Step[]).map((s, i) => {
+              const current = step === s;
+              const done = (step === 'ice' && s === 'flavor') || (step === 'confirm' && (s === 'flavor' || s === 'ice'));
+              return (
+                <div key={s} className="flex items-center gap-2">
+                  <motion.div
+                    animate={current ? { scale: [1, 1.2, 1] } : {}}
+                    transition={{ duration: 1.5, repeat: Infinity }}
+                    className="w-8 h-8 rounded-full flex items-center justify-center font-ninja text-xs"
+                    style={{
+                      background: current ? '#06B6D4' : done ? 'rgba(6,182,212,0.15)' : 'rgba(255,255,255,0.03)',
+                      border: `1px solid ${current || done ? 'rgba(6,182,212,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                      color: current ? '#000' : done ? '#06B6D4' : '#555',
+                    }}>
+                    {done ? <CheckCircle2 size={14} /> : i + 1}
+                  </motion.div>
+                  {i < 2 && <div className="w-6 h-[1px]" style={{ background: done ? '#06B6D4' : 'rgba(255,255,255,0.08)' }} />}
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Active orders */}
@@ -109,6 +158,7 @@ export function HubblyTab({ player }: Props) {
               <div key={order.id} className="flex items-center justify-between py-1">
                 <span className="font-body text-xs text-gray-400 flex items-center gap-1.5">
                   {SHISHA_FLAVORS.find(f => f.id === order.flavor)?.icon || '💨'} {order.flavorName}
+                  {order.iceInWater && <Snowflake size={10} className="text-cyan-400" />}
                 </span>
                 <span className="font-ninja text-[9px] px-2 py-0.5 rounded" style={{
                   background: order.status === 'pending' ? 'rgba(250,204,21,0.1)' : 'rgba(255,111,0,0.1)',
@@ -130,81 +180,218 @@ export function HubblyTab({ player }: Props) {
           )}
         </AnimatePresence>
 
-        {/* Flavor grid — radio button style like TopUp */}
-        <div className="space-y-2 mb-5">
-          {SHISHA_FLAVORS.map((flavor, i) => {
-            const isSelected = selectedFlavor === flavor.id;
-            return (
-              <motion.div key={flavor.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.03 }}
-                onClick={() => setSelectedFlavor(isSelected ? null : flavor.id)}
-                className="relative rounded-xl p-3.5 cursor-pointer transition-all flex items-center gap-3"
+        {/* ═══════════ STEP 1: FLAVOR ═══════════ */}
+        {step === 'flavor' && (
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <div className="space-y-2 mb-5">
+              {SHISHA_FLAVORS.map((flavor, i) => {
+                const isSelected = selectedFlavor === flavor.id;
+                return (
+                  <motion.div key={flavor.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.03 }}
+                    onClick={() => setSelectedFlavor(flavor.id)}
+                    className="relative rounded-xl p-3.5 cursor-pointer transition-all flex items-center gap-3"
+                    style={{
+                      background: isSelected ? `${flavor.color}10` : 'rgba(255,255,255,0.015)',
+                      border: isSelected ? `1.5px solid ${flavor.color}60` : '1.5px solid rgba(255,255,255,0.04)',
+                      boxShadow: isSelected ? `0 0 15px ${flavor.color}15` : 'none',
+                    }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all"
+                      style={{
+                        border: isSelected ? `2px solid ${flavor.color}` : '2px solid rgba(255,255,255,0.1)',
+                        background: isSelected ? `${flavor.color}15` : 'transparent',
+                      }}>
+                      {isSelected && <div className="w-2.5 h-2.5 rounded-full" style={{ background: flavor.color }} />}
+                    </div>
+                    <span className="text-2xl">{flavor.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-ninja text-sm tracking-wider" style={{ color: isSelected ? flavor.color : '#ccc' }}>
+                        {flavor.name.toUpperCase()}
+                      </p>
+                    </div>
+                    {flavor.popular && (
+                      <span className="font-ninja text-[8px] px-1.5 py-0.5 rounded tracking-wider shrink-0"
+                        style={{ background: `${flavor.color}20`, color: flavor.color, border: `1px solid ${flavor.color}30` }}>
+                        HOT
+                      </span>
+                    )}
+                    <span className="font-ninja text-xs flex items-center gap-0.5 shrink-0" style={{ color: isSelected ? flavor.color : '#666' }}>
+                      <Coins size={11} /> {flavor.price}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <motion.button
+              whileTap={selectedFlavor ? { scale: 0.97 } : {}}
+              disabled={!selectedFlavor}
+              onClick={goNext}
+              className="w-full py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-30"
+              style={{
+                background: selectedFlavor ? `linear-gradient(135deg, ${selected?.color}, ${selected?.color}cc)` : 'rgba(6,182,212,0.1)',
+                color: selectedFlavor ? '#fff' : 'rgba(6,182,212,0.3)',
+                boxShadow: selectedFlavor ? `0 0 20px ${selected?.color}30` : 'none',
+              }}>
+              {selectedFlavor ? <>CONTINUE <ChevronRight size={18} /></> : 'SELECT A FLAVOR'}
+            </motion.button>
+          </motion.div>
+        )}
+
+        {/* ═══════════ STEP 2: ICE IN WATER ═══════════ */}
+        {step === 'ice' && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            {/* Selected flavor preview */}
+            <div className="mb-4 rounded-xl px-4 py-3 flex items-center gap-3" style={{ background: `${selected?.color}08`, border: `1px solid ${selected?.color}25` }}>
+              <span className="text-2xl">{selected?.icon}</span>
+              <div className="flex-1">
+                <p className="font-ninja text-xs tracking-wider" style={{ color: selected?.color }}>{selected?.name.toUpperCase()}</p>
+                <p className="font-body text-[10px] text-gray-500">Your flavor is locked in</p>
+              </div>
+              <CheckCircle2 size={16} style={{ color: selected?.color }} />
+            </div>
+
+            <h2 className="font-ninja text-lg text-center mb-1" style={{ color: '#06B6D4' }}>ICE IN THE WATER?</h2>
+            <p className="font-body text-xs text-gray-500 text-center mb-5">Colder smoke, smoother draw</p>
+
+            <div className="grid grid-cols-2 gap-3 mb-5">
+              {[
+                { val: true, icon: <Snowflake size={32} />, title: 'YES', sub: 'With Ice', desc: 'Cold & smooth', color: '#06B6D4' },
+                { val: false, icon: <Droplet size={32} />, title: 'NO', sub: 'Room Temp', desc: 'Classic feel', color: '#A855F7' },
+              ].map((opt, i) => {
+                const isSel = iceInWater === opt.val;
+                return (
+                  <motion.button key={String(opt.val)}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    whileTap={{ scale: 0.97 }}
+                    whileHover={{ y: -2 }}
+                    onClick={() => setIceInWater(opt.val)}
+                    className="relative rounded-xl p-5 text-center transition-all"
+                    style={{
+                      background: isSel ? `${opt.color}10` : 'rgba(255,255,255,0.02)',
+                      border: isSel ? `2px solid ${opt.color}60` : '2px solid rgba(255,255,255,0.06)',
+                      boxShadow: isSel ? `0 0 25px ${opt.color}20` : 'none',
+                    }}>
+                    {isSel && (
+                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
+                        className="absolute top-2 right-2 w-6 h-6 rounded-full flex items-center justify-center"
+                        style={{ background: opt.color }}>
+                        <CheckCircle2 size={14} className="text-black" />
+                      </motion.div>
+                    )}
+                    <motion.div
+                      animate={isSel ? { rotate: [0, 10, -10, 0], y: [0, -4, 0] } : {}}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-16 h-16 rounded-xl mx-auto mb-3 flex items-center justify-center"
+                      style={{ background: `${opt.color}15`, border: `1px solid ${opt.color}30` }}>
+                      <span style={{ color: opt.color, filter: isSel ? `drop-shadow(0 0 8px ${opt.color}80)` : 'none' }}>{opt.icon}</span>
+                    </motion.div>
+                    <p className="font-ninja text-2xl" style={{ color: isSel ? opt.color : '#666' }}>{opt.title}</p>
+                    <p className="font-ninja text-[10px] tracking-wider mt-1" style={{ color: isSel ? `${opt.color}90` : '#555' }}>{opt.sub}</p>
+                    <p className="font-body text-[10px] text-gray-500 mt-1">{opt.desc}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={goBack}
+                className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
+                <ChevronLeft size={18} /> BACK
+              </button>
+              <motion.button
+                whileTap={iceInWater !== null ? { scale: 0.97 } : {}}
+                disabled={iceInWater === null}
+                onClick={goNext}
+                className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-30"
                 style={{
-                  background: isSelected ? `${flavor.color}10` : 'rgba(255,255,255,0.015)',
-                  border: isSelected ? `1.5px solid ${flavor.color}50` : '1.5px solid rgba(255,255,255,0.04)',
-                  boxShadow: isSelected ? `0 0 15px ${flavor.color}15` : 'none',
+                  background: iceInWater !== null ? `linear-gradient(135deg, ${selected?.color}, ${selected?.color}cc)` : 'rgba(6,182,212,0.1)',
+                  color: iceInWater !== null ? '#fff' : 'rgba(6,182,212,0.3)',
+                  boxShadow: iceInWater !== null ? `0 0 20px ${selected?.color}30` : 'none',
                 }}>
-                {/* Radio dot */}
-                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0 transition-all"
-                  style={{
-                    border: isSelected ? `2px solid ${flavor.color}` : '2px solid rgba(255,255,255,0.1)',
-                    background: isSelected ? `${flavor.color}15` : 'transparent',
-                  }}>
-                  {isSelected && <div className="w-2.5 h-2.5 rounded-full" style={{ background: flavor.color }} />}
-                </div>
+                CONTINUE <ChevronRight size={18} />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
 
-                {/* Emoji */}
-                <span className="text-2xl">{flavor.icon}</span>
+        {/* ═══════════ STEP 3: CONFIRM ═══════════ */}
+        {step === 'confirm' && selected && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <div className="rounded-2xl p-6 text-center relative overflow-hidden" style={{
+              background: `linear-gradient(135deg, ${selected.color}12, ${selected.color}04)`,
+              border: `2px solid ${selected.color}40`,
+              boxShadow: `0 0 30px ${selected.color}15`,
+            }}>
+              {/* HUD corners */}
+              <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: `2px solid ${selected.color}`, borderLeft: `2px solid ${selected.color}` }} />
+              <div className="absolute top-0 right-0 w-4 h-4" style={{ borderTop: `2px solid ${selected.color}60`, borderRight: `2px solid ${selected.color}60` }} />
+              <div className="absolute bottom-0 left-0 w-4 h-4" style={{ borderBottom: `2px solid ${selected.color}60`, borderLeft: `2px solid ${selected.color}60` }} />
+              <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: `2px solid ${selected.color}`, borderRight: `2px solid ${selected.color}` }} />
 
-                {/* Name */}
-                <div className="flex-1 min-w-0">
-                  <p className="font-ninja text-xs tracking-wider" style={{ color: isSelected ? flavor.color : '#ccc' }}>
-                    {flavor.name.toUpperCase()}
-                  </p>
-                </div>
-
-                {/* Popular badge */}
-                {flavor.popular && (
-                  <span className="font-ninja text-[7px] px-1.5 py-0.5 rounded tracking-wider shrink-0"
-                    style={{ background: `${flavor.color}20`, color: flavor.color, border: `1px solid ${flavor.color}30` }}>
-                    HOT
-                  </span>
-                )}
-
-                {/* Price */}
-                <span className="font-ninja text-xs flex items-center gap-0.5 shrink-0" style={{ color: isSelected ? flavor.color : '#666' }}>
-                  <Coins size={10} /> {flavor.price}
+              <motion.span
+                animate={{ y: [0, -6, 0], rotate: [0, 8, -8, 0] }}
+                transition={{ duration: 3, repeat: Infinity }}
+                className="text-6xl block mb-3">
+                {selected.icon}
+              </motion.span>
+              <h2 className="font-ninja text-2xl mb-2" style={{ color: selected.color, textShadow: `0 0 20px ${selected.color}50` }}>
+                {selected.name.toUpperCase()}
+              </h2>
+              <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+                <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
+                  background: iceInWater ? 'rgba(6,182,212,0.12)' : 'rgba(168,85,247,0.12)',
+                  border: `1px solid ${iceInWater ? 'rgba(6,182,212,0.3)' : 'rgba(168,85,247,0.3)'}`,
+                  color: iceInWater ? '#06B6D4' : '#A855F7',
+                }}>
+                  {iceInWater ? <><Snowflake size={12} /> WITH ICE</> : <><Droplet size={12} /> NO ICE</>}
                 </span>
+                <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
+                  background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)', color: '#FFD700',
+                }}>
+                  <Coins size={12} /> {selected.price}
+                </span>
+                <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
+                  background: 'rgba(255,111,0,0.1)', border: '1px solid rgba(255,111,0,0.3)', color: '#FF6F00',
+                }}>
+                  <Clock size={12} /> ~10 MIN
+                </span>
+              </div>
+              <p className="font-body text-xs text-gray-400">Your hubbly will be brought to your PC</p>
+            </div>
 
-                {/* Selected check */}
-                {isSelected && (
-                  <div className="absolute top-1.5 right-1.5 w-4 h-4 rounded-full flex items-center justify-center" style={{ background: flavor.color }}>
-                    <CheckCircle2 size={10} className="text-black" />
-                  </div>
-                )}
-              </motion.div>
-            );
-          })}
-        </div>
-
-        {/* Order button */}
-        <motion.button
-          whileTap={selectedFlavor ? { scale: 0.97 } : {}}
-          disabled={!selectedFlavor || ordering}
-          onClick={handleOrder}
-          className="w-full py-3.5 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-35"
-          style={{
-            background: selectedFlavor ? `linear-gradient(135deg, ${selected?.color || '#06B6D4'}, ${selected?.color || '#06B6D4'}cc)` : 'rgba(6,182,212,0.1)',
-            color: selectedFlavor ? '#fff' : 'rgba(6,182,212,0.3)',
-            boxShadow: selectedFlavor ? `0 0 20px ${selected?.color || '#06B6D4'}30` : 'none',
-          }}>
-          {ordering ? <Loader2 size={16} className="animate-spin" /> : <Wind size={16} />}
-          {ordering ? 'ORDERING...' : selectedFlavor ? `ORDER ${selected?.name.toUpperCase()}` : 'SELECT A FLAVOR'}
-        </motion.button>
-
-        <p className="font-body text-gray-700 text-[9px] text-center mt-2">Staff will bring the hubbly to your PC</p>
+            <div className="flex gap-3 mt-5">
+              <button onClick={goBack}
+                className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
+                <ChevronLeft size={18} /> BACK
+              </button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                disabled={ordering}
+                onClick={handleOrder}
+                className="flex-[2] py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50 relative overflow-hidden"
+                style={{
+                  background: `linear-gradient(135deg, ${selected.color}, ${selected.color}cc)`,
+                  color: '#fff',
+                  boxShadow: `0 0 25px ${selected.color}40`,
+                }}>
+                {/* Metallic sweep */}
+                <motion.div className="absolute inset-0 pointer-events-none"
+                  animate={{ x: ['-100%', '250%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+                  style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)', width: '40%' }} />
+                {ordering ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
+                {ordering ? 'SENDING...' : 'PLACE ORDER'}
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
       </div>
     </div>
   );
