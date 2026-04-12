@@ -2104,12 +2104,23 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       </motion.div>
                       <h2 className="font-ninja text-3xl text-white tracking-wide" style={{ textShadow: '0 0 20px rgba(234,179,8,0.15)' }}>TOP UP</h2>
                     </div>
-                    <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
-                      onClick={() => setShowTopUpModal(false)}
-                      className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 hover:rotate-90"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}>
-                      <X size={22} className="text-gray-400" />
-                    </motion.button>
+                    <div className="flex items-center gap-2">
+                      {/* Switch to Buy Time */}
+                      <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}
+                        onClick={() => { setShowTopUpModal(false); setShowBuyTimeModal(true); setBuyTimeSelected(null); }}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="hidden sm:flex items-center gap-1.5 px-3 h-11 rounded-xl font-ninja text-xs tracking-wider transition-all relative overflow-hidden"
+                        style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.12), rgba(57,255,20,0.05))', border: '1px solid rgba(57,255,20,0.35)', color: '#39FF14', boxShadow: '0 0 10px rgba(57,255,20,0.08)' }}>
+                        <Timer size={14} /> BUY TIME
+                      </motion.button>
+                      <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+                        onClick={() => setShowTopUpModal(false)}
+                        className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 hover:rotate-90"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}>
+                        <X size={22} className="text-gray-400" />
+                      </motion.button>
+                    </div>
                   </motion.div>
 
                   {/* Balance + Name */}
@@ -2433,12 +2444,23 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         className="font-ninja text-3xl text-white tracking-wide"
                         style={{ textShadow: '0 0 20px rgba(57,255,20,0.15)' }}>BUY TIME</motion.h2>
                     </div>
-                    <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
-                      onClick={() => setShowBuyTimeModal(false)}
-                      className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 hover:rotate-90"
-                      style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}>
-                      <X size={22} className="text-gray-400" />
-                    </motion.button>
+                    <div className="flex items-center gap-2">
+                      {/* Switch to Buy Tokens */}
+                      <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}
+                        onClick={() => { setShowBuyTimeModal(false); setShowTopUpModal(true); setTopUpSelected(null); setTopUpSent(false); }}
+                        whileHover={{ scale: 1.03 }}
+                        whileTap={{ scale: 0.97 }}
+                        className="hidden sm:flex items-center gap-1.5 px-3 h-11 rounded-xl font-ninja text-xs tracking-wider transition-all relative overflow-hidden"
+                        style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.05))', border: '1px solid rgba(234,179,8,0.35)', color: '#facc15', boxShadow: '0 0 10px rgba(234,179,8,0.08)' }}>
+                        <Coins size={14} /> BUY TOKENS
+                      </motion.button>
+                      <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
+                        onClick={() => setShowBuyTimeModal(false)}
+                        className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 hover:rotate-90"
+                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}>
+                        <X size={22} className="text-gray-400" />
+                      </motion.button>
+                    </div>
                   </motion.div>
 
                   {/* Animated Balance */}
