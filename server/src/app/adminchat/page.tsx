@@ -35,14 +35,6 @@ export default function AdminChatPage() {
     setLoginLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-ninja-green" />
-      </div>
-    );
-  }
-
   // Init OneSignal for admin push notifications
   useEffect(() => {
     if (!user) return;
@@ -84,6 +76,14 @@ export default function AdminChatPage() {
     };
     initAdminOneSignal();
   }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0a0a0a] flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-ninja-green" />
+      </div>
+    );
+  }
 
   if (user) {
     return <AdminChatDashboard admin={user} />;

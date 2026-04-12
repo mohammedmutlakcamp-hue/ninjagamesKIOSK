@@ -38,14 +38,6 @@ export default function AdminPage() {
     setLoginLoading(false);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
-        <Loader2 size={32} className="animate-spin text-[#86868b]" />
-      </div>
-    );
-  }
-
   // Init OneSignal for admin push notifications
   useEffect(() => {
     if (!user) return;
@@ -53,7 +45,6 @@ export default function AdminPage() {
       const ONESIGNAL_APP_ID = '236a3577-a482-4cb5-a810-8daccc0272ff';
       await new Promise<void>((resolve) => {
         if ((window as any).OneSignal) { resolve(); return; }
-        // Load OneSignal SDK if not already loaded
         const script = document.createElement('script');
         script.src = 'https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js';
         script.async = true;
@@ -88,6 +79,14 @@ export default function AdminPage() {
     };
     initAdminOneSignal();
   }, [user]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#f5f5f7] flex items-center justify-center">
+        <Loader2 size={32} className="animate-spin text-[#86868b]" />
+      </div>
+    );
+  }
 
   if (user) {
     return <AdminDashboard admin={user} />;
