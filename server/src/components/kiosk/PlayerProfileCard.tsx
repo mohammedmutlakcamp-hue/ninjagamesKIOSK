@@ -58,6 +58,21 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
     return () => unsub();
   }, [targetUid]);
 
+  // Check for existing pending friend request so the button shows "REQUEST SENT" after reopen
+  useEffect(() => {
+    if (!currentPlayer?.uid || !targetUid || currentPlayer.uid === targetUid) return;
+    const q = query(
+      collection(db, 'friend-requests'),
+      where('from', '==', currentPlayer.uid),
+      where('to', '==', targetUid),
+      where('status', '==', 'pending')
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      setRequestSent(!snap.empty);
+    });
+    return () => unsub();
+  }, [currentPlayer?.uid, targetUid]);
+
   // Load profile comments
   useEffect(() => {
     const q = query(
