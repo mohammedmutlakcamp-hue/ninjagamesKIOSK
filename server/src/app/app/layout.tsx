@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from 'next';
 export const metadata: Metadata = {
   title: 'Ninja Games',
   description: 'Ninja Games Gaming Center - Your gaming companion',
+  manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

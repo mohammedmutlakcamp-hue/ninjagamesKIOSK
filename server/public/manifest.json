@@ -3,7 +3,7 @@
   "short_name": "Ninja Games",
   "description": "Ninja Games Gaming Center - Your gaming companion",
   "start_url": "/app",
-  "scope": "/",
+  "scope": "/app",
   "id": "/app",
   "display": "standalone",
   "orientation": "portrait",
