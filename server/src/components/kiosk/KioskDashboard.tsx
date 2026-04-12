@@ -40,7 +40,7 @@ import {
   Gamepad2, Package, UtensilsCrossed, Trophy, User,
   Coins, LogOut, AlertTriangle, Swords, Backpack, ClipboardCheck,
   Users, ChevronLeft, ChevronRight, Send, Timer, Loader2,
-  Monitor, Globe, UserCog, CreditCard, X, Gift, ShoppingBag, Crown, Wrench, Play, Plus, Shield, Eye, EyeOff, Settings, Sparkles, UserPlus, Check, Lock, Flame, Wind, CircleDot, TrendingUp
+  Monitor, Globe, UserCog, CreditCard, X, Gift, ShoppingBag, Crown, Wrench, Play, Plus, Shield, Eye, EyeOff, Settings, Sparkles, UserPlus, Check, Lock, Flame, Wind, CircleDot, TrendingUp, ArrowRight, Clock
 } from 'lucide-react';
 
 type Tab = 'games' | 'chests' | 'food' | 'hubbly' | 'tournaments' | 'inventory' | 'profile' | 'leaderboard' | 'dailytasks' | 'friends' | 'software' | 'store' | 'vip' | 'plinko';
@@ -2554,32 +2554,90 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 );
                               })}
 
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  {/* Animated Radio button */}
+                              <div className="flex items-center justify-between gap-4">
+                                {/* Animated Radio button */}
+                                <motion.div
+                                  animate={selected ? { boxShadow: ['0 0 8px rgba(57,255,20,0.3)', '0 0 16px rgba(57,255,20,0.6)', '0 0 8px rgba(57,255,20,0.3)'] } : {}}
+                                  transition={{ duration: 1.5, repeat: Infinity }}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                                  style={{ border: `2px solid ${selected ? '#39FF14' : 'rgba(150,150,150,0.4)'}` }}>
+                                  <AnimatePresence>
+                                    {selected && (
+                                      <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 300 }}
+                                        className="w-2.5 h-2.5 rounded-full bg-ninja-green" style={{ boxShadow: '0 0 6px rgba(57,255,20,0.8)' }} />
+                                    )}
+                                  </AnimatePresence>
+                                </motion.div>
+
+                                {/* ═══ SWAP DISPLAY: tokens → time ═══ */}
+                                <div className="flex-1 flex items-center justify-center gap-3 relative overflow-hidden">
+                                  {/* Tokens side */}
                                   <motion.div
-                                    animate={selected ? { boxShadow: ['0 0 8px rgba(57,255,20,0.3)', '0 0 16px rgba(57,255,20,0.6)', '0 0 8px rgba(57,255,20,0.3)'] } : {}}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                    className="w-6 h-6 rounded-full flex items-center justify-center"
-                                    style={{ border: `2px solid ${selected ? '#39FF14' : 'rgba(150,150,150,0.4)'}` }}>
-                                    <AnimatePresence>
-                                      {selected && (
-                                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 300 }}
-                                          className="w-2.5 h-2.5 rounded-full bg-ninja-green" style={{ boxShadow: '0 0 6px rgba(57,255,20,0.8)' }} />
-                                      )}
-                                    </AnimatePresence>
+                                    animate={selected ? { x: [-4, 4, -4], scale: [1, 1.04, 1] } : {}}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="flex items-center gap-2 flex-1 justify-end"
+                                  >
+                                    <Coins size={28} className="text-yellow-400 flex-shrink-0"
+                                      style={{ filter: selected ? 'drop-shadow(0 0 10px rgba(234,179,8,0.6))' : 'none' }} />
+                                    <div className="text-right">
+                                      <span className="font-ninja text-3xl text-yellow-400 tabular-nums"
+                                        style={{ textShadow: selected ? '0 0 20px rgba(234,179,8,0.55), 0 0 40px rgba(234,179,8,0.25)' : '0 0 8px rgba(234,179,8,0.25)' }}>
+                                        −{pkg.coins.toLocaleString()}
+                                      </span>
+                                      <p className="font-ninja text-[10px] tracking-[0.3em] text-yellow-500/70 leading-none mt-0.5">TOKENS</p>
+                                    </div>
                                   </motion.div>
-                                  <div className="flex items-baseline gap-3">
-                                    <span className="font-ninja text-2xl text-white">{pkg.label}</span>
-                                    <span className="font-body text-gray-500 text-sm">(-{pkg.coins} coins)</span>
+
+                                  {/* Swap arrow with flying coins */}
+                                  <div className="relative w-14 h-10 flex items-center justify-center flex-shrink-0">
+                                    {/* Base arrow */}
+                                    <motion.div
+                                      animate={selected ? { x: [-2, 2, -2], opacity: [0.6, 1, 0.6] } : {}}
+                                      transition={{ duration: 1.2, repeat: Infinity }}
+                                      className="flex items-center"
+                                    >
+                                      <div className="w-4 h-[2px] rounded-full" style={{ background: selected ? '#39FF14' : 'rgba(57,255,20,0.3)', boxShadow: selected ? '0 0 8px rgba(57,255,20,0.6)' : 'none' }} />
+                                      <ArrowRight size={20} style={{ color: selected ? '#39FF14' : 'rgba(57,255,20,0.4)', filter: selected ? 'drop-shadow(0 0 6px rgba(57,255,20,0.7))' : 'none' }} />
+                                    </motion.div>
+                                    {/* Flying coin particles when selected */}
+                                    {selected && (
+                                      <>
+                                        {[0, 1, 2].map(i => (
+                                          <motion.div key={i}
+                                            className="absolute w-1.5 h-1.5 rounded-full"
+                                            style={{ background: '#FFD700', boxShadow: '0 0 6px #FFD700' }}
+                                            animate={{ x: [-20, 20], opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+                                            transition={{ duration: 1, repeat: Infinity, delay: i * 0.3, ease: 'linear' }}
+                                          />
+                                        ))}
+                                      </>
+                                    )}
                                   </div>
+
+                                  {/* Time side */}
+                                  <motion.div
+                                    animate={selected ? { x: [4, -4, 4], scale: [1, 1.04, 1] } : {}}
+                                    transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                    className="flex items-center gap-2 flex-1"
+                                  >
+                                    <div className="text-left">
+                                      <span className="font-ninja text-3xl text-ninja-green tabular-nums"
+                                        style={{ textShadow: selected ? '0 0 20px rgba(57,255,20,0.55), 0 0 40px rgba(57,255,20,0.25)' : '0 0 8px rgba(57,255,20,0.25)' }}>
+                                        +{pkg.hours}h
+                                      </span>
+                                      <p className="font-ninja text-[10px] tracking-[0.3em] text-ninja-green/70 leading-none mt-0.5">{pkg.label.toUpperCase()}</p>
+                                    </div>
+                                    <Clock size={28} className="text-ninja-green flex-shrink-0"
+                                      style={{ filter: selected ? 'drop-shadow(0 0 10px rgba(57,255,20,0.6))' : 'none' }} />
+                                  </motion.div>
                                 </div>
+
                                 {/* Animated BEST badge */}
                                 {isBest && (
                                   <motion.div
                                     animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 10px rgba(57,255,20,0.1)', '0 0 20px rgba(57,255,20,0.25)', '0 0 10px rgba(57,255,20,0.1)'] }}
                                     transition={{ duration: 2, repeat: Infinity }}
-                                    className="px-3 py-1.5 rounded-lg font-ninja text-xs tracking-wider text-white flex items-center gap-1.5"
+                                    className="px-3 py-1.5 rounded-lg font-ninja text-xs tracking-wider text-white flex items-center gap-1.5 flex-shrink-0"
                                     style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.2), rgba(0,191,255,0.15))', border: '1px solid rgba(57,255,20,0.3)' }}>
                                     <Shield size={14} className="text-ninja-green" />
                                     BEST
