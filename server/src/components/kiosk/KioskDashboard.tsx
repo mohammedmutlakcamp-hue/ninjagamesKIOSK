@@ -45,6 +45,16 @@ import {
 
 type Tab = 'games' | 'chests' | 'food' | 'hubbly' | 'tournaments' | 'inventory' | 'profile' | 'leaderboard' | 'dailytasks' | 'friends' | 'software' | 'store' | 'vip' | 'plinko';
 
+// Pick token image based on amount — 1 coin for small, pile for big.
+function getTokenImage(amount: number): string {
+  if (amount <= 100) return '/img/coin.png';                    // single coin
+  if (amount <= 300) return '/img/reward-coins-10.png';         // small stack
+  if (amount <= 700) return '/img/reward-coins-25.png';         // medium stack
+  if (amount <= 1500) return '/img/reward-coins-50.png';        // large stack
+  if (amount <= 3000) return '/img/reward-coins-150.png';       // pile
+  return '/img/reward-coins-500.png';                           // chest + massive pile
+}
+
 // Error Boundary to prevent crashes
 class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }> {
   state = { hasError: false };
@@ -2205,23 +2215,50 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                     ...(pos.includes('left') ? { borderLeft: `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.25)'}` } : { borderRight: `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.25)'}` }),
                                   }} />
                               ))}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <motion.div
-                                    animate={selected ? { boxShadow: ['0 0 8px rgba(234,179,8,0.3)', '0 0 16px rgba(234,179,8,0.6)', '0 0 8px rgba(234,179,8,0.3)'] } : {}}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                    className="w-6 h-6 rounded-full flex items-center justify-center"
-                                    style={{ border: `2px solid ${selected ? '#eab308' : 'rgba(150,150,150,0.4)'}` }}>
-                                    <AnimatePresence>
-                                      {selected && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 300 }} className="w-2.5 h-2.5 rounded-full bg-yellow-500" style={{ boxShadow: '0 0 6px rgba(234,179,8,0.8)' }} />}
-                                    </AnimatePresence>
-                                  </motion.div>
-                                  <div className="flex items-baseline gap-3">
-                                    <span className="font-ninja text-2xl text-white">{pkg.coins.toLocaleString()} tokens</span>
-                                    <span className="font-body text-gray-500 text-sm">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
-                                  </div>
+                              <div className="flex items-center justify-between gap-4">
+                                <motion.div
+                                  animate={selected ? { boxShadow: ['0 0 8px rgba(234,179,8,0.3)', '0 0 16px rgba(234,179,8,0.6)', '0 0 8px rgba(234,179,8,0.3)'] } : {}}
+                                  transition={{ duration: 1.5, repeat: Infinity }}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                                  style={{ border: `2px solid ${selected ? '#eab308' : 'rgba(150,150,150,0.4)'}` }}>
+                                  <AnimatePresence>
+                                    {selected && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 300 }} className="w-2.5 h-2.5 rounded-full bg-yellow-500" style={{ boxShadow: '0 0 6px rgba(234,179,8,0.8)' }} />}
+                                  </AnimatePresence>
+                                </motion.div>
+
+                                {/* Token pile image — size scales with amount */}
+                                <motion.img
+                                  src={getTokenImage(pkg.coins)}
+                                  alt=""
+                                  animate={selected ? { y: [0, -3, 0], rotate: [-2, 2, -2] } : {}}
+                                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                                  className="object-contain flex-shrink-0"
+                                  style={{
+                                    width: 56,
+                                    height: 56,
+                                    filter: selected
+                                      ? 'drop-shadow(0 0 14px rgba(234,179,8,0.6))'
+                                      : 'drop-shadow(0 0 6px rgba(234,179,8,0.2))',
+                                  }}
+                                />
+
+                                <div className="flex-1 min-w-0">
+                                  {pkg.name && (
+                                    <p className="font-ninja text-[10px] tracking-[0.25em] mb-0.5" style={{ color: selected ? '#eab308' : '#a8865b' }}>
+                                      {pkg.name.toUpperCase()}
+                                    </p>
+                                  )}
+                                  <span className="font-ninja text-2xl text-white">{pkg.coins.toLocaleString()}</span>
+                                  <span className="font-ninja text-sm text-yellow-500/70 ml-1">tokens</span>
+                                  <p className="font-body text-gray-500 text-xs mt-0.5">
+                                    ≈ {hours}h{mins > 0 ? ` ${mins}m` : ''} play time
+                                    {pkg.bonusPercentage ? <span className="text-green-400 ml-2">+{pkg.bonusPercentage}% bonus</span> : null}
+                                  </p>
                                 </div>
-                                <span className="font-ninja text-2xl text-white">{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
+                                <div className="text-right flex-shrink-0">
+                                  <span className="font-ninja text-2xl text-white">{pkg.price}</span>
+                                  <span className="text-gray-500 text-sm"> JOD</span>
+                                </div>
                               </div>
                             </div>
                           </motion.div>
@@ -2516,7 +2553,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           <motion.div
                             animate={selected ? { boxShadow: ['0 0 0px rgba(57,255,20,0)', '0 0 20px rgba(57,255,20,0.15)', '0 0 0px rgba(57,255,20,0)'] } : {}}
                             transition={{ duration: 2, repeat: Infinity }}
-                            className="relative rounded-lg overflow-hidden" style={{
+                            className="relative rounded-lg" style={{
                             background: 'rgba(255,255,255,0.03)',
                             border: isBest ? 'none' : `1px solid ${selected ? 'rgba(57,255,20,0.4)' : 'rgba(255,255,255,0.08)'}`,
                           }}>
