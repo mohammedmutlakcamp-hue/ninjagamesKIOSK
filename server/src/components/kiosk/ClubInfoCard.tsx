@@ -129,13 +129,15 @@ export function ClubInfoCard({ clubId, onClose }: Props) {
             <>
               {/* Header */}
               <div className="pt-8 pb-4 px-6 text-center">
-                <div className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-5xl mb-3"
+                <div className="w-20 h-20 mx-auto rounded-2xl flex items-center justify-center text-5xl mb-3 overflow-hidden"
                   style={{
                     background: 'linear-gradient(135deg, rgba(168,85,247,0.3), rgba(168,85,247,0.08))',
                     border: '2px solid rgba(168,85,247,0.6)',
                     boxShadow: '0 0 24px rgba(168,85,247,0.35)',
                   }}>
-                  {club.logo || '⚔️'}
+                  {club.logo?.startsWith?.('data:image/')
+                    ? <img src={club.logo} alt="Club logo" className="w-full h-full object-cover" />
+                    : (club.logo || '⚔️')}
                 </div>
                 <div className="font-ninja text-[11px] text-purple-300/80 tracking-[0.25em] mb-1">[{club.tag}]</div>
                 <h2 className="font-ninja text-3xl text-white tracking-wide mb-1" style={{ textShadow: '0 0 14px rgba(168,85,247,0.45)' }}>

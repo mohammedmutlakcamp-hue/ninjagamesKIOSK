@@ -1,11 +1,11 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Users, Crown, Shield, UserPlus, UserMinus, Plus, Trophy,
   Search, Loader2, Check, AlertTriangle, Swords, LogOut, Skull, ArrowLeft,
-  Coins, ArrowUpRight, ArrowDownRight, Ticket,
+  Coins, ArrowUpRight, ArrowDownRight, Ticket, Upload,
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
@@ -50,6 +50,47 @@ export function ClubPanel({ player, open, onClose }: Props) {
   const [createLogo, setCreateLogo] = useState('⚔️');
   const [createError, setCreateError] = useState('');
   const [creating, setCreating] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > 5 * 1024 * 1024) { setCreateError('Image must be under 5MB'); return; }
+    setUploadingLogo(true);
+    setCreateError('');
+    try {
+      const dataUrl = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = reject;
+        reader.onload = () => {
+          const img = new window.Image();
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            const size = 200;
+            canvas.width = size;
+            canvas.height = size;
+            const ctx = canvas.getContext('2d')!;
+            const min = Math.min(img.width, img.height);
+            const sx = (img.width - min) / 2;
+            const sy = (img.height - min) / 2;
+            ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
+            resolve(canvas.toDataURL('image/jpeg', 0.75));
+          };
+          img.onerror = reject;
+          img.src = reader.result as string;
+        };
+        reader.readAsDataURL(file);
+      });
+      setCreateLogo(dataUrl);
+    } catch {
+      setCreateError('Failed to process image');
+    }
+    setUploadingLogo(false);
+    if (logoInputRef.current) logoInputRef.current.value = '';
+  };
+
+  const isUploadedLogo = createLogo.startsWith('data:image/');
 
   // Invite form
   const [inviteSearch, setInviteSearch] = useState('');
@@ -449,6 +490,51 @@ export function ClubPanel({ player, open, onClose }: Props) {
                 </div>
                 <div>
                   <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">EMBLEM</label>
+
+                  {/* Live preview */}
+                  <div className="flex items-center gap-3 mb-3 p-3 rounded-lg" style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
+                    <div className="w-14 h-14 rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0"
+                      style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.25)' }}>
+                      {isUploadedLogo ? (
+                        <img src={createLogo} alt="Logo" className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-3xl">{createLogo}</span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-body text-xs text-gray-400">
+                        {isUploadedLogo ? 'Custom image uploaded' : 'Pick an emoji or upload your own'}
+                      </p>
+                      {isUploadedLogo && (
+                        <button onClick={() => setCreateLogo('⚔️')}
+                          className="mt-1 text-[10px] text-purple-300 hover:text-purple-200 underline">
+                          Remove & use emoji
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Upload button */}
+                  <button
+                    onClick={() => logoInputRef.current?.click()}
+                    disabled={uploadingLogo}
+                    className="w-full py-2.5 rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-2 transition-all mb-3 disabled:opacity-50"
+                    style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px dashed rgba(168,85,247,0.4)', color: '#d8b4fe' }}
+                  >
+                    {uploadingLogo
+                      ? <><Loader2 size={14} className="animate-spin" /> PROCESSING...</>
+                      : <><Upload size={14} /> UPLOAD CUSTOM LOGO</>}
+                  </button>
+                  <input
+                    ref={logoInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+
+                  {/* Emoji picker */}
+                  <p className="font-body text-[10px] text-gray-500 mb-2">Or pick an emoji:</p>
                   <div className="flex gap-2 flex-wrap">
                     {['⚔️','🥷','🐉','⚡','🔥','💀','👑','🛡️','⭐'].map(emoji => (
                       <button key={emoji} onClick={() => setCreateLogo(emoji)}
@@ -866,9 +952,11 @@ export function ClubPanel({ player, open, onClose }: Props) {
                     <div className="relative rounded-xl p-5 overflow-hidden"
                       style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.12), rgba(168,85,247,0.03) 50%, rgba(0,0,0,0.4))', border: '1px solid rgba(168,85,247,0.35)', boxShadow: '0 0 20px rgba(168,85,247,0.1)' }}>
                       <div className="flex items-center gap-4">
-                        <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl flex-shrink-0"
+                        <div className="w-16 h-16 rounded-xl flex items-center justify-center text-4xl flex-shrink-0 overflow-hidden"
                           style={{ background: 'rgba(168,85,247,0.2)', border: '2px solid rgba(168,85,247,0.5)', boxShadow: '0 0 15px rgba(168,85,247,0.3)' }}>
-                          {club.logo || '⚔️'}
+                          {club.logo?.startsWith?.('data:image/')
+                            ? <img src={club.logo} alt="Club logo" className="w-full h-full object-cover" />
+                            : (club.logo || '⚔️')}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1">

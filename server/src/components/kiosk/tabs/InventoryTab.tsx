@@ -189,10 +189,12 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const DAILY_CHEST_WEIGHTS = [30, 25, 15, 12, 12, 6];
 
   const [chestResult, setChestResult] = useState<{ name: string; rarity: string; type: string; value: number } | null>(null);
+  const [chestPhase, setChestPhase] = useState<'idle' | 'opening' | 'reveal'>('idle');
 
   const handleOpenChest = async (item: InventoryItem) => {
-    if (processing) return;
+    if (processing || chestPhase !== 'idle') return;
     setProcessing(true);
+    setChestPhase('opening');
     try {
       // Roll reward
       const totalW = DAILY_CHEST_WEIGHTS.reduce((a, b) => a + b, 0);
@@ -214,9 +216,21 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
       if (won.type === 'coins') updates.coins = increment(won.value);
 
       await updateDoc(doc(db, 'players', player.uid), updates);
+
+      // Play opening animation (shake + flash) then reveal
+      await new Promise(r => setTimeout(r, 1600));
       setChestResult(won);
-      setTimeout(() => { setChestResult(null); setUseModal(null); setDetailModal(null); }, 3000);
-    } catch (err) { console.error('Failed to open chest:', err); }
+      setChestPhase('reveal');
+      setTimeout(() => {
+        setChestResult(null);
+        setChestPhase('idle');
+        setUseModal(null);
+        setDetailModal(null);
+      }, 3800);
+    } catch (err) {
+      console.error('Failed to open chest:', err);
+      setChestPhase('idle');
+    }
     setProcessing(false);
   };
 
@@ -909,7 +923,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[210] flex items-center justify-center"
             style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => { if (!chestResult) setUseModal(null); }}>
+            onClick={() => { if (chestPhase === 'idle' && !chestResult) setUseModal(null); }}>
             <motion.div initial={{ scale: 0.85, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.85, opacity: 0 }}
               transition={{ type: 'spring', damping: 20, stiffness: 200 }}
               className="relative rounded-2xl overflow-hidden p-7 w-[420px]"
@@ -927,21 +941,162 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               {/* Top neon accent line */}
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
 
-              {/* Chest result reveal */}
-              {chestResult ? (
-                <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="text-center py-4">
-                  <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                    <div className="w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center"
-                      style={{ background: `${rarityColor(chestResult.rarity)}15`, border: `2px solid ${rarityColor(chestResult.rarity)}40`, boxShadow: `0 0 30px ${rarityColor(chestResult.rarity)}20` }}>
-                      {chestResult.type === 'coins' ? <Coins size={36} style={{ color: rarityColor(chestResult.rarity) }} /> : <Gift size={36} style={{ color: rarityColor(chestResult.rarity) }} />}
-                    </div>
+              {/* ═══ OPENING PHASE: chest shakes & flashes ═══ */}
+              {chestPhase === 'opening' && (
+                <div className="text-center py-8 relative overflow-hidden" style={{ minHeight: 280 }}>
+                  {/* Flash */}
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none"
+                    animate={{ opacity: [0, 0.3, 0, 0.4, 0, 0.6, 0] }}
+                    transition={{ duration: 1.5, times: [0, 0.2, 0.3, 0.5, 0.6, 0.85, 1] }}
+                    style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.5), transparent 70%)' }}
+                  />
+                  {/* Chest shaking */}
+                  <motion.div
+                    animate={{
+                      rotate: [0, -8, 8, -10, 10, -6, 6, 0],
+                      scale: [1, 1.05, 1, 1.08, 1, 1.12, 1.3],
+                    }}
+                    transition={{ duration: 1.5, times: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1] }}
+                    className="mx-auto"
+                  >
+                    <img src="/img/chest-free.png" alt="" className="w-32 h-32 mx-auto object-contain"
+                      style={{ filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.5))' }} />
                   </motion.div>
-                  <p className="font-ninja text-xs uppercase tracking-widest mb-1" style={{ color: rarityColor(chestResult.rarity) }}>{chestResult.rarity}</p>
-                  <p className="font-ninja text-2xl text-white mb-2">{chestResult.name}</p>
-                  {chestResult.type === 'coins' && <p className="font-ninja text-3xl text-yellow-400 flex items-center justify-center gap-2">+{chestResult.value} <Coins size={28} /></p>}
-                  <p className="font-body text-gray-500 text-sm mt-3">Added to your inventory!</p>
+                  <motion.p
+                    animate={{ opacity: [0, 1, 1, 0.3] }}
+                    transition={{ duration: 1.5 }}
+                    className="font-ninja text-xl mt-5 tracking-wider text-yellow-400"
+                    style={{ textShadow: '0 0 20px rgba(255,215,0,0.6)' }}
+                  >
+                    OPENING...
+                  </motion.p>
+                  {/* Rising sparkles */}
+                  {Array.from({ length: 12 }).map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute w-1.5 h-1.5 rounded-full"
+                      style={{
+                        background: ['#FFD700', '#FF9500', '#39FF14', '#00C8FF'][i % 4],
+                        left: `${20 + Math.random() * 60}%`,
+                        bottom: '30%',
+                      }}
+                      animate={{
+                        y: [0, -(100 + Math.random() * 120)],
+                        opacity: [0, 1, 0],
+                        scale: [0, 1, 0.3],
+                      }}
+                      transition={{ duration: 1.3, delay: Math.random() * 0.6, ease: 'easeOut' }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* ═══ REVEAL PHASE: reward shown ═══ */}
+              {chestPhase === 'reveal' && chestResult ? (
+                <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
+                  transition={{ type: 'spring', damping: 14, stiffness: 180 }}
+                  className="text-center py-4 relative overflow-hidden" style={{ minHeight: 260 }}>
+
+                  {/* Coin shower for token rewards */}
+                  {chestResult.type === 'coins' && Array.from({ length: 20 }).map((_, i) => (
+                    <motion.div
+                      key={i}
+                      className="absolute pointer-events-none"
+                      style={{ left: `${Math.random() * 100}%`, top: '-10%', fontSize: 16 + Math.random() * 14 }}
+                      initial={{ y: 0, opacity: 0, rotate: 0 }}
+                      animate={{
+                        y: [0, 400],
+                        opacity: [0, 1, 1, 0],
+                        rotate: [0, 360 + Math.random() * 360],
+                        x: [0, (Math.random() - 0.5) * 80],
+                      }}
+                      transition={{ duration: 2 + Math.random() * 1.5, delay: Math.random() * 1.2, ease: 'easeIn' }}
+                    >
+                      🪙
+                    </motion.div>
+                  ))}
+
+                  {/* Burst rays for voucher */}
+                  {chestResult.type !== 'coins' && (
+                    <motion.div
+                      className="absolute inset-0 pointer-events-none"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: [0, 0.5, 0] }}
+                      transition={{ duration: 1.2 }}
+                      style={{ background: `radial-gradient(circle, ${rarityColor(chestResult.rarity)}40, transparent 60%)` }}
+                    />
+                  )}
+
+                  {/* Reward icon */}
+                  <motion.div
+                    animate={{
+                      scale: [0, 1.3, 1, 1.08, 1],
+                      rotate: chestResult.type === 'coins' ? [0, -10, 10, 0] : [0, 0, 0, 0],
+                    }}
+                    transition={{ duration: 0.9 }}
+                    className="relative z-10 mx-auto mb-4 flex items-center justify-center"
+                  >
+                    {chestResult.type === 'coins' ? (
+                      <motion.div
+                        animate={{ y: [0, -4, 0] }}
+                        transition={{ duration: 1.2, repeat: Infinity }}
+                        className="relative"
+                      >
+                        <div className="text-6xl" style={{ filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.8))' }}>🪙</div>
+                        {/* Spinning ring */}
+                        <motion.div
+                          className="absolute inset-[-10px] rounded-full pointer-events-none"
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                          style={{ border: '2px dashed rgba(255,215,0,0.35)' }}
+                        />
+                      </motion.div>
+                    ) : (
+                      <div className="w-24 h-24 rounded-full flex items-center justify-center relative"
+                        style={{ background: `${rarityColor(chestResult.rarity)}18`, border: `2px solid ${rarityColor(chestResult.rarity)}60`, boxShadow: `0 0 40px ${rarityColor(chestResult.rarity)}40` }}>
+                        <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 1.2, repeat: Infinity }}>
+                          <Gift size={44} style={{ color: rarityColor(chestResult.rarity), filter: `drop-shadow(0 0 12px ${rarityColor(chestResult.rarity)}90)` }} />
+                        </motion.div>
+                      </div>
+                    )}
+                  </motion.div>
+
+                  <motion.p
+                    initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}
+                    className="font-ninja text-xs uppercase tracking-widest mb-1 relative z-10" style={{ color: rarityColor(chestResult.rarity) }}>
+                    {chestResult.rarity}
+                  </motion.p>
+
+                  {/* Token value with big yellow number */}
+                  {chestResult.type === 'coins' ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.5 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
+                      className="relative z-10"
+                    >
+                      <p className="font-ninja text-5xl text-yellow-400 mb-1 flex items-center justify-center gap-2"
+                        style={{ textShadow: '0 0 30px rgba(255,215,0,0.7), 0 0 60px rgba(255,149,0,0.4)' }}>
+                        +{chestResult.value}
+                      </p>
+                      <p className="font-ninja text-sm text-yellow-300/80 tracking-[0.3em]">TOKENS</p>
+                    </motion.div>
+                  ) : (
+                    <motion.p
+                      initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }}
+                      className="font-ninja text-2xl text-white mb-2 relative z-10">
+                      {chestResult.name}
+                    </motion.p>
+                  )}
+
+                  <motion.p
+                    initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
+                    className="font-body text-gray-400 text-sm mt-4 relative z-10">
+                    {chestResult.type === 'coins' ? 'Added to your balance!' : 'Added to your inventory!'}
+                  </motion.p>
                 </motion.div>
-              ) : (
+              ) : chestPhase === 'reveal' ? null : chestPhase === 'opening' ? null : (
                 <>
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="font-ninja text-lg tracking-wider" style={{ color: useModal.type === 'chest' ? '#00BFFF' : '#39FF14' }}>
