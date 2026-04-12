@@ -292,6 +292,8 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
 
     ballsRef.current.push(newBall);
     setTotalDrops(p => p + 1);
+    // Notify shell that Plinko is busy (has balls in play)
+    window.dispatchEvent(new CustomEvent('plinko-busy', { detail: { busy: true } }));
   }, [betAmount, playerCoins, player]);
 
   // ─── Physics Tick ─────────────────────────────────────────────────────────
@@ -382,6 +384,9 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
 
         setTimeout(() => {
           ballsRef.current = ballsRef.current.filter(b => b !== ball);
+          if (ballsRef.current.length === 0) {
+            window.dispatchEvent(new CustomEvent('plinko-busy', { detail: { busy: false } }));
+          }
         }, 1500);
       }
     }
@@ -536,7 +541,11 @@ export function PlinkoTab({ player }: PlinkoTabProps) {
       animFrameRef.current = requestAnimationFrame(loop);
     };
     animFrameRef.current = requestAnimationFrame(loop);
-    return () => cancelAnimationFrame(animFrameRef.current);
+    return () => {
+      cancelAnimationFrame(animFrameRef.current);
+      // Clear busy flag when leaving Plinko
+      window.dispatchEvent(new CustomEvent('plinko-busy', { detail: { busy: false } }));
+    };
   }, [initLayout, physicsTick, render]);
 
   // Re-init on settings change

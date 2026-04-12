@@ -27,6 +27,7 @@ interface UnifiedOrder {
   iceInWater?: boolean; // shisha only
   flavorName?: string;
   prepTime?: number;
+  cigarette?: { id: string; name: string; price: number } | null;
 }
 
 export function OrdersPanel() {
@@ -89,10 +90,14 @@ export function OrdersPanel() {
           totalCoins: data.price || data.totalCoins || 0,
           createdAt: data.createdAt || 0,
           updatedAt: data.updatedAt,
-          items: [{ name: data.flavorName || data.flavor || 'Shisha', quantity: data.quantity || 1, price: data.price || 0 }],
+          items: [
+            { name: data.flavorName || data.flavor || 'Shisha', quantity: data.quantity || 1, price: data.shishaPrice || data.price || 0 },
+            ...(data.cigarette ? [{ name: data.cigarette.name, quantity: 1, price: data.cigarette.price }] : []),
+          ],
           iceInWater: data.iceInWater,
           flavorName: data.flavorName,
           prepTime: data.prepTime,
+          cigarette: data.cigarette,
         };
       });
       setShishaOrders(all);

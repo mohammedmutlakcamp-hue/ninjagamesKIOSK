@@ -10,61 +10,165 @@ export interface BundleRule {
 }
 
 export const BUNDLE_RULES: BundleRule[] = [
+  // ─── Cigarettes ──────────────────────────────────────────────
   {
-    trigger: ['cigarette', 'cigarettes', 'marlboro', 'دخان', 'سجائر'],
-    suggests: ['karak', 'tea', 'coffee', 'شاي', 'قهوة'],
+    trigger: ['marlboro red', 'classic red'],
+    suggests: ['karak', 'tea', 'coffee', 'espresso', 'redbull', 'red bull', 'lighter'],
+    title: 'Marlboro Red combo',
+    reason: 'A strong smoke needs a strong drink',
+  },
+  {
+    trigger: ['marlboro gold', 'marlboro light'],
+    suggests: ['karak', 'tea', 'coffee', 'latte', 'cappuccino', 'lighter', 'croissant'],
+    title: 'Marlboro Gold combo',
+    reason: 'Smooth cigs, smooth drinks',
+  },
+  {
+    trigger: ['winston'],
+    suggests: ['karak', 'coffee', 'espresso', 'red bull', 'redbull', 'lighter'],
+    title: 'Winston combo',
+    reason: 'Classic pairing',
+  },
+  {
+    trigger: ['cigarette', 'cigarettes', 'marlboro', 'دخان', 'سجائر', 'kent', 'davidoff', 'camel'],
+    suggests: ['karak', 'tea', 'coffee', 'red bull', 'redbull', 'lighter', 'شاي', 'قهوة'],
     title: 'Classic combo',
     reason: 'Smoke goes great with a hot drink',
   },
+
+  // ─── Hot drinks ──────────────────────────────────────────────
   {
-    trigger: ['karak', 'tea', 'شاي'],
-    suggests: ['cigarette', 'cookie', 'biscuit', 'croissant', 'بسكوت'],
+    trigger: ['karak', 'شاي'],
+    suggests: ['marlboro', 'winston', 'cigarette', 'cookie', 'biscuit', 'croissant', 'بسكوت', 'donut', 'cake'],
     title: 'Make it perfect',
-    reason: 'Tea is even better with a snack',
+    reason: 'Karak deserves a smoke or something sweet',
   },
   {
-    trigger: ['coffee', 'espresso', 'latte', 'cappuccino', 'قهوة'],
-    suggests: ['cigarette', 'croissant', 'cookie', 'cake', 'muffin'],
+    trigger: ['tea'],
+    suggests: ['marlboro', 'winston', 'cigarette', 'cookie', 'biscuit', 'croissant', 'cake'],
+    title: 'Tea time',
+    reason: 'What goes with a warm cup?',
+  },
+  {
+    trigger: ['espresso', 'ristretto'],
+    suggests: ['marlboro', 'cigarette', 'croissant', 'chocolate', 'biscotti'],
+    title: 'Espresso kick',
+    reason: 'Short and strong',
+  },
+  {
+    trigger: ['coffee', 'latte', 'cappuccino', 'americano', 'mocha', 'قهوة'],
+    suggests: ['marlboro', 'winston', 'cigarette', 'croissant', 'cookie', 'cake', 'muffin', 'donut', 'chocolate'],
     title: 'Coffee break',
-    reason: 'Add a little something on the side',
+    reason: 'Add a bite on the side',
   },
+
+  // ─── Shisha / hubbly ─────────────────────────────────────────
   {
-    trigger: ['shisha', 'hubbly'],
-    suggests: ['juice', 'water', 'soda', 'cola', 'pepsi', 'عصير'],
-    title: 'Hydrate while you smoke',
-    reason: 'Drinks pair well with hubbly',
+    trigger: ['shisha', 'hubbly', 'معسل'],
+    suggests: ['juice', 'water', 'soda', 'cola', 'pepsi', '7up', 'sprite', 'عصير', 'marlboro', 'winston', 'cigarette'],
+    title: 'Perfect hubbly setup',
+    reason: 'Something to sip and something to smoke',
   },
+
+  // ─── Energy ──────────────────────────────────────────────────
   {
-    trigger: ['burger', 'sandwich', 'chicken', 'pizza'],
-    suggests: ['fries', 'soda', 'cola', 'pepsi', 'juice', 'water'],
+    trigger: ['redbull', 'red bull', 'monster', 'energy drink'],
+    suggests: ['marlboro', 'winston', 'cigarette', 'chips', 'chocolate', 'snickers', 'lays'],
+    title: 'Gamer fuel',
+    reason: 'Lock in for a long session',
+  },
+
+  // ─── Food ────────────────────────────────────────────────────
+  {
+    trigger: ['burger', 'cheeseburger'],
+    suggests: ['fries', 'chips', 'cola', 'pepsi', 'soda', 'water', 'ketchup', 'onion rings'],
     title: 'Complete the meal',
-    reason: 'Add a side and a drink',
+    reason: 'Nobody eats a burger alone',
   },
   {
-    trigger: ['fries', 'chips', 'nuggets'],
-    suggests: ['burger', 'sandwich', 'soda', 'cola', 'ketchup'],
+    trigger: ['pizza', 'slice'],
+    suggests: ['cola', 'pepsi', 'sprite', 'fries', 'chicken wings', 'garlic'],
+    title: 'Pizza night',
+    reason: 'Sides and a soda make it better',
+  },
+  {
+    trigger: ['chicken', 'wings', 'nuggets'],
+    suggests: ['fries', 'cola', 'pepsi', 'sauce', 'ranch', 'garlic'],
+    title: 'More of a good thing',
+    reason: 'Dip it, wash it down',
+  },
+  {
+    trigger: ['sandwich', 'wrap', 'shawarma'],
+    suggests: ['fries', 'chips', 'cola', 'pepsi', 'juice', 'water'],
+    title: 'Add a side',
+    reason: 'Sandwich alone is never enough',
+  },
+  {
+    trigger: ['fries', 'potato', 'chips'],
+    suggests: ['burger', 'sandwich', 'cola', 'pepsi', 'ketchup', 'mayo', 'sauce'],
     title: 'Good call',
     reason: 'Make it a full snack session',
   },
   {
-    trigger: ['energy', 'redbull', 'red bull', 'monster'],
-    suggests: ['cigarette', 'chips', 'chocolate'],
-    title: 'Gamer fuel',
-    reason: 'Lock in for a long session',
+    trigger: ['pasta', 'spaghetti'],
+    suggests: ['bread', 'garlic', 'cola', 'pepsi', 'water'],
+    title: 'Italian combo',
+    reason: 'Bread and a drink complete it',
+  },
+
+  // ─── Sweets ──────────────────────────────────────────────────
+  {
+    trigger: ['ice cream', 'sundae'],
+    suggests: ['brownie', 'cookie', 'waffle', 'coffee'],
+    title: 'Dessert platter',
+    reason: 'Why stop at one?',
+  },
+  {
+    trigger: ['cake', 'brownie', 'cookie', 'muffin', 'donut'],
+    suggests: ['coffee', 'latte', 'tea', 'karak', 'milk'],
+    title: 'With something to drink',
+    reason: 'Sweets always need a drink',
+  },
+  {
+    trigger: ['chocolate'],
+    suggests: ['milk', 'coffee', 'espresso', 'redbull'],
+    title: 'Chocolate craving',
+    reason: 'Wash it down',
+  },
+
+  // ─── Cold drinks ─────────────────────────────────────────────
+  {
+    trigger: ['cola', 'pepsi', 'sprite', '7up', 'mirinda', 'fanta'],
+    suggests: ['burger', 'pizza', 'fries', 'chips', 'chicken'],
+    title: 'Make it a meal',
+    reason: 'A soda by itself is just thirsty',
+  },
+  {
+    trigger: ['juice', 'عصير'],
+    suggests: ['croissant', 'cake', 'shisha', 'sandwich'],
+    title: 'Fresh pairing',
+    reason: 'Goes down easy',
   },
 ];
 
 /**
  * Given a menu item name, return matched bundle rule (or null).
+ * Most specific rules (longer triggers) win to avoid e.g. "marlboro" catching
+ * before "marlboro red".
  */
 export function findBundleRule(itemName: string): BundleRule | null {
   const lower = itemName.toLowerCase();
+  let best: { rule: BundleRule; len: number } | null = null;
   for (const rule of BUNDLE_RULES) {
-    if (rule.trigger.some(t => lower.includes(t.toLowerCase()))) {
-      return rule;
+    for (const t of rule.trigger) {
+      if (lower.includes(t.toLowerCase())) {
+        if (!best || t.length > best.len) {
+          best = { rule, len: t.length };
+        }
+      }
     }
   }
-  return null;
+  return best?.rule || null;
 }
 
 /**
@@ -86,5 +190,5 @@ export function getBundleSuggestions(
       const lowerName = item.name.toLowerCase();
       return lowerSuggests.some(s => lowerName.includes(s));
     })
-    .slice(0, 4); // max 4 suggestions per popup
+    .slice(0, 4);
 }

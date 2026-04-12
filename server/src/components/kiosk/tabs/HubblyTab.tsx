@@ -45,12 +45,28 @@ interface ActiveOrder {
   iceInWater?: boolean;
 }
 
-type Step = 'flavor' | 'ice' | 'confirm';
+type Step = 'flavor' | 'ice' | 'smokes' | 'confirm';
+
+interface CigaretteOption {
+  id: string;
+  name: string;
+  color: string;
+  price: number;
+  badge?: string;
+}
+
+const CIGARETTES: CigaretteOption[] = [
+  { id: 'marlboro-red',   name: 'Marlboro Red',   color: '#DC2626', price: 200, badge: 'CLASSIC' },
+  { id: 'marlboro-gold',  name: 'Marlboro Gold',  color: '#D4A017', price: 200, badge: 'SMOOTH' },
+  { id: 'winston',        name: 'Winston',        color: '#3B82F6', price: 180 },
+];
 
 export function HubblyTab({ player }: Props) {
   const [step, setStep] = useState<Step>('flavor');
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
   const [iceInWater, setIceInWater] = useState<boolean | null>(null);
+  const [selectedCigarette, setSelectedCigarette] = useState<string | null>(null);
+  const [cigDecided, setCigDecided] = useState(false); // user has explicitly decided (even to skip)
   const [ordering, setOrdering] = useState(false);
   const [orderSent, setOrderSent] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
@@ -70,29 +86,43 @@ export function HubblyTab({ player }: Props) {
   }, [player?.uid]);
 
   const selected = SHISHA_FLAVORS.find(f => f.id === selectedFlavor);
+  const selectedCig = CIGARETTES.find(c => c.id === selectedCigarette);
+  const totalPrice = (selected?.price || 0) + (selectedCig?.price || 0);
 
   const handleOrder = async () => {
     if (!selected || ordering || iceInWater === null) return;
     setOrdering(true);
     try {
+      const cigDetail = selectedCig
+        ? { id: selectedCig.id, name: selectedCig.name, price: selectedCig.price }
+        : null;
+
       await addDoc(collection(db, 'shisha-orders'), {
         playerId: player.uid,
         playerName: player.username,
         pcName: player.pcName || 'Kiosk',
         flavor: selected.id,
         flavorName: selected.name,
-        price: selected.price,
+        price: totalPrice,
+        shishaPrice: selected.price,
         iceInWater,
-        prepTime: 10, // shisha takes ~10 minutes
+        cigarette: cigDetail,
+        prepTime: 10,
         status: 'pending',
         createdAt: Date.now(),
       });
-      notifyAdmin('shisha_order', 'Shisha Order', `${player.username} ordered ${selected.name}${iceInWater ? ' (with ice)' : ''}`);
+      notifyAdmin(
+        'shisha_order',
+        'Shisha Order',
+        `${player.username} ordered ${selected.name}${iceInWater ? ' (with ice)' : ''}${selectedCig ? ' + ' + selectedCig.name : ''}`
+      );
       setOrderSent(true);
       setTimeout(() => {
         setOrderSent(false);
         setSelectedFlavor(null);
         setIceInWater(null);
+        setSelectedCigarette(null);
+        setCigDecided(false);
         setStep('flavor');
       }, 2000);
     } catch (err) {
@@ -103,11 +133,13 @@ export function HubblyTab({ player }: Props) {
 
   const goNext = () => {
     if (step === 'flavor' && selectedFlavor) setStep('ice');
-    else if (step === 'ice' && iceInWater !== null) setStep('confirm');
+    else if (step === 'ice' && iceInWater !== null) setStep('smokes');
+    else if (step === 'smokes' && cigDecided) setStep('confirm');
   };
 
   const goBack = () => {
-    if (step === 'confirm') setStep('ice');
+    if (step === 'confirm') setStep('smokes');
+    else if (step === 'smokes') setStep('ice');
     else if (step === 'ice') setStep('flavor');
   };
 
@@ -122,14 +154,18 @@ export function HubblyTab({ player }: Props) {
           <p className="font-body text-xs text-gray-500 mt-1">
             {step === 'flavor' && 'Step 1 · Pick your flavor'}
             {step === 'ice' && 'Step 2 · Ice in water?'}
-            {step === 'confirm' && 'Step 3 · Confirm order'}
+            {step === 'smokes' && 'Step 3 · Smoke with it?'}
+            {step === 'confirm' && 'Step 4 · Confirm order'}
           </p>
 
           {/* Step indicator dots */}
           <div className="flex items-center justify-center gap-2 mt-4">
-            {(['flavor', 'ice', 'confirm'] as Step[]).map((s, i) => {
+            {(['flavor', 'ice', 'smokes', 'confirm'] as Step[]).map((s, i) => {
+              const order: Step[] = ['flavor', 'ice', 'smokes', 'confirm'];
+              const currentIdx = order.indexOf(step);
+              const myIdx = order.indexOf(s);
               const current = step === s;
-              const done = (step === 'ice' && s === 'flavor') || (step === 'confirm' && (s === 'flavor' || s === 'ice'));
+              const done = myIdx < currentIdx;
               return (
                 <div key={s} className="flex items-center gap-2">
                   <motion.div
@@ -143,7 +179,7 @@ export function HubblyTab({ player }: Props) {
                     }}>
                     {done ? <CheckCircle2 size={14} /> : i + 1}
                   </motion.div>
-                  {i < 2 && <div className="w-6 h-[1px]" style={{ background: done ? '#06B6D4' : 'rgba(255,255,255,0.08)' }} />}
+                  {i < 3 && <div className="w-6 h-[1px]" style={{ background: done ? '#06B6D4' : 'rgba(255,255,255,0.08)' }} />}
                 </div>
               );
             })}
@@ -320,7 +356,101 @@ export function HubblyTab({ player }: Props) {
           </motion.div>
         )}
 
-        {/* ═══════════ STEP 3: CONFIRM ═══════════ */}
+        {/* ═══════════ STEP 3: SMOKES (CIGARETTES) ═══════════ */}
+        {step === 'smokes' && (
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+            <h2 className="font-ninja text-xl text-center mb-1" style={{ color: '#06B6D4' }}>ADD CIGARETTES?</h2>
+            <p className="font-body text-xs text-gray-500 text-center mb-5">Completely optional · add-on to your hubbly</p>
+
+            <div className="space-y-2.5 mb-4">
+              {/* No cigarettes option */}
+              <motion.div
+                initial={{ opacity: 0, x: -10 }}
+                animate={{ opacity: 1, x: 0 }}
+                onClick={() => { setSelectedCigarette(null); setCigDecided(true); }}
+                className="relative rounded-xl p-3.5 cursor-pointer transition-all flex items-center gap-3"
+                style={{
+                  background: cigDecided && !selectedCigarette ? 'rgba(6,182,212,0.06)' : 'rgba(255,255,255,0.015)',
+                  border: cigDecided && !selectedCigarette ? '1.5px solid rgba(6,182,212,0.4)' : '1.5px solid rgba(255,255,255,0.04)',
+                }}>
+                <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                  style={{
+                    border: cigDecided && !selectedCigarette ? '2px solid #06B6D4' : '2px solid rgba(255,255,255,0.1)',
+                  }}>
+                  {cigDecided && !selectedCigarette && <div className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" />}
+                </div>
+                <span className="text-2xl">🚫</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ninja text-sm tracking-wider" style={{ color: cigDecided && !selectedCigarette ? '#06B6D4' : '#ccc' }}>
+                    NO CIGARETTES
+                  </p>
+                  <p className="font-body text-[10px] text-gray-500">Just the hubbly</p>
+                </div>
+              </motion.div>
+
+              {/* Cigarette options */}
+              {CIGARETTES.map((cig, i) => {
+                const isSel = selectedCigarette === cig.id;
+                return (
+                  <motion.div key={cig.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: (i + 1) * 0.05 }}
+                    onClick={() => { setSelectedCigarette(cig.id); setCigDecided(true); }}
+                    className="relative rounded-xl p-3.5 cursor-pointer transition-all flex items-center gap-3"
+                    style={{
+                      background: isSel ? `${cig.color}10` : 'rgba(255,255,255,0.015)',
+                      border: isSel ? `1.5px solid ${cig.color}60` : '1.5px solid rgba(255,255,255,0.04)',
+                      boxShadow: isSel ? `0 0 15px ${cig.color}15` : 'none',
+                    }}>
+                    <div className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+                      style={{
+                        border: isSel ? `2px solid ${cig.color}` : '2px solid rgba(255,255,255,0.1)',
+                        background: isSel ? `${cig.color}15` : 'transparent',
+                      }}>
+                      {isSel && <div className="w-2.5 h-2.5 rounded-full" style={{ background: cig.color }} />}
+                    </div>
+                    <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{ background: `${cig.color}15`, border: `1px solid ${cig.color}30` }}>
+                      <span className="text-xl">🚬</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-ninja text-sm tracking-wider" style={{ color: isSel ? cig.color : '#ccc' }}>
+                        {cig.name.toUpperCase()}
+                      </p>
+                      {cig.badge && <p className="font-ninja text-[8px] tracking-wider mt-0.5" style={{ color: isSel ? `${cig.color}90` : '#555' }}>{cig.badge}</p>}
+                    </div>
+                    <span className="font-ninja text-xs flex items-center gap-0.5 shrink-0" style={{ color: isSel ? cig.color : '#666' }}>
+                      <Coins size={11} /> {cig.price}
+                    </span>
+                  </motion.div>
+                );
+              })}
+            </div>
+
+            <div className="flex gap-3">
+              <button onClick={goBack}
+                className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
+                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
+                <ChevronLeft size={18} /> BACK
+              </button>
+              <motion.button
+                whileTap={cigDecided ? { scale: 0.97 } : {}}
+                disabled={!cigDecided}
+                onClick={goNext}
+                className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-30"
+                style={{
+                  background: cigDecided ? `linear-gradient(135deg, ${selected?.color}, ${selected?.color}cc)` : 'rgba(6,182,212,0.1)',
+                  color: cigDecided ? '#fff' : 'rgba(6,182,212,0.3)',
+                  boxShadow: cigDecided ? `0 0 20px ${selected?.color}30` : 'none',
+                }}>
+                CONTINUE <ChevronRight size={18} />
+              </motion.button>
+            </div>
+          </motion.div>
+        )}
+
+        {/* ═══════════ STEP 4: CONFIRM ═══════════ */}
         {step === 'confirm' && selected && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="rounded-2xl p-6 text-center relative overflow-hidden" style={{
@@ -343,7 +473,7 @@ export function HubblyTab({ player }: Props) {
               <h2 className="font-ninja text-2xl mb-2" style={{ color: selected.color, textShadow: `0 0 20px ${selected.color}50` }}>
                 {selected.name.toUpperCase()}
               </h2>
-              <div className="flex items-center justify-center gap-3 mb-4 flex-wrap">
+              <div className="flex items-center justify-center gap-2 mb-4 flex-wrap">
                 <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
                   background: iceInWater ? 'rgba(6,182,212,0.12)' : 'rgba(168,85,247,0.12)',
                   border: `1px solid ${iceInWater ? 'rgba(6,182,212,0.3)' : 'rgba(168,85,247,0.3)'}`,
@@ -351,10 +481,17 @@ export function HubblyTab({ player }: Props) {
                 }}>
                   {iceInWater ? <><Snowflake size={12} /> WITH ICE</> : <><Droplet size={12} /> NO ICE</>}
                 </span>
+                {selectedCig && (
+                  <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
+                    background: `${selectedCig.color}15`, border: `1px solid ${selectedCig.color}40`, color: selectedCig.color,
+                  }}>
+                    🚬 {selectedCig.name.toUpperCase()}
+                  </span>
+                )}
                 <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
                   background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.3)', color: '#FFD700',
                 }}>
-                  <Coins size={12} /> {selected.price}
+                  <Coins size={12} /> {totalPrice}
                 </span>
                 <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
                   background: 'rgba(255,111,0,0.1)', border: '1px solid rgba(255,111,0,0.3)', color: '#FF6F00',
@@ -362,6 +499,11 @@ export function HubblyTab({ player }: Props) {
                   <Clock size={12} /> ~10 MIN
                 </span>
               </div>
+              {selectedCig && (
+                <p className="font-body text-[10px] text-gray-500 mb-2">
+                  Hubbly <span className="text-yellow-400">{selected.price}</span> + {selectedCig.name} <span className="text-yellow-400">{selectedCig.price}</span> = <span className="text-yellow-400 font-semibold">{totalPrice} coins</span>
+                </p>
+              )}
               <p className="font-body text-xs text-gray-400">Your hubbly will be brought to your PC</p>
             </div>
 
