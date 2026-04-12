@@ -2531,8 +2531,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 }} />
                             )}
                             <div className="relative rounded-lg px-5 py-4" style={{
+                              // Solid dark bg for BEST card so the yellow/green swap numbers stay legible.
+                              // Rainbow border remains visible around the outside.
                               background: isBest
-                                ? 'linear-gradient(135deg, rgba(168,85,247,0.08), rgba(6,182,212,0.05), rgba(57,255,20,0.05))'
+                                ? 'linear-gradient(135deg, #0a0d14, #0b1120, #0a0e14)'
                                 : 'rgba(255,255,255,0.02)',
                             }}>
                               {/* Animated HUD corner accents */}
@@ -2632,18 +2634,18 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                   </motion.div>
                                 </div>
 
-                                {/* Animated BEST badge */}
-                                {isBest && (
-                                  <motion.div
-                                    animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 10px rgba(57,255,20,0.1)', '0 0 20px rgba(57,255,20,0.25)', '0 0 10px rgba(57,255,20,0.1)'] }}
-                                    transition={{ duration: 2, repeat: Infinity }}
-                                    className="px-3 py-1.5 rounded-lg font-ninja text-xs tracking-wider text-white flex items-center gap-1.5 flex-shrink-0"
-                                    style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.2), rgba(0,191,255,0.15))', border: '1px solid rgba(57,255,20,0.3)' }}>
-                                    <Shield size={14} className="text-ninja-green" />
-                                    BEST
-                                  </motion.div>
-                                )}
                               </div>
+                              {/* Animated BEST badge — floats above the card so it doesn't squeeze the swap numbers */}
+                              {isBest && (
+                                <motion.div
+                                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 10px rgba(57,255,20,0.2)', '0 0 20px rgba(57,255,20,0.45)', '0 0 10px rgba(57,255,20,0.2)'] }}
+                                  transition={{ duration: 2, repeat: Infinity }}
+                                  className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-md font-ninja text-[10px] tracking-[0.2em] text-white flex items-center gap-1 z-10"
+                                  style={{ background: 'linear-gradient(135deg, #39FF14, #06b6d4)', color: '#000' }}>
+                                  <Shield size={10} />
+                                  BEST
+                                </motion.div>
+                              )}
                             </div>
                           </motion.div>
                         </motion.button>
