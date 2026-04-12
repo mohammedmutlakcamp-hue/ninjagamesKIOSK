@@ -9,6 +9,7 @@ import { Chest, ChestReward, NinjaSkin } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { ChestDropsPanels } from '@/components/kiosk/ChestDropsPanels';
 import {
   Coins, Star, Package, Clock, X, Check,
   Crown, Timer, CreditCard, Lock, Info, ShoppingBag,
@@ -1116,10 +1117,14 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 </div>
                 <div>
                   <h3 className="font-ninja text-xl tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 12px rgba(57,255,20,0.4)' }}>TREASURE CHESTS</h3>
-                  <p className="font-body text-xs text-gray-500">Buy chests — open from inventory or gift to friends</p>
+                  <p className="font-body text-xs text-gray-500">Tap a chest to open it — or save it for later</p>
                 </div>
                 <div className="flex-1 h-[1px] ml-3" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.2), transparent)' }} />
               </div>
+
+              {/* Live drops panels */}
+              <ChestDropsPanels />
+
               <div className="grid grid-cols-4 gap-5">
                 {CHESTS.map((chest, i) => {
                   const cost = getDiscountedCost(chest.cost);
@@ -1152,7 +1157,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                       <p className="font-ninja text-sm text-center tracking-wider relative z-[1]" style={{ color: chest.color, textShadow: `0 0 8px ${chest.color}40` }}>{chest.name.toUpperCase()}</p>
                       <p className="font-body text-[10px] text-center text-gray-500 mb-2 relative z-[1]">{chest.rewards.length} rewards</p>
                       <div className="absolute bottom-3 left-3 right-3 z-[1]">
-                        <button onClick={() => canAfford && buyChestToInventory(chest)} disabled={!canAfford || buying}
+                        <button onClick={() => canAfford && setConfirmChest(chest)} disabled={!canAfford || buying}
                           className="relative w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-ninja text-xs tracking-wider transition-all disabled:opacity-40"
                           style={{ background: `linear-gradient(135deg, ${chest.color}15, ${chest.color}05)`, border: `1px solid ${chest.color}40`, color: chest.color, boxShadow: canAfford ? `0 0 12px ${chest.color}15` : 'none' }}>
                           <Coins size={13} className="text-yellow-400" />
@@ -1905,12 +1910,18 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   </div>
                 ))}
               </div>
-              <div className="flex gap-3">
-                <button onClick={() => setConfirmChest(null)} className="ninja-btn ninja-btn-ghost flex-1 py-3 rounded-xl font-ninja">CANCEL</button>
+              <div className="flex gap-2">
+                <button onClick={() => setConfirmChest(null)} className="ninja-btn ninja-btn-ghost px-4 py-3 rounded-xl font-ninja text-xs">CANCEL</button>
+                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => { buyChestToInventory(confirmChest); setConfirmChest(null); }}
+                  className="flex-1 py-3 rounded-xl font-ninja text-xs tracking-wider"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${confirmChest.color}40`, color: confirmChest.color }}>
+                  SAVE FOR LATER
+                </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => { openChest(confirmChest); setConfirmChest(null); }}
-                  className="ninja-btn ninja-btn-green-fill flex-1 py-3 rounded-xl font-ninja text-black"
-                  style={{ background: confirmChest.color }}>OPEN CHEST</motion.button>
+                  className="ninja-btn ninja-btn-green-fill flex-[1.3] py-3 rounded-xl font-ninja text-black text-sm tracking-wider"
+                  style={{ background: confirmChest.color }}>OPEN NOW</motion.button>
               </div>
             </motion.div>
           </motion.div>
