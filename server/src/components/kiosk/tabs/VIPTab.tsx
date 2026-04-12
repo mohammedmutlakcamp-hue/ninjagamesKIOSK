@@ -145,7 +145,7 @@ export function VIPTab({ player }: Props) {
       {/* ═══ Content ═══ */}
       <div className="relative z-10 w-full h-full overflow-y-auto overflow-x-hidden"
         style={{ scrollbarWidth: 'thin', scrollbarColor: `${GOLD}30 transparent` }}>
-        <div className="max-w-[700px] mx-auto px-6 py-6 space-y-5">
+        <div className="max-w-[760px] mx-auto px-8 py-7 space-y-6">
 
           {/* ══ HEADER — like Buy Time header ══ */}
           <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
@@ -160,11 +160,11 @@ export function VIPTab({ player }: Props) {
               </motion.div>
               <div>
                 <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
-                  className="font-ninja text-3xl tracking-wide"
+                  className="font-ninja text-4xl tracking-wide"
                   style={{ background: `linear-gradient(135deg, ${GOLD_LIGHT}, ${GOLD}, ${AMBER})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: 'none', filter: `drop-shadow(0 0 15px ${GOLD}40)` }}>
                   VIP ZONE
                 </motion.h2>
-                <p className="font-body text-gray-500 text-xs mt-0.5">
+                <p className="font-body text-gray-400 text-sm mt-1">
                   {isVIP ? `${daysLeft} days remaining` : isExpired ? 'Membership expired' : 'Unlock elite membership'}
                 </p>
               </div>
@@ -193,16 +193,20 @@ export function VIPTab({ player }: Props) {
 
               <div className="relative rounded-lg px-6 py-5" style={{
                 background: isVIP
-                  ? `linear-gradient(135deg, rgba(255,215,0,0.06), rgba(255,140,0,0.04), rgba(184,134,11,0.03))`
+                  ? `linear-gradient(135deg, ${GOLD}, ${GOLD_LIGHT} 50%, ${AMBER})`
                   : 'rgba(255,255,255,0.02)',
               }}>
                 {/* HUD corners */}
-                {[
-                  { pos: 'top-0 left-0', borders: { borderTop: `2px solid ${GOLD}`, borderLeft: `2px solid ${GOLD}` } },
-                  { pos: 'top-0 right-0', borders: { borderTop: `2px solid ${GOLD}60`, borderRight: `2px solid ${GOLD}60` } },
-                  { pos: 'bottom-0 left-0', borders: { borderBottom: `2px solid ${GOLD}60`, borderLeft: `2px solid ${GOLD}60` } },
-                  { pos: 'bottom-0 right-0', borders: { borderBottom: `2px solid ${GOLD}`, borderRight: `2px solid ${GOLD}` } },
-                ].map((c, i) => (
+                {(() => {
+                  const cc = isVIP ? '#000' : GOLD;
+                  const ccDim = isVIP ? 'rgba(0,0,0,0.5)' : `${GOLD}60`;
+                  return [
+                    { pos: 'top-0 left-0', borders: { borderTop: `2px solid ${cc}`, borderLeft: `2px solid ${cc}` } },
+                    { pos: 'top-0 right-0', borders: { borderTop: `2px solid ${ccDim}`, borderRight: `2px solid ${ccDim}` } },
+                    { pos: 'bottom-0 left-0', borders: { borderBottom: `2px solid ${ccDim}`, borderLeft: `2px solid ${ccDim}` } },
+                    { pos: 'bottom-0 right-0', borders: { borderBottom: `2px solid ${cc}`, borderRight: `2px solid ${cc}` } },
+                  ];
+                })().map((c, i) => (
                   <motion.div key={i}
                     initial={{ opacity: 0, scale: 0 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -212,34 +216,40 @@ export function VIPTab({ player }: Props) {
 
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    {/* Crown with glow */}
+                    {/* Crown */}
                     <motion.div
-                      animate={{ boxShadow: [`0 0 10px ${GOLD}20`, `0 0 20px ${GOLD}40`, `0 0 10px ${GOLD}20`] }}
-                      transition={{ duration: 2, repeat: Infinity }}
+                      animate={isVIP ? { rotate: [0, 3, -3, 0] } : {}}
+                      transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
                       className="w-16 h-16 rounded-xl flex items-center justify-center"
-                      style={{ background: `${GOLD}10`, border: `2px solid ${GOLD}30` }}>
-                      <Crown size={32} style={{ color: GOLD, filter: `drop-shadow(0 0 10px ${GOLD}80)` }} />
+                      style={{
+                        background: isVIP ? 'rgba(0,0,0,0.15)' : `${GOLD}10`,
+                        border: `2px solid ${isVIP ? 'rgba(0,0,0,0.3)' : `${GOLD}30`}`,
+                      }}>
+                      <Crown size={34} style={{ color: isVIP ? '#000' : GOLD, filter: isVIP ? 'none' : `drop-shadow(0 0 10px ${GOLD}80)` }} />
                     </motion.div>
                     <div>
-                      <p className="font-ninja text-xl" style={{ color: isVIP ? GOLD : '#666' }}>
+                      <p className="font-ninja text-2xl tracking-wider" style={{
+                        color: isVIP ? '#000' : isExpired ? '#ff4444' : '#666',
+                        fontWeight: isVIP ? 900 : 'normal',
+                      }}>
                         {isVIP ? 'VIP ACTIVE' : isExpired ? 'EXPIRED' : 'NOT A MEMBER'}
                       </p>
                       {isVIP && daysLeft !== null && (
-                        <div className="flex items-center gap-2 mt-1.5">
-                          <div className="w-32 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <div className="flex items-center gap-2 mt-2">
+                          <div className="w-36 h-2.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.2)' }}>
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${(daysLeft / 30) * 100}%` }}
                               transition={{ duration: 1.2, delay: 0.6 }}
                               className="h-full rounded-full"
-                              style={{ background: daysLeft <= 5 ? 'linear-gradient(90deg, #ff4444, #ff6b00)' : `linear-gradient(90deg, ${GOLD}, ${AMBER})`, boxShadow: `0 0 8px ${daysLeft <= 5 ? '#ff4444' : GOLD}50` }}
+                              style={{ background: daysLeft <= 5 ? 'linear-gradient(90deg, #ff4444, #ff6b00)' : '#000' }}
                             />
                           </div>
-                          <span className="font-ninja text-[10px]" style={{ color: daysLeft <= 5 ? '#ff6b00' : GOLD }}>{daysLeft}D</span>
+                          <span className="font-ninja text-sm" style={{ color: daysLeft <= 5 ? '#7a0000' : '#000', fontWeight: 900 }}>{daysLeft}D LEFT</span>
                         </div>
                       )}
                       {!isVIP && (
-                        <p className="font-body text-xs text-gray-500 mt-0.5">{VIP_CONFIG.priceCoins.toLocaleString()} coins · 30 days</p>
+                        <p className="font-body text-sm text-gray-500 mt-1">{VIP_CONFIG.priceCoins.toLocaleString()} coins · 30 days</p>
                       )}
                     </div>
                   </div>
@@ -249,18 +259,19 @@ export function VIPTab({ player }: Props) {
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     onClick={goToStore}
-                    className="px-6 py-3 rounded-xl font-ninja text-sm flex items-center gap-2 relative overflow-hidden"
+                    className="px-6 py-3.5 rounded-xl font-ninja text-base flex items-center gap-2 relative overflow-hidden"
                     style={{
-                      background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`,
-                      color: '#000',
-                      boxShadow: `0 0 20px ${GOLD}30`,
+                      background: isVIP ? '#000' : `linear-gradient(135deg, ${GOLD}, ${AMBER})`,
+                      color: isVIP ? GOLD : '#000',
+                      boxShadow: isVIP ? '0 4px 15px rgba(0,0,0,0.3)' : `0 0 20px ${GOLD}30`,
+                      fontWeight: 900,
                     }}>
                     {/* Metallic sweep */}
                     <motion.div className="absolute inset-0 pointer-events-none"
                       animate={{ x: ['-100%', '250%'] }}
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
-                      style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)', width: '40%' }} />
-                    <ShoppingBag size={16} />
+                      style={{ background: `linear-gradient(105deg, transparent 30%, ${isVIP ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.4)'} 50%, transparent 70%)`, width: '40%' }} />
+                    <ShoppingBag size={18} />
                     {isVIP ? 'RENEW' : 'GET VIP'}
                   </motion.button>
                 </div>
@@ -273,9 +284,9 @@ export function VIPTab({ player }: Props) {
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
               className="grid grid-cols-3 gap-3">
               {[
-                { icon: <Coffee size={14} />, text: `${VIP_CONFIG.cafeDiscountPercent}% CAFE OFF`, color: '#00C8FF' },
-                { icon: <Coins size={14} />, text: '+1 PER TASK', color: GOLD },
-                { icon: <Gift size={14} />, text: inviteUsedToday ? 'GIFT SENT' : 'SEND GIFT', color: inviteUsedToday ? '#444' : '#39FF14', onClick: () => !inviteUsedToday && setShowInviteModal(true) },
+                { icon: <Coffee size={16} />, text: `${VIP_CONFIG.cafeDiscountPercent}% CAFE OFF`, color: '#00C8FF' },
+                { icon: <Coins size={16} />, text: '+1 PER TASK', color: GOLD },
+                { icon: <Gift size={16} />, text: inviteUsedToday ? 'GIFT SENT' : 'SEND GIFT', color: inviteUsedToday ? '#444' : '#39FF14', onClick: () => !inviteUsedToday && setShowInviteModal(true) },
               ].map((s, i) => (
                 <motion.button key={i}
                   initial={{ opacity: 0, y: 10 }}
@@ -283,13 +294,12 @@ export function VIPTab({ player }: Props) {
                   transition={{ delay: 0.6 + i * 0.08 }}
                   onClick={s.onClick}
                   disabled={!s.onClick}
-                  className="flex items-center justify-center gap-2 py-3 rounded-lg relative overflow-hidden transition-all hover:bg-white/[0.03]"
+                  className="flex items-center justify-center gap-2 py-3.5 rounded-lg relative overflow-hidden transition-all hover:bg-white/[0.03]"
                   style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${s.color}18` }}>
-                  {/* HUD corners */}
                   <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${s.color}40`, borderLeft: `1px solid ${s.color}40` }} />
                   <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: `1px solid ${s.color}40`, borderRight: `1px solid ${s.color}40` }} />
                   <span style={{ color: s.color }}>{s.icon}</span>
-                  <span className="font-ninja text-[9px] tracking-wider" style={{ color: s.color }}>{s.text}</span>
+                  <span className="font-ninja text-xs tracking-wider" style={{ color: s.color }}>{s.text}</span>
                 </motion.button>
               ))}
             </motion.div>
@@ -317,7 +327,7 @@ export function VIPTab({ player }: Props) {
           {/* ══ PERKS — Buy Time card style with HUD corners ══ */}
           <div>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
-              className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}60` }}>
+              className="font-ninja text-xs tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}60` }}>
               MEMBER PERKS
             </motion.p>
             <div className="grid grid-cols-3 gap-2.5">
@@ -342,16 +352,16 @@ export function VIPTab({ player }: Props) {
                     <motion.div
                       animate={isVIP ? { y: [0, -2, 0] } : {}}
                       transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 }}
-                      className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2"
+                      className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2.5"
                       style={{ background: `${GOLD}08`, border: `1px solid ${isVIP ? `${GOLD}20` : '#333'}` }}>
                       <span style={{ color: isVIP ? GOLD : '#333' }}>{perk.icon}</span>
                     </motion.div>
-                    <p className="font-ninja text-xs" style={{ color: isVIP ? GOLD : '#444' }}>{perk.title}</p>
-                    <p className="font-body text-[8px] text-gray-600 mt-0.5">{perk.desc}</p>
+                    <p className="font-ninja text-sm" style={{ color: isVIP ? GOLD : '#444' }}>{perk.title}</p>
+                    <p className="font-body text-[11px] text-gray-400 mt-1">{perk.desc}</p>
 
                     {/* Lock / check */}
                     <div className="absolute top-2 right-2">
-                      {isVIP ? <Check size={10} style={{ color: GOLD }} /> : <Lock size={8} className="text-gray-700" />}
+                      {isVIP ? <Check size={12} style={{ color: GOLD }} /> : <Lock size={10} className="text-gray-700" />}
                     </div>
                   </div>
                 </motion.div>
@@ -371,28 +381,28 @@ export function VIPTab({ player }: Props) {
               <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: `2px solid ${inviteUsedToday ? '#333' : GOLD}`, borderLeft: `2px solid ${inviteUsedToday ? '#333' : GOLD}` }} />
               <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: `2px solid ${inviteUsedToday ? '#333' : `${GOLD}60`}`, borderRight: `2px solid ${inviteUsedToday ? '#333' : `${GOLD}60`}` }} />
 
-              <div className="flex items-center justify-between px-5 py-4">
+              <div className="flex items-center justify-between px-6 py-5">
                 <div className="flex items-center gap-4">
                   <motion.div
                     animate={inviteUsedToday ? {} : { boxShadow: [`0 0 8px ${GOLD}20`, `0 0 18px ${GOLD}35`, `0 0 8px ${GOLD}20`] }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="w-11 h-11 rounded-lg flex items-center justify-center"
-                    style={{ background: inviteUsedToday ? 'rgba(60,60,60,0.05)' : `${GOLD}08`, border: `1px solid ${inviteUsedToday ? '#333' : `${GOLD}25`}` }}>
-                    <Gift size={20} style={{ color: inviteUsedToday ? '#444' : GOLD }} />
+                    className="w-13 h-13 rounded-lg flex items-center justify-center"
+                    style={{ background: inviteUsedToday ? 'rgba(60,60,60,0.05)' : `${GOLD}08`, border: `1px solid ${inviteUsedToday ? '#333' : `${GOLD}25`}`, width: 52, height: 52 }}>
+                    <Gift size={24} style={{ color: inviteUsedToday ? '#444' : GOLD }} />
                   </motion.div>
                   <div>
-                    <p className="font-ninja text-xs flex items-center gap-2" style={{ color: inviteUsedToday ? '#555' : GOLD }}>
+                    <p className="font-ninja text-base flex items-center gap-2" style={{ color: inviteUsedToday ? '#555' : GOLD }}>
                       DAILY GIFT
-                      {inviteUsedToday && <span className="text-[7px] px-1.5 py-0.5 rounded bg-gray-800/50 text-gray-600">USED</span>}
+                      {inviteUsedToday && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800/50 text-gray-500">USED</span>}
                     </p>
-                    <p className="font-body text-[10px] text-gray-600">
+                    <p className="font-body text-xs text-gray-400 mt-1">
                       Send <span style={{ color: inviteUsedToday ? '#555' : '#39FF14' }}>30 min</span> or <span style={{ color: inviteUsedToday ? '#555' : GOLD }}>50 coins</span>
                     </p>
                   </div>
                 </div>
                 <motion.button whileHover={inviteUsedToday ? {} : { scale: 1.05 }} whileTap={inviteUsedToday ? {} : { scale: 0.95 }}
                   onClick={() => !inviteUsedToday && setShowInviteModal(true)} disabled={inviteUsedToday}
-                  className="px-5 py-2.5 rounded-lg font-ninja text-[11px] flex items-center gap-1.5 disabled:opacity-30 relative overflow-hidden"
+                  className="px-6 py-3 rounded-lg font-ninja text-sm flex items-center gap-1.5 disabled:opacity-30 relative overflow-hidden"
                   style={inviteUsedToday ? { background: 'rgba(40,40,40,0.15)', color: '#444' } : {
                     background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`, color: '#000', boxShadow: `0 0 15px ${GOLD}20`,
                   }}>
@@ -412,12 +422,12 @@ export function VIPTab({ player }: Props) {
           {/* ══ HOW TO GET VIP — for non-VIP ══ */}
           {!isVIP && (
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, type: 'spring', stiffness: 100 }}>
-              <p className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>HOW TO BECOME VIP</p>
+              <p className="font-ninja text-xs tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>HOW TO BECOME VIP</p>
               <div className="space-y-2.5">
                 {[
-                  { n: '01', icon: <ShoppingBag size={18} />, text: 'Buy VIP Pass from the Store' },
-                  { n: '02', icon: <Gem size={18} />, text: 'It appears in your Inventory' },
-                  { n: '03', icon: <Zap size={18} />, text: 'Click USE to activate 30 days!' },
+                  { n: '01', icon: <ShoppingBag size={22} />, text: 'Buy VIP Pass from the Store' },
+                  { n: '02', icon: <Gem size={22} />, text: 'It appears in your Inventory' },
+                  { n: '03', icon: <Zap size={22} />, text: 'Click USE to activate 30 days!' },
                 ].map((step, i) => (
                   <motion.div key={i}
                     initial={{ opacity: 0, x: -30 }}
@@ -425,15 +435,14 @@ export function VIPTab({ player }: Props) {
                     transition={{ delay: 0.8 + i * 0.12, type: 'spring', stiffness: 100 }}
                     className="relative rounded-lg overflow-hidden"
                     style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${GOLD}12` }}>
-                    {/* HUD corners */}
                     <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: `2px solid ${GOLD}50`, borderLeft: `2px solid ${GOLD}50` }} />
                     <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: `2px solid ${GOLD}30`, borderRight: `2px solid ${GOLD}30` }} />
-                    <div className="px-5 py-3.5 flex items-center gap-4">
-                      <span className="font-ninja text-lg" style={{ color: `${GOLD}25` }}>{step.n}</span>
-                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}12` }}>
-                        <span style={{ color: `${GOLD}60` }}>{step.icon}</span>
+                    <div className="px-5 py-4 flex items-center gap-4">
+                      <span className="font-ninja text-2xl" style={{ color: `${GOLD}35` }}>{step.n}</span>
+                      <div className="w-12 h-12 rounded-lg flex items-center justify-center" style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}12` }}>
+                        <span style={{ color: `${GOLD}70` }}>{step.icon}</span>
                       </div>
-                      <p className="font-body text-sm text-gray-400">{step.text}</p>
+                      <p className="font-body text-base text-gray-300">{step.text}</p>
                     </div>
                   </motion.div>
                 ))}
@@ -462,26 +471,26 @@ export function VIPTab({ player }: Props) {
           {/* ══ VIP COMMUNITY STATS ══ */}
           <div>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
-              className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>
+              className="font-ninja text-xs tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>
               VIP COMMUNITY
             </motion.p>
             <div className="grid grid-cols-3 gap-2.5">
               {[
-                { icon: <Crown size={16} />, value: String(vipStats.totalVip), label: 'MEMBERS' },
-                { icon: <Coins size={16} />, value: vipStats.totalSpent > 1000 ? `${(vipStats.totalSpent / 1000).toFixed(1)}K` : String(vipStats.totalSpent), label: 'SPENT' },
-                { icon: <Clock size={16} />, value: `${vipStats.avgPlaytime}h`, label: 'AVG PLAY' },
+                { icon: <Crown size={18} />, value: String(vipStats.totalVip), label: 'MEMBERS' },
+                { icon: <Coins size={18} />, value: vipStats.totalSpent > 1000 ? `${(vipStats.totalSpent / 1000).toFixed(1)}K` : String(vipStats.totalSpent), label: 'SPENT' },
+                { icon: <Clock size={18} />, value: `${vipStats.avgPlaytime}h`, label: 'AVG PLAY' },
               ].map((stat, i) => (
                 <motion.div key={i}
                   initial={{ opacity: 0, y: 15 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 1 + i * 0.1 }}
-                  className="rounded-lg p-3.5 text-center relative"
+                  className="rounded-lg p-4 text-center relative"
                   style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${GOLD}12` }}>
                   <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${GOLD}40`, borderLeft: `1px solid ${GOLD}40` }} />
                   <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: `1px solid ${GOLD}30`, borderRight: `1px solid ${GOLD}30` }} />
                   <span style={{ color: GOLD }}>{stat.icon}</span>
-                  <p className="font-ninja text-lg mt-1" style={{ color: GOLD }}>{stat.value}</p>
-                  <p className="font-ninja text-[7px] tracking-wider text-gray-600">{stat.label}</p>
+                  <p className="font-ninja text-2xl mt-1.5" style={{ color: GOLD }}>{stat.value}</p>
+                  <p className="font-ninja text-[10px] tracking-wider text-gray-400 mt-0.5">{stat.label}</p>
                 </motion.div>
               ))}
             </div>
@@ -498,18 +507,18 @@ export function VIPTab({ player }: Props) {
             <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: `2px solid ${GOLD}40`, borderLeft: `2px solid ${GOLD}40` }} />
             <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: `2px solid ${GOLD}30`, borderRight: `2px solid ${GOLD}30` }} />
 
-            <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${GOLD}08` }}>
+            <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: `1px solid ${GOLD}08` }}>
               <div className="flex items-center gap-2">
-                <Crown size={13} style={{ color: GOLD }} />
-                <span className="font-ninja text-[10px] tracking-wider" style={{ color: `${GOLD}70` }}>VIP MEMBERS</span>
+                <Crown size={16} style={{ color: GOLD }} />
+                <span className="font-ninja text-sm tracking-wider" style={{ color: `${GOLD}90` }}>VIP MEMBERS</span>
               </div>
-              <span className="font-ninja text-[9px]" style={{ color: `${GOLD}35` }}>{vipPlayers.length} ACTIVE</span>
+              <span className="font-ninja text-xs" style={{ color: `${GOLD}50` }}>{vipPlayers.length} ACTIVE</span>
             </div>
 
             {vipPlayers.length === 0 ? (
-              <div className="py-8 text-center">
-                <Crown size={22} className="mx-auto mb-2" style={{ color: `${GOLD}15` }} />
-                <p className="font-body text-[10px] text-gray-700">No VIP members yet. Be the first!</p>
+              <div className="py-10 text-center">
+                <Crown size={28} className="mx-auto mb-3" style={{ color: `${GOLD}20` }} />
+                <p className="font-body text-sm text-gray-500">No VIP members yet. Be the first!</p>
               </div>
             ) : (
               <div>
@@ -522,76 +531,36 @@ export function VIPTab({ player }: Props) {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: 1.2 + i * 0.06 }}
-                      className="flex items-center gap-3 px-5 py-2.5"
+                      className="flex items-center gap-3 px-5 py-3"
                       style={{ borderBottom: `1px solid ${GOLD}06`, background: isMe ? `${GOLD}04` : 'transparent' }}>
-                      <span className="font-ninja text-[10px] w-5 text-center" style={{ color: i < 3 ? rankColors[i] : `${GOLD}25` }}>
+                      <span className="font-ninja text-sm w-6 text-center" style={{ color: i < 3 ? rankColors[i] : `${GOLD}40` }}>
                         {i + 1}
                       </span>
-                      <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden"
+                      <div className="w-9 h-9 rounded-full flex items-center justify-center overflow-hidden"
                         style={{ background: `${GOLD}10`, border: `1.5px solid ${isMe ? GOLD : `${GOLD}20`}` }}>
                         {vp.profilePhoto
                           ? <img src={vp.profilePhoto} alt="" className="w-full h-full object-cover" />
-                          : <span className="font-ninja text-[9px]" style={{ color: GOLD }}>{(vp.username || '?')[0]?.toUpperCase()}</span>
+                          : <span className="font-ninja text-sm" style={{ color: GOLD }}>{(vp.username || '?')[0]?.toUpperCase()}</span>
                         }
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="font-ninja text-[11px] truncate" style={{ color: isMe ? GOLD : '#ccc' }}>
+                        <p className="font-ninja text-sm truncate" style={{ color: isMe ? GOLD : '#ddd' }}>
                           {vp.username?.toUpperCase()}
-                          {isMe && <span className="ml-1.5 text-[7px] px-1 py-0.5 rounded" style={{ background: `${GOLD}15`, color: GOLD }}>YOU</span>}
+                          {isMe && <span className="ml-1.5 text-[9px] px-1.5 py-0.5 rounded" style={{ background: `${GOLD}15`, color: GOLD }}>YOU</span>}
                         </p>
                       </div>
-                      <span className="font-ninja text-[9px]" style={{ color: `${GOLD}40` }}>{vpDays}D</span>
+                      <span className="font-ninja text-xs" style={{ color: `${GOLD}60` }}>{vpDays}D</span>
                     </motion.div>
                   );
                 })}
                 {vipPlayers.length > 6 && (
-                  <div className="px-5 py-2 text-center">
-                    <span className="font-body text-[8px]" style={{ color: `${GOLD}25` }}>+{vipPlayers.length - 6} more</span>
+                  <div className="px-5 py-2.5 text-center">
+                    <span className="font-body text-xs" style={{ color: `${GOLD}40` }}>+{vipPlayers.length - 6} more</span>
                   </div>
                 )}
               </div>
             )}
           </motion.div>
-
-          {/* ══ VIP SKINS PREVIEW ══ */}
-          <div>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
-              className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>
-              EXCLUSIVE SKINS
-            </motion.p>
-            <div className="grid grid-cols-3 gap-2.5">
-              {[
-                { name: 'GOLD', tier: 'RARE', color: GOLD },
-                { name: 'DIAMOND', tier: 'EPIC', color: '#00C8FF' },
-                { name: 'PLATINUM', tier: 'LEGENDARY', color: '#E5E4E2' },
-              ].map((skin, i) => (
-                <motion.div key={i}
-                  initial={{ opacity: 0, y: 15 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 1.3 + i * 0.1 }}
-                  whileHover={{ scale: 1.03 }}
-                  className="rounded-lg p-4 text-center relative overflow-hidden group"
-                  style={{ background: `${skin.color}04`, border: `1px solid ${skin.color}15` }}>
-                  {/* HUD corners */}
-                  <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${skin.color}40`, borderLeft: `1px solid ${skin.color}40` }} />
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: `1px solid ${skin.color}30`, borderRight: `1px solid ${skin.color}30` }} />
-
-                  <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
-                    className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 relative"
-                    style={{ background: `${skin.color}08`, border: `1px solid ${skin.color}20` }}>
-                    <Eye size={20} style={{ color: skin.color, filter: `drop-shadow(0 0 4px ${skin.color}50)` }} />
-                    {!isVIP && (
-                      <div className="absolute inset-0 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
-                        <Lock size={12} style={{ color: skin.color }} />
-                      </div>
-                    )}
-                  </motion.div>
-                  <p className="font-ninja text-[10px]" style={{ color: skin.color }}>{skin.name}</p>
-                  <p className="font-ninja text-[7px] tracking-wider mt-0.5" style={{ color: `${skin.color}50` }}>{skin.tier}</p>
-                </motion.div>
-              ))}
-            </div>
-          </div>
 
           {/* Footer */}
           <p className="font-body text-[8px] text-center py-2" style={{ color: `${GOLD}15` }}>
