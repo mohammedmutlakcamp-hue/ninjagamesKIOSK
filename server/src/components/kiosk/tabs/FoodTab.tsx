@@ -8,7 +8,7 @@ import { MenuItem } from '@/types';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { VIP_CONFIG } from '@/lib/constants';
 import { notifyAdmin } from '@/lib/notify-admin';
-import { findBundleRule, getBundleSuggestions, type BundleRule } from '@/lib/bundles';
+import { findBundleRuleWithFallback, getBundleSuggestions, type BundleRule } from '@/lib/bundles';
 import {
   Coffee, Sandwich, Cookie, ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2,
   UtensilsCrossed, Coins, Clock, X, ChefHat, Loader2, Sparkles, ArrowRight
@@ -79,9 +79,10 @@ export function FoodTab({ player }: Props) {
     const wasAlreadyInCart = (currentCart[id] || 0) > 0;
     if (wasAlreadyInCart) return;
 
-    const rule = findBundleRule(item.name);
-    if (!rule) return;
-    const triggerKey = rule.trigger.join('|');
+    const rule = findBundleRuleWithFallback(item.name);
+    // Use the specific trigger that matched (first one) as the session key,
+    // so each distinct item type only shows its popup once.
+    const triggerKey = `${rule.trigger.join('|')}::${item.id}`;
     if (shownTriggers.has(triggerKey)) return;
 
     const suggestions = getBundleSuggestions(rule, items, Object.keys(currentCart), id);
@@ -116,9 +117,20 @@ export function FoodTab({ player }: Props) {
         const item = items.find(i => i.id === id)!;
         return { menuItemId: id, name: item.name, quantity: qty, price: item.price };
       });
+      // Default prep time: 3 min for drinks, 12 min for everything else.
+      // Use the MAX across cart items so the countdown reflects the slowest item.
+      const defaultPrepFor = (cat: string) => cat === 'drinks' ? 3 : 12;
+      const prepTime = Math.max(
+        ...Object.keys(cart).map(id => {
+          const item = items.find(i => i.id === id);
+          if (!item) return 12;
+          // Use menu item's explicit preparationTime if set, otherwise category default
+          return (item.preparationTime && item.preparationTime > 0) ? item.preparationTime : defaultPrepFor(item.category);
+        })
+      );
       await addDoc(collection(db, 'orders'), {
         playerId: player.uid, playerName: player.username, pcId: 'kiosk',
-        items: orderItems, totalCoins: actualTotal, status: 'pending', createdAt: Date.now(), updatedAt: Date.now(),
+        items: orderItems, totalCoins: actualTotal, prepTime, status: 'pending', createdAt: Date.now(), updatedAt: Date.now(),
       });
       await updateDoc(doc(db, 'players', player.uid), {
         coins: increment(-actualTotal), totalCoinsSpent: increment(actualTotal), 'stats.foodOrdered': increment(cartCount),

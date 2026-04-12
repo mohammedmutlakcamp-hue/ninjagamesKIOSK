@@ -89,7 +89,7 @@ export function OrderBubble({ playerUid }: Props) {
       kind: 'food' as const,
       status: o.status,
       createdAt: o.createdAt,
-      prepTime: o.prepTime || 15, // food default 15 min
+      prepTime: o.prepTime || 12, // food default 12 min
       label: `${o.items?.length || 0} item${(o.items?.length || 0) > 1 ? 's' : ''}`,
       details: (o.items || []).map((i: any) => `${i.name} ×${i.quantity}`).join(', '),
       icon: <UtensilsCrossed size={18} />,

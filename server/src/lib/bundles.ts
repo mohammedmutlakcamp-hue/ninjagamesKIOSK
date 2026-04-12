@@ -172,6 +172,33 @@ export function findBundleRule(itemName: string): BundleRule | null {
 }
 
 /**
+ * Fallback: generic "goes well with" rule used when no specific match exists.
+ * Guarantees every item triggers a suggestion popup as long as the menu
+ * contains any of these common companion items.
+ */
+const FALLBACK_RULE: BundleRule = {
+  trigger: ['__fallback__'],
+  suggests: [
+    // Drinks
+    'cola', 'pepsi', 'sprite', '7up', 'water', 'juice',
+    // Smokes
+    'marlboro', 'winston', 'cigarette',
+    // Hot
+    'coffee', 'karak', 'tea',
+    // Sweets
+    'chocolate', 'cookie', 'cake', 'brownie',
+    // Savory
+    'chips', 'fries',
+  ],
+  title: 'Add something extra?',
+  reason: 'These go great with almost anything',
+};
+
+export function findBundleRuleWithFallback(itemName: string): BundleRule {
+  return findBundleRule(itemName) || FALLBACK_RULE;
+}
+
+/**
  * Given a bundle rule and the full menu, return actual menu items
  * that match the suggested substrings and aren't already in cart.
  */
