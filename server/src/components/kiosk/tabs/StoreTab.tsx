@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
-import { CHESTS, COIN_PACKAGES, NINJA_SKINS, RARITY_COLORS, VIP_CONFIG } from '@/lib/constants';
+import { CHESTS, COIN_PACKAGES, NINJA_SKINS, RARITY_COLORS, VIP_CONFIG, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
 import { Chest, ChestReward, NinjaSkin } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { trackDailyTask } from '@/lib/daily-tasks';
@@ -33,18 +33,29 @@ const TIER_CONFIG = {
 
 type Tier = keyof typeof TIER_CONFIG;
 
-const TIME_PACKAGES = [
-  { id: 'time_1h',  label: '1 Hour',   hours: 1,  coins: 100,  popular: false, savings: null as string | null },
-  { id: 'time_3h',  label: '3 Hours',  hours: 3,  coins: 250,  popular: true,  savings: 'Save 50' },
-  { id: 'time_7h',  label: '7 Hours',  hours: 7,  coins: 500,  popular: false, savings: 'Save 200' },
-  { id: 'time_15h', label: '15 Hours', hours: 15, coins: 1000, popular: false, savings: 'Save 500' },
-];
+// Time packages — sourced from shared constants so pricing stays consistent.
+// Savings = coins saved vs buying the same hours at the 1h/100-coin base rate.
+const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => {
+  const savings = (p.hours * 100) - p.coins;
+  return {
+    id: p.id,
+    label: p.label,
+    hours: p.hours,
+    coins: p.coins,
+    popular: p.id === 'time_gold',
+    savings: savings > 0 ? `Save ${savings}` : null as string | null,
+  };
+});
 
-const JOD_PACKAGES = [
-  { id: 'jod_1',  jod: 1,  coins: 100,  popular: false },
-  { id: 'jod_5',  jod: 5,  coins: 550,  popular: true  },
-  { id: 'jod_10', jod: 10, coins: 1150, popular: false },
-];
+// JOD → coins packages — sourced from COIN_PACKAGES.
+const JOD_PACKAGES = COIN_PACKAGES.map(p => ({
+  id: p.id,
+  jod: p.price,
+  coins: p.coins,
+  popular: !!p.popular,
+  name: p.name,
+  bonus: p.bonusPercentage || 0,
+}));
 
 type SubTab = 'skins' | 'chests' | 'giftcards' | 'time' | 'coins' | 'vip';
 type CategoryFilter = 'all' | 'starter' | 'rare' | 'epic' | 'legendary' | 'mythic';

@@ -11,19 +11,29 @@ export const RESERVATION_MAX_MINUTES = 30;
 export const RESERVATION_COIN_RATE = COINS_PER_MINUTE;
 export const MIN_DEPOSIT_JOD = 2;
 
+// 7-tier coin packages. Base rate 100 coins per 1 JOD; higher tiers add bonus coins.
 export const COIN_PACKAGES: CoinPackage[] = [
-  { id: 'pack_100', coins: 100, price: 1, label: '100 Coins' },
-  { id: 'pack_550', coins: 550, price: 5, label: '550 Coins', popular: true },
-  { id: 'pack_1150', coins: 1150, price: 10, label: '1150 Coins' },
+  { id: 'pack_starter',  name: 'Starter',  coins: 100,  price: 1,    label: '100 Coins',  bonusPercentage: 0 },
+  { id: 'pack_plus',     name: 'Plus',     coins: 250,  price: 2.25, label: '250 Coins',  bonusPercentage: 11 },
+  { id: 'pack_pro',      name: 'Pro',      coins: 575,  price: 5,    label: '575 Coins',  bonusPercentage: 15, popular: true },
+  { id: 'pack_elite',    name: 'Elite',    coins: 1200, price: 10,   label: '1200 Coins', bonusPercentage: 20 },
+  { id: 'pack_legend',   name: 'Legend',   coins: 2600, price: 20,   label: '2600 Coins', bonusPercentage: 30 },
+  { id: 'pack_ultimate', name: 'Ultimate', coins: 4050, price: 30,   label: '4050 Coins', bonusPercentage: 35 },
+  { id: 'pack_master',   name: 'Master',   coins: 7000, price: 50,   label: '7000 Coins', bonusPercentage: 40 },
 ];
 
 // ==================== TIME PACKAGES ====================
+// 5-tier time packages paid for in coins. Longer packages = better rate (JOD/hour).
 export const TIME_PACKAGES: TimePackage[] = [
-  { id: 'time_1h', hours: 1, coins: 100, label: '1 Hour' },
-  { id: 'time_3h', hours: 3, coins: 250, label: '3 Hours' },
-  { id: 'time_7h', hours: 7, coins: 500, label: '7 Hours' },
-  { id: 'time_15h', hours: 15, coins: 1000, label: '15 Hours' },
+  { id: 'time_bronze',   name: 'Bronze',   hours: 1,  coins: 100,  label: '1 Hour' },
+  { id: 'time_silver',   name: 'Silver',   hours: 3,  coins: 250,  label: '3 Hours' },
+  { id: 'time_gold',     name: 'Gold',     hours: 7,  coins: 500,  label: '7 Hours' },
+  { id: 'time_platinum', name: 'Platinum', hours: 12, coins: 780,  label: '12 Hours' },
+  { id: 'time_diamond',  name: 'Diamond',  hours: 20, coins: 1160, label: '20 Hours' },
 ];
+
+// Operational cost per hour (used for P&L and profit calculations)
+export const COST_PER_HOUR_JOD = 0.40;
 
 // ==================== NINJA TYPES ====================
 export const NINJA_TYPES = [

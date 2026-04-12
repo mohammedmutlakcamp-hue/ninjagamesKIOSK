@@ -7,7 +7,7 @@ import {
   doc, onSnapshot, updateDoc, collection, query,
   where, getDocs, orderBy, limit, increment, addDoc, arrayUnion,
 } from 'firebase/firestore';
-import { COINS_PER_MINUTE, NINJA_TYPES as NINJA_TYPES_CONST, CHESTS, CHEST_REWARDS } from '@/lib/constants';
+import { COINS_PER_MINUTE, NINJA_TYPES as NINJA_TYPES_CONST, CHESTS, CHEST_REWARDS, TIME_PACKAGES as BASE_TIME_PACKAGES, COIN_PACKAGES as BASE_COIN_PACKAGES } from '@/lib/constants';
 import type { Chest, ChestReward } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { Lang, t } from '@/lib/translations';
@@ -1349,18 +1349,8 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
       { id: 'dragon', name: 'Dragon Ninja', tier: 'legendary', price: 1200, color: '#FF2D00' },
     ];
 
-    const TIME_PACKAGES = [
-      { id: 'time_1h', label: '1 Hour', hours: 1, coins: 100 },
-      { id: 'time_3h', label: '3 Hours', hours: 3, coins: 250 },
-      { id: 'time_7h', label: '7 Hours', hours: 7, coins: 500 },
-      { id: 'time_15h', label: '15 Hours', hours: 15, coins: 1000 },
-    ];
-
-    const JOD_PACKAGES = [
-      { id: 'jod_1', jod: 1, coins: 100 },
-      { id: 'jod_5', jod: 5, coins: 550 },
-      { id: 'jod_10', jod: 10, coins: 1150 },
-    ];
+    const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => ({ id: p.id, label: p.label, hours: p.hours, coins: p.coins }));
+    const JOD_PACKAGES = BASE_COIN_PACKAGES.map(p => ({ id: p.id, jod: p.price, coins: p.coins }));
 
     const ownedNinjas = livePlayer.ownedNinjas || ['neon', 'shadow'];
 

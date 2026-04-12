@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
-import { CHESTS } from '@/lib/constants';
+import { CHESTS, TIME_PACKAGES as BASE_TIME_PACKAGES, COIN_PACKAGES as BASE_COIN_PACKAGES } from '@/lib/constants';
 import {
   Coins, X, Check, Crown, Star, Package, Clock, CreditCard,
   ChevronDown, Timer, Lock, Info, ShoppingBag, Sparkles,
@@ -38,18 +38,26 @@ const NINJA_SKINS = [
   { id: 'shogun',  name: 'Shogun Ninja',  tier: 'mythic'    as Tier, price: 0,    color: '#FF1493', description: 'The ultimate ninja. Currently locked.', perks: ['Full body glow', 'Shogun title', '+15% XP', 'VIP only'] },
 ];
 
-const TIME_PACKAGES = [
-  { id: 'time_1h',  label: '1 Hour',   hours: 1,  coins: 100,  popular: false },
-  { id: 'time_3h',  label: '3 Hours',  hours: 3,  coins: 250,  popular: true,  savings: 'Save 50' },
-  { id: 'time_7h',  label: '7 Hours',  hours: 7,  coins: 500,  popular: false, savings: 'Save 200' },
-  { id: 'time_15h', label: '15 Hours', hours: 15, coins: 1000, popular: false, savings: 'Save 500' },
-];
+const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => {
+  const savings = (p.hours * 100) - p.coins;
+  return {
+    id: p.id,
+    label: p.label,
+    hours: p.hours,
+    coins: p.coins,
+    popular: p.id === 'time_gold',
+    savings: savings > 0 ? `Save ${savings}` : undefined,
+  };
+});
 
-const JOD_PACKAGES = [
-  { id: 'jod_1',  jod: 1,  coins: 100,  popular: false },
-  { id: 'jod_5',  jod: 5,  coins: 550,  popular: true  },
-  { id: 'jod_10', jod: 10, coins: 1150, popular: false },
-];
+const JOD_PACKAGES = BASE_COIN_PACKAGES.map(p => ({
+  id: p.id,
+  jod: p.price,
+  coins: p.coins,
+  popular: !!p.popular,
+  name: p.name,
+  bonus: p.bonusPercentage || 0,
+}));
 
 const TIERS_ORDER: Tier[] = ['free', 'rare', 'epic', 'legendary', 'mythic'];
 type SubTab = 'skins' | 'chests' | 'time' | 'coins';

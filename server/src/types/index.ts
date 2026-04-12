@@ -143,8 +143,10 @@ export interface GameCatalog {
 export interface CoinPackage {
   id: string;
   coins: number;
-  price: number; // in local currency
+  price: number; // in JOD
   label: string;
+  name?: string;           // Starter, Plus, Pro, Elite, Legend, Ultimate, Master
+  bonusPercentage?: number; // how much bonus vs base 100 coins/JOD
   popular?: boolean;
 }
 
@@ -276,6 +278,7 @@ export interface TimePackage {
   hours: number;
   coins: number;
   label: string;
+  name?: string; // Bronze, Silver, Gold, Platinum, Diamond
 }
 
 // ==================== FOOD & DRINKS ====================

@@ -681,12 +681,15 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   ] as { id: Tab; label: string; icon: React.ReactNode; color?: string }[])
     .filter(item => visibleTabs[item.id] !== false);
 
-  // Coin packages for TopUp tab
-  const TOPUP_PACKAGES = [
-    { coins: 100, price: 1, hours: '1 Hour' },
-    { coins: 550, price: 5, hours: '5.5 Hours', popular: true, save: 50 },
-    { coins: 1150, price: 10, hours: '11.5 Hours', save: 150 },
-  ];
+  // Coin packages for TopUp tab — derived from COIN_PACKAGES so they stay in sync
+  const TOPUP_PACKAGES = COIN_PACKAGES.map(p => ({
+    coins: p.coins,
+    price: p.price,
+    hours: `${(p.coins / 100).toFixed(p.coins % 100 === 0 ? 0 : 1)}h worth`,
+    popular: !!p.popular,
+    save: p.bonusPercentage || 0,
+    name: p.name,
+  }));
 
   const ninjaType = player.ninjaType || player.character?.ninjaType || 'neon';
   const isPlayerVIP = !isGuest && player.vip?.active && (player.vip?.expiresAt || 0) > Date.now();
@@ -2500,7 +2503,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     {TIME_PACKAGES.map((pkg, idx) => {
                       const canAfford = coins >= pkg.coins;
                       const selected = buyTimeSelected === pkg.id;
-                      const isBest = pkg.id === 'time_3h';
+                      const isBest = pkg.id === 'time_gold';
                       return (
                         <motion.button key={pkg.id}
                           initial={{ opacity: 0, x: -30 }}
