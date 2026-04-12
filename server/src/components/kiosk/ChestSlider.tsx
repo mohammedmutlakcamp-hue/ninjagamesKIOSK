@@ -32,9 +32,13 @@ export function ChestSlider({ items, winIndex, accentColor = '#39FF14', title, o
   const startRef = useRef(Date.now());
   const rafRef = useRef(0);
   const doneRef = useRef(false);
+  // Keep latest onComplete in a ref so the effect never re-runs and restarts the animation
+  const onCompleteRef = useRef(onComplete);
+  useEffect(() => { onCompleteRef.current = onComplete; }, [onComplete]);
 
   useEffect(() => {
     startRef.current = Date.now();
+    doneRef.current = false;
     const targetOffset = winIndex * CARD_W + Math.random() * (CARD_W * 0.3);
     let lastCard = -1;
     const animate = () => {
@@ -51,13 +55,15 @@ export function ChestSlider({ items, winIndex, accentColor = '#39FF14', title, o
         setLanded(true);
         if (!doneRef.current) {
           doneRef.current = true;
-          setTimeout(onComplete, 500);
+          setTimeout(() => onCompleteRef.current(), 500);
         }
       }
     };
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
-  }, [winIndex, duration, onComplete]);
+    // Intentionally exclude onComplete from deps — we use the ref.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [winIndex, duration]);
 
   const skip = () => {
     if (doneRef.current) return;
@@ -66,7 +72,7 @@ export function ChestSlider({ items, winIndex, accentColor = '#39FF14', title, o
     setActiveIdx(winIndex);
     setLanded(true);
     doneRef.current = true;
-    setTimeout(onComplete, 200);
+    setTimeout(() => onCompleteRef.current(), 200);
   };
 
   return (

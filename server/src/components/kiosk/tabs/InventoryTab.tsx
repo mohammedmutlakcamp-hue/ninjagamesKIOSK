@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
@@ -180,18 +180,18 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
 
   // Daily chest rewards pool
   const DAILY_CHEST_REWARDS = [
-    { name: '10 Tokens', type: 'coins', rarity: 'common', value: 10 },
-    { name: '25 Tokens', type: 'coins', rarity: 'common', value: 25 },
-    { name: '50 Tokens', type: 'coins', rarity: 'rare', value: 50 },
-    { name: 'Free Drink Voucher', type: 'voucher', rarity: 'rare', value: 40 },
-    { name: 'Free Snack Voucher', type: 'voucher', rarity: 'rare', value: 25 },
-    { name: '30 Min Free Play', type: 'voucher', rarity: 'epic', value: 100 },
+    { name: '10 Tokens',          type: 'coins',   rarity: 'common', value: 10,  image: '/img/reward-coins-10.png' },
+    { name: '25 Tokens',          type: 'coins',   rarity: 'common', value: 25,  image: '/img/reward-coins-25.png' },
+    { name: '50 Tokens',          type: 'coins',   rarity: 'rare',   value: 50,  image: '/img/reward-coins-50.png' },
+    { name: 'Free Drink Voucher', type: 'voucher', rarity: 'rare',   value: 40,  image: '/img/reward-voucher-drink.png' },
+    { name: 'Free Snack Voucher', type: 'voucher', rarity: 'rare',   value: 25,  image: '/img/reward-voucher-snack.png' },
+    { name: '30 Min Free Play',   type: 'voucher', rarity: 'epic',   value: 100, image: '/img/reward-time-30m.png' },
   ];
   const DAILY_CHEST_WEIGHTS = [30, 25, 15, 12, 12, 6];
 
-  const [chestResult, setChestResult] = useState<{ name: string; rarity: string; type: string; value: number } | null>(null);
+  const [chestResult, setChestResult] = useState<{ name: string; rarity: string; type: string; value: number; image?: string } | null>(null);
   const [chestPhase, setChestPhase] = useState<'idle' | 'spinning' | 'reveal'>('idle');
-  const [spinItems, setSpinItems] = useState<Array<{ name: string; rarity: string; type: string; value: number }>>([]);
+  const [spinItems, setSpinItems] = useState<Array<{ name: string; rarity: string; type: string; value: number; image?: string }>>([]);
   const [spinWinIndex, setSpinWinIndex] = useState(0);
 
   const handleOpenChest = async (item: InventoryItem) => {
@@ -236,7 +236,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
     setProcessing(false);
   };
 
-  const handleSpinComplete = () => {
+  const handleSpinComplete = useCallback(() => {
     setChestPhase('reveal');
     setTimeout(() => {
       setChestResult(null);
@@ -245,7 +245,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
       setUseModal(null);
       setDetailModal(null);
     }, 3800);
-  };
+  }, []);
 
   const handleUse = async (item: InventoryItem) => {
     if (processing) return;
@@ -1134,9 +1134,8 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               items={spinItems.map(r => ({
                 name: r.name,
                 rarity: r.rarity,
-                icon: r.type === 'coins'
-                  ? <Coins size={44} />
-                  : <Gift size={44} />,
+                image: r.image,
+                icon: r.type === 'coins' ? <Coins size={44} /> : <Gift size={44} />,
               }))}
               winIndex={spinWinIndex}
               accentColor="#39FF14"
