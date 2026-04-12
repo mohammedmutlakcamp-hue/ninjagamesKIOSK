@@ -507,19 +507,22 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     return () => clearInterval(interval);
   }, [remainingPlaytime, player.uid, player.freePlayUntil, isGuest]);
 
-  // When playtime runs out — show Buy Time popup (if tokens available) or Top-Up popup
+  // Minimum tokens needed to buy ANY time package
+  const minTimePackageCost = Math.min(...TIME_PACKAGES.map(p => p.coins));
+
+  // When playtime runs out — show Buy Time popup (if tokens enough) or Top-Up popup
   useEffect(() => {
     if (isGuest) return;
     const fpu = player.freePlayUntil;
     if (fpu && fpu > Date.now()) return;
 
     if (remainingPlaytime <= 0) {
-      if (coins > 0) {
-        // Has tokens but no time — show Buy Time modal
+      if (coins >= minTimePackageCost) {
+        // Has enough tokens to afford at least one time package
         setShowBuyTimeModal(true);
         setBuyTimeSelected(null);
       } else {
-        // No tokens AND no time — show Top-Up modal
+        // Not enough tokens (or zero) — show Top-Up modal so they can buy more tokens
         setShowTopUpModal(true);
         setTopUpSelected(null);
         setTopUpSent(false);
@@ -530,18 +533,24 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     } else {
       setLowBalanceWarning(false);
     }
-  }, [remainingPlaytime, coins, player.freePlayUntil, isGuest]);
+  }, [remainingPlaytime, coins, player.freePlayUntil, isGuest, minTimePackageCost]);
 
-  // Auto-show Buy Time popup on login if player has tokens but no playtime
+  // Auto-show correct popup on login when playtime is 0
   useEffect(() => {
     if (isGuest) return;
     const fpu = player.freePlayUntil;
     if (fpu && fpu > Date.now()) return;
-    if (remainingPlaytime <= 0 && coins > 0 && !showBuyTimeOnLogin) {
+    if (remainingPlaytime <= 0 && !showBuyTimeOnLogin) {
       setShowBuyTimeOnLogin(true);
       setTimeout(() => {
-        setShowBuyTimeModal(true);
-        setBuyTimeSelected(null);
+        if (coins >= minTimePackageCost) {
+          setShowBuyTimeModal(true);
+          setBuyTimeSelected(null);
+        } else {
+          setShowTopUpModal(true);
+          setTopUpSelected(null);
+          setTopUpSent(false);
+        }
       }, 1000);
     }
   }, []);
