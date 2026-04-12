@@ -8,9 +8,10 @@ import { MenuItem } from '@/types';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { VIP_CONFIG } from '@/lib/constants';
 import { notifyAdmin } from '@/lib/notify-admin';
+import { findBundleRule, getBundleSuggestions, type BundleRule } from '@/lib/bundles';
 import {
   Coffee, Sandwich, Cookie, ShoppingCart, Plus, Minus, Trash2, Send, CheckCircle2,
-  UtensilsCrossed, Coins, Clock, X, ChefHat, Loader2
+  UtensilsCrossed, Coins, Clock, X, ChefHat, Loader2, Sparkles, ArrowRight
 } from 'lucide-react';
 
 interface Props {
@@ -39,6 +40,15 @@ export function FoodTab({ player }: Props) {
   const [orderSuccess, setOrderSuccess] = useState(false);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
 
+  // Bundle suggestion popup
+  const [bundlePopup, setBundlePopup] = useState<{
+    rule: BundleRule;
+    suggestions: { id: string; name: string; price: number; image?: string }[];
+    triggerItemName: string;
+  } | null>(null);
+  // Track which triggers have already been shown this session to avoid repeats
+  const [shownTriggers, setShownTriggers] = useState<Set<string>>(new Set());
+
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'menu'), (snap) => {
       setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as MenuItem)).filter(i => i.available));
@@ -57,7 +67,37 @@ export function FoodTab({ player }: Props) {
   }, [player?.uid]);
 
   const filtered = items.filter(i => category === 'all' || i.category === category);
-  const addToCart = (id: string) => setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+
+  const addToCart = (id: string) => {
+    const item = items.find(i => i.id === id);
+    setCart(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+
+    // Check for bundle suggestions only when first adding (not on quantity increments)
+    // and only once per trigger per session
+    if (!item) return;
+    const currentCart = { ...cart };
+    const wasAlreadyInCart = (currentCart[id] || 0) > 0;
+    if (wasAlreadyInCart) return;
+
+    const rule = findBundleRule(item.name);
+    if (!rule) return;
+    const triggerKey = rule.trigger.join('|');
+    if (shownTriggers.has(triggerKey)) return;
+
+    const suggestions = getBundleSuggestions(rule, items, Object.keys(currentCart), id);
+    if (suggestions.length === 0) return;
+
+    setBundlePopup({ rule, suggestions, triggerItemName: item.name });
+    setShownTriggers(prev => { const n = new Set(prev); n.add(triggerKey); return n; });
+  };
+
+  const addSuggestionToCart = (suggestionId: string) => {
+    setCart(prev => ({ ...prev, [suggestionId]: (prev[suggestionId] || 0) + 1 }));
+    // Remove from popup so user sees remaining options
+    setBundlePopup(prev => prev ? { ...prev, suggestions: prev.suggestions.filter(s => s.id !== suggestionId) } : null);
+  };
+
+  const closeBundlePopup = () => setBundlePopup(null);
   const removeFromCart = (id: string) => setCart(prev => { const n = { ...prev }; if (n[id] > 1) n[id]--; else delete n[id]; return n; });
   const subtotalCoins = Object.entries(cart).reduce((s, [id, qty]) => { const item = items.find(i => i.id === id); return s + (item ? item.price * qty : 0); }, 0);
   const isVip = player.vip?.active && player.vip?.expiresAt > Date.now();
@@ -349,6 +389,157 @@ export function FoodTab({ player }: Props) {
             style={{ background: 'rgba(10,12,16,0.95)', border: '1px solid rgba(57,255,20,0.3)' }}>
             <CheckCircle2 size={18} className="text-[#39FF14]" />
             <span className="font-ninja text-xs text-[#39FF14]">ORDER PLACED!</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══════════ BUNDLE SUGGESTION POPUP ═══════════ */}
+      <AnimatePresence>
+        {bundlePopup && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[250] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(12px)' }}
+            onClick={closeBundlePopup}
+          >
+            <motion.div
+              initial={{ scale: 0.85, opacity: 0, y: 30 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.85, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+              onClick={e => e.stopPropagation()}
+              className="rounded-2xl p-6 w-[480px] max-w-[94%] relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(180deg, #0c1018 0%, #080a10 100%)',
+                border: '1px solid rgba(57,255,20,0.25)',
+                boxShadow: '0 30px 80px rgba(0,0,0,0.9), 0 0 30px rgba(57,255,20,0.1)',
+              }}
+            >
+              {/* Animated gradient accent */}
+              <motion.div
+                className="absolute top-0 left-0 right-0 h-[2px]"
+                animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'linear' }}
+                style={{
+                  background: 'linear-gradient(90deg, transparent, #39FF14, #00C8FF, #FFD700, transparent)',
+                  backgroundSize: '200% 100%',
+                }}
+              />
+              {/* HUD corners */}
+              <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: '2px solid #39FF14', borderLeft: '2px solid #39FF14' }} />
+              <div className="absolute top-0 right-0 w-4 h-4" style={{ borderTop: '2px solid rgba(0,200,255,0.4)', borderRight: '2px solid rgba(0,200,255,0.4)' }} />
+              <div className="absolute bottom-0 left-0 w-4 h-4" style={{ borderBottom: '2px solid rgba(0,200,255,0.4)', borderLeft: '2px solid rgba(0,200,255,0.4)' }} />
+              <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: '2px solid #39FF14', borderRight: '2px solid #39FF14' }} />
+
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <motion.div
+                    animate={{ rotate: [0, 15, -15, 0] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="w-11 h-11 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.3)' }}
+                  >
+                    <Sparkles size={20} className="text-[#39FF14]" />
+                  </motion.div>
+                  <div>
+                    <h3 className="font-ninja text-xl tracking-wider text-[#39FF14]">
+                      {bundlePopup.rule.title || 'Add more?'}
+                    </h3>
+                    <p className="font-body text-xs text-gray-400 mt-0.5">
+                      {bundlePopup.rule.reason || `Goes great with ${bundlePopup.triggerItemName}`}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={closeBundlePopup}
+                  className="w-9 h-9 rounded-lg flex items-center justify-center hover:bg-white/5 transition-all hover:rotate-90"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.08)' }}
+                >
+                  <X size={18} className="text-gray-400" />
+                </button>
+              </div>
+
+              {/* Trigger item chip */}
+              <div className="flex items-center gap-2 mb-4 px-3 py-2 rounded-lg"
+                style={{ background: 'rgba(57,255,20,0.05)', border: '1px solid rgba(57,255,20,0.15)' }}>
+                <CheckCircle2 size={14} className="text-[#39FF14]" />
+                <p className="font-body text-xs text-gray-300">
+                  You added <span className="font-semibold text-[#39FF14]">{bundlePopup.triggerItemName}</span> — how about pairing it with:
+                </p>
+              </div>
+
+              {/* Suggestions */}
+              {bundlePopup.suggestions.length > 0 ? (
+                <div className="space-y-2.5 mb-4">
+                  {bundlePopup.suggestions.map((s, i) => (
+                    <motion.div
+                      key={s.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: i * 0.08 }}
+                      className="flex items-center gap-3 p-3 rounded-xl relative overflow-hidden"
+                      style={{
+                        background: 'rgba(255,255,255,0.02)',
+                        border: '1px solid rgba(255,255,255,0.05)',
+                      }}
+                    >
+                      {/* Image */}
+                      <div className="w-14 h-14 rounded-lg overflow-hidden flex-shrink-0" style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.05)' }}>
+                        {s.image ? (
+                          <img src={s.image} alt={s.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-700">
+                            <Coffee size={24} />
+                          </div>
+                        )}
+                      </div>
+                      {/* Info */}
+                      <div className="flex-1 min-w-0">
+                        <p className="font-ninja text-sm text-white truncate">{s.name}</p>
+                        <p className="text-xs text-[#39FF14] flex items-center gap-1 mt-0.5">
+                          <Coins size={10} /> {s.price}
+                        </p>
+                      </div>
+                      {/* Add button */}
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => addSuggestionToCart(s.id)}
+                        className="px-4 py-2 rounded-lg font-ninja text-xs tracking-wider flex items-center gap-1.5 relative overflow-hidden"
+                        style={{
+                          background: 'linear-gradient(135deg, #39FF14, #2ddb1a)',
+                          color: '#000',
+                          boxShadow: '0 0 15px rgba(57,255,20,0.3)',
+                        }}
+                      >
+                        <Plus size={14} /> ADD
+                      </motion.button>
+                    </motion.div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-6 text-center mb-2">
+                  <CheckCircle2 size={24} className="text-[#39FF14] mx-auto mb-2" />
+                  <p className="font-body text-sm text-gray-400">All added to your cart!</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <button
+                onClick={closeBundlePopup}
+                className="w-full py-3 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
+                style={{
+                  background: 'rgba(255,255,255,0.03)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  color: '#888',
+                }}
+              >
+                {bundlePopup.suggestions.length > 0 ? 'SKIP' : 'DONE'} <ArrowRight size={14} />
+              </button>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>
