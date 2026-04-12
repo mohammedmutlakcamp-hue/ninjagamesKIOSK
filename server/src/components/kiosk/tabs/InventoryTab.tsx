@@ -183,7 +183,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
     { name: '10 Tokens',          type: 'coins',   rarity: 'common', value: 10,  image: '/img/reward-coins-10.png' },
     { name: '25 Tokens',          type: 'coins',   rarity: 'common', value: 25,  image: '/img/reward-coins-25.png' },
     { name: '50 Tokens',          type: 'coins',   rarity: 'rare',   value: 50,  image: '/img/reward-coins-50.png' },
-    { name: 'Free Drink Voucher', type: 'voucher', rarity: 'rare',   value: 40,  image: '/img/reward-voucher-drink.png' },
+    { name: 'Free Drink Voucher', type: 'voucher', rarity: 'rare',   value: 40,  image: '/img/reward-voucher-food.png' },
     { name: 'Free Snack Voucher', type: 'voucher', rarity: 'rare',   value: 25,  image: '/img/reward-voucher-snack.png' },
     { name: '30 Min Free Play',   type: 'voucher', rarity: 'epic',   value: 100, image: '/img/reward-time-30m.png' },
   ];
