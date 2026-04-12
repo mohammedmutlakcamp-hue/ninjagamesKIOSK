@@ -11,6 +11,7 @@ import {
   ShieldCheck, Clock, Star, Swords, Crown,
 } from 'lucide-react';
 import { NinjaInput } from '@/components/kiosk/NinjaInput';
+import { ChestSlider } from '@/components/kiosk/ChestSlider';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 
 interface Props {
@@ -189,12 +190,13 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const DAILY_CHEST_WEIGHTS = [30, 25, 15, 12, 12, 6];
 
   const [chestResult, setChestResult] = useState<{ name: string; rarity: string; type: string; value: number } | null>(null);
-  const [chestPhase, setChestPhase] = useState<'idle' | 'opening' | 'reveal'>('idle');
+  const [chestPhase, setChestPhase] = useState<'idle' | 'spinning' | 'reveal'>('idle');
+  const [spinItems, setSpinItems] = useState<Array<{ name: string; rarity: string; type: string; value: number }>>([]);
+  const [spinWinIndex, setSpinWinIndex] = useState(0);
 
   const handleOpenChest = async (item: InventoryItem) => {
     if (processing || chestPhase !== 'idle') return;
     setProcessing(true);
-    setChestPhase('opening');
     try {
       // Roll reward
       const totalW = DAILY_CHEST_WEIGHTS.reduce((a, b) => a + b, 0);
@@ -217,21 +219,32 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
 
       await updateDoc(doc(db, 'players', player.uid), updates);
 
-      // Play opening animation (shake + flash) then reveal
-      await new Promise(r => setTimeout(r, 1600));
+      // Build slider items: 40 random rewards with the winner placed at index 33
+      const items: Array<{ name: string; rarity: string; type: string; value: number }> = [];
+      for (let i = 0; i < 40; i++) {
+        items.push(DAILY_CHEST_REWARDS[Math.floor(Math.random() * DAILY_CHEST_REWARDS.length)]);
+      }
+      items[33] = won;
+      setSpinItems(items);
+      setSpinWinIndex(33);
       setChestResult(won);
-      setChestPhase('reveal');
-      setTimeout(() => {
-        setChestResult(null);
-        setChestPhase('idle');
-        setUseModal(null);
-        setDetailModal(null);
-      }, 3800);
+      setChestPhase('spinning');
     } catch (err) {
       console.error('Failed to open chest:', err);
       setChestPhase('idle');
     }
     setProcessing(false);
+  };
+
+  const handleSpinComplete = () => {
+    setChestPhase('reveal');
+    setTimeout(() => {
+      setChestResult(null);
+      setChestPhase('idle');
+      setSpinItems([]);
+      setUseModal(null);
+      setDetailModal(null);
+    }, 3800);
   };
 
   const handleUse = async (item: InventoryItem) => {
@@ -941,58 +954,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               {/* Top neon accent line */}
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
 
-              {/* ═══ OPENING PHASE: chest shakes & flashes ═══ */}
-              {chestPhase === 'opening' && (
-                <div className="text-center py-8 relative overflow-hidden" style={{ minHeight: 280 }}>
-                  {/* Flash */}
-                  <motion.div
-                    className="absolute inset-0 pointer-events-none"
-                    animate={{ opacity: [0, 0.3, 0, 0.4, 0, 0.6, 0] }}
-                    transition={{ duration: 1.5, times: [0, 0.2, 0.3, 0.5, 0.6, 0.85, 1] }}
-                    style={{ background: 'radial-gradient(circle at 50% 50%, rgba(255,215,0,0.5), transparent 70%)' }}
-                  />
-                  {/* Chest shaking */}
-                  <motion.div
-                    animate={{
-                      rotate: [0, -8, 8, -10, 10, -6, 6, 0],
-                      scale: [1, 1.05, 1, 1.08, 1, 1.12, 1.3],
-                    }}
-                    transition={{ duration: 1.5, times: [0, 0.15, 0.3, 0.45, 0.6, 0.75, 0.9, 1] }}
-                    className="mx-auto"
-                  >
-                    <img src="/img/chest-free.png" alt="" className="w-32 h-32 mx-auto object-contain"
-                      style={{ filter: 'drop-shadow(0 0 20px rgba(255,215,0,0.5))' }} />
-                  </motion.div>
-                  <motion.p
-                    animate={{ opacity: [0, 1, 1, 0.3] }}
-                    transition={{ duration: 1.5 }}
-                    className="font-ninja text-xl mt-5 tracking-wider text-yellow-400"
-                    style={{ textShadow: '0 0 20px rgba(255,215,0,0.6)' }}
-                  >
-                    OPENING...
-                  </motion.p>
-                  {/* Rising sparkles */}
-                  {Array.from({ length: 12 }).map((_, i) => (
-                    <motion.div
-                      key={i}
-                      className="absolute w-1.5 h-1.5 rounded-full"
-                      style={{
-                        background: ['#FFD700', '#FF9500', '#39FF14', '#00C8FF'][i % 4],
-                        left: `${20 + Math.random() * 60}%`,
-                        bottom: '30%',
-                      }}
-                      animate={{
-                        y: [0, -(100 + Math.random() * 120)],
-                        opacity: [0, 1, 0],
-                        scale: [0, 1, 0.3],
-                      }}
-                      transition={{ duration: 1.3, delay: Math.random() * 0.6, ease: 'easeOut' }}
-                    />
-                  ))}
-                </div>
-              )}
-
-              {/* ═══ REVEAL PHASE: reward shown ═══ */}
+              {/* ═══ REVEAL PHASE: reward shown (spinning phase handled by full-screen overlay below) ═══ */}
               {chestPhase === 'reveal' && chestResult ? (
                 <motion.div initial={{ scale: 0.6, opacity: 0 }} animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', damping: 14, stiffness: 180 }}
@@ -1096,7 +1058,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                     {chestResult.type === 'coins' ? 'Added to your balance!' : 'Added to your inventory!'}
                   </motion.p>
                 </motion.div>
-              ) : chestPhase === 'reveal' ? null : chestPhase === 'opening' ? null : (
+              ) : chestPhase !== 'idle' ? null : (
                 <>
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="font-ninja text-lg tracking-wider" style={{ color: useModal.type === 'chest' ? '#00BFFF' : '#39FF14' }}>
@@ -1154,6 +1116,34 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                 </>
               )}
             </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ CHEST SPINNING (FULL-SCREEN SLIDER) ═══ */}
+      <AnimatePresence>
+        {chestPhase === 'spinning' && spinItems.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[300] flex flex-col items-center justify-center"
+            style={{ background: 'linear-gradient(180deg, rgba(3,5,8,0.98) 0%, rgba(4,7,14,0.98) 50%, rgba(3,5,8,0.98) 100%)' }}
+          >
+            <ChestSlider
+              items={spinItems.map(r => ({
+                name: r.name,
+                rarity: r.rarity,
+                icon: r.type === 'coins'
+                  ? <Coins size={44} />
+                  : <Gift size={44} />,
+              }))}
+              winIndex={spinWinIndex}
+              accentColor="#39FF14"
+              title="Daily Chest"
+              rarityColor={rarityColor}
+              onComplete={handleSpinComplete}
+            />
           </motion.div>
         )}
       </AnimatePresence>
