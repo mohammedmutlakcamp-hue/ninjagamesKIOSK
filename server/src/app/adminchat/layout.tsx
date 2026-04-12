@@ -9,16 +9,15 @@ export const metadata: Metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Ninja Ops',
     startupImage: [
-      { url: '/img/icon-512.png' },
+      { url: '/img/admin-icon.png' },
     ],
   },
   icons: {
     icon: [
-      { url: '/img/icon-192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/img/icon-512.png', sizes: '512x512', type: 'image/png' },
+      { url: '/img/admin-icon.png', sizes: '512x512', type: 'image/png' },
     ],
     apple: [
-      { url: '/img/apple-touch-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/img/admin-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
   other: {
