@@ -68,7 +68,7 @@ const ROULETTE_ITEMS = [
   { label: '150 Tokens',   icon: '\u{1F4B0}', color: '#FF6F00' },
   { label: 'Free Drink',   icon: '\u{1F964}', color: '#1E88E5' },
   { label: 'Free Snack',   icon: '\u{1F36A}', color: '#8D6E63' },
-  { label: '30 Min Play',  icon: '\u23F1\uFE0F', color: '#39FF14' },
+  { label: '75 Min Play',  icon: '\u23F1\uFE0F', color: '#39FF14' },
   { label: 'Free Meal',    icon: '\u{1F354}', color: '#FF4500' },
   { label: '1h Free Play', icon: '\u{1F3AE}', color: '#A855F7' },
   { label: '500 Tokens',   icon: '\u{1F48E}', color: '#FFD700' },

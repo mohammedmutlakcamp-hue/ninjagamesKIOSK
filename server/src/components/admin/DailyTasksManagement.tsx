@@ -27,7 +27,7 @@ const TASK_DEFS: TaskDef[] = [
   { id: 'send_coins',   title: 'Send Coins',     icon: <Send size={18} />,             color: '#0071e3', target: 1,  reward: 5 },
   { id: 'order_food',   title: 'Order Food',     icon: <UtensilsCrossed size={18} />,  color: '#ff9500', target: 1,  reward: 3 },
   { id: 'add_friend',   title: 'Add Friend',     icon: <Star size={18} />,             color: '#ff9f0a', target: 1,  reward: 3 },
-  { id: 'play_30_min',  title: 'Play 30 Min',    icon: <Target size={18} />,           color: '#34c759', target: 30, reward: 10 },
+  { id: 'play_30_min',  title: 'Play 75 Min',    icon: <Target size={18} />,           color: '#34c759', target: 75, reward: 15 },
 ];
 
 function getTodayKey(): string {

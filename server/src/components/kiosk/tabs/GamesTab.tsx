@@ -360,7 +360,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       // Check each task: completed (progress >= target) but not claimed
       const TASK_TARGETS: Record<string, number> = {
         daily_login: 1, play_game: 1, open_chest: 1, send_coins: 1,
-        order_food: 1, add_friend: 1, play_30_min: 30,
+        order_food: 1, add_friend: 1, play_30_min: 75,
       };
       let totalTasks = 0;
       let claimedTasks = 0;

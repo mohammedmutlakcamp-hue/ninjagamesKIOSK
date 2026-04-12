@@ -78,7 +78,7 @@ const DAILY_TASKS: DailyTask[] = [
   { id: 'send_coins',   title: 'Send Coins',     description: 'Send coins to a friend',          icon: <Send size={32} />,              color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND' },
   { id: 'order_food',   title: 'Order Food',     description: 'Order something from the menu',   icon: <UtensilsCrossed size={32} />,   color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER' },
   { id: 'add_friend',   title: 'Add Friend',     description: 'Send a friend request',           icon: <UserPlus size={32} />,          color: '#FACC15', glowColor: '250,204,21',  target: 1,  reward: 2, shortcut: 'add-friend', shortcutLabel: 'ADD' },
-  { id: 'play_30_min',  title: 'Play 30 Min',    description: 'Play for at least 30 minutes',    icon: <Target size={32} />,            color: '#39FF14', glowColor: '57,255,20',   target: 30, reward: 8 },
+  { id: 'play_30_min',  title: 'Play 75 Min',    description: 'Play for at least 75 minutes',    icon: <Target size={32} />,            color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 15 },
 ];
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
