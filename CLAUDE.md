@@ -468,10 +468,166 @@ This project folder is shared on the LAN. Multiple PCs may edit files simultaneo
 - Chrome sessions roam via DPAPI key re-encryption + junction-swapped profile folders
 - The `client/` folder in this project contains the compiled kiosk exe — all PCs should run from this folder (or copy it locally)
 
+### Session 6 Changes (April 11-12, 2026)
+
+#### Admin Panel — 12 New Features (first commit batch)
+Built a comprehensive admin expansion. Files live under `src/components/admin/`:
+- **ActivityLog.tsx** — audit trail. Real-time listener on `admin-activity-log` Firestore collection. Filters by action type / date range / search. Exports a `logAdminAction()` helper other components can call.
+- **GlobalSearch.tsx** — Cmd+K / Ctrl+K overlay, debounced 300ms, searches players, PCs, orders, tournaments. Keyboard nav, 30s cache.
+- **OrderAnalytics.tsx** — KPI cards, top items, peak hours histogram, status breakdown, avg prep time. Pure CSS bars, no chart libs.
+- **ReportsPanel.tsx** — Daily/Weekly/Monthly auto-generated business reports (revenue, new players, retention, top games, food).
+- **ExpenseTracking.tsx** — CRUD on `expenses` collection (category, amount JOD, recurring), monthly trend chart.
+- **LoyaltyAnalytics.tsx** — tier distribution, "almost there" players, engagement funnel. Reads `config/loyalty` milestones.
+- **TournamentBracketView.tsx** — horizontal bracket tree renderer. Reusable — wired into `TournamentManagement`.
+- **ExportUtils.tsx (ExportPanel)** — CSV exports for players, orders, tournaments, top-ups, expenses, daily revenue. Uses BOM for Excel.
+- **RoleBasedAccess.tsx (RoleManagement)** — roles (Owner/Manager/Cashier defaults), permission checkboxes, staff email → role mapping. Stored in `admin-roles` + `admin-users` collections. `getAdminPermissions(email)` helper exported.
+- **KeyboardShortcuts.tsx** — Ctrl+K search, Ctrl+D/P/O/M/T/N navigation, `?` to toggle help panel.
+- **DarkModeProvider.tsx** — context + `useDarkMode()` hook, persists to localStorage, CSS rules in `globals.css` under `.admin-dark .admin-apple`.
+- **PlayerManagement bulk actions** — multi-select checkboxes, bulk coin grants (negative = remove), bulk ban/unban, bulk reset PIN via Firestore `writeBatch`.
+- **TournamentManagement** — replaced flat match list with `TournamentBracketView`, click-to-edit winners.
+- **AdminDashboard** — wired new tabs into sidebar (Business: Expenses, Order Analytics, Reports, Export Data · Marketing: Loyalty Analytics · System: Activity Log, Roles & Access), search + dark mode icons in sidebar header.
+
+NOTE: The `AdminDashboard.tsx` wiring and the `globals.css` dark-mode block may appear unwired on this PC — they were committed from another PC in the LAN sync setup. The component files are present in `server/src/components/admin/` but not all are imported yet. Re-wire if needed.
+
+#### VIP Redesign (VIPTab.tsx + KioskDashboard sidebar)
+- **Full rebuild** of VIPTab to match Buy Time card style: dark PCB motherboard bg, HUD corners, gold traces in SVG, no loading-intro animation (was broken, caused infinite loop).
+- **VIP ACTIVE card**: solid gold gradient background with **black text** (crown, text, progress bar, HUD corners all in black) for max contrast.
+- **Sidebar VIP button** moved to the **bottom** of the sidebar (above the admin/logout buttons) with a permanent metallic gold glow and metallic shimmer sweep. Entry id removed from the main nav map.
+- **Popup chrome** for `activePopup === 'vip'` switches the HUD corners + bottom accent line + close button hover to gold.
+- **New content**: VIP Community Stats (total members, total spent, avg playtime), live VIP Members list ranked by total spend with avatars + YOU badge, Daily Gift section, perks grid with 6 tiles, Free Play banner.
+- **Removed** the EXCLUSIVE SKINS preview section (user request).
+
+#### Hubbly Bubbly — 4-step order flow (HubblyTab.tsx)
+- Flow: **flavor → ice in water → smokes → confirm**.
+- **Smokes step**: Marlboro Red (200), Marlboro Gold (200), Winston (180), or No Cigarettes. Saved as `cigarette: { id, name, price }` on the shisha-order doc.
+- Step indicator dots (1-4) with animated scale + done checkmarks.
+- Confirm card shows ice chip, cig chip (if selected), combined price, ~10 min prep badge.
+- `iceInWater` + `prepTime` (default 10) + `cigarette` all saved on `shisha-orders` docs.
+
+#### Admin Orders Panel — unified food + shisha (OrdersPanel.tsx)
+- Was food-only. Now listens to **both** `orders` and `shisha-orders` collections, merges by createdAt.
+- FOOD / HUBBLY badges on every card and popup.
+- Shisha orders show flavor, `iceInWater` flag (❄️ With ice / 💧 No ice), cigarette add-on as a second line item.
+- New-order popup themed cyan for shisha, orange for food. Plays chime on new order of either type.
+- Status updates route to the correct Firestore collection.
+
+#### OrderBubble.tsx (new)
+- Global floating **draggable** delivery tracker mounted in KioskDashboard for both food and shisha orders.
+- Shows circular icon with **live countdown** (MM:SS) based on `createdAt + prepTime`, progress ring around bubble.
+- Color: orange for food, cyan for shisha. Turns green and pulses when order is READY.
+- Badge shows count when multiple active orders.
+- Tap to expand panel with per-order status, progress bar, and ice flag.
+- Auto-disappears when all orders delivered.
+- Queries use no `orderBy` to avoid requiring a Firestore composite index; client-side sort.
+- Mounted at z-[250] so it stays on top of popups.
+
+#### Cross-sell Combo System (lib/bundles.ts + FoodTab.tsx)
+- `BUNDLE_RULES` array keyed by trigger substrings (case-insensitive, English + Arabic).
+- Specific rules for Marlboro Red/Gold, Winston, Karak tea, espresso, shisha, energy drinks, burgers, pizza, fries, sweets, sodas, juice.
+- Longest-trigger match wins (so "marlboro red" beats generic "marlboro").
+- `findBundleRuleWithFallback()` guarantees every item gets a popup — a FALLBACK_RULE with generic companions (cola, water, juice, cigarettes, coffee, karak, chocolate, cookie, chips, fries).
+- FoodTab shows a popup on first-add of any trigger item, filters suggestions to what's in the live menu, max 4 per popup, one popup per item per session.
+
+#### Plinko Close Lock
+- PlinkoTab fires `window.dispatchEvent('plinko-busy', { busy })` when a ball drops and when the last ball lands.
+- KioskDashboard listens and blocks backdrop click, X close button (with "Wait for balls to land" tooltip), and Escape key while `plinkoBusy === true`. Prevents cancelling a mid-drop bet.
+
+#### Chest Slider (reusable) + Daily Chest animation (ChestSlider.tsx + InventoryTab.tsx)
+- Extracted the CS:GO-style horizontal roulette from ChestsTab into a reusable `<ChestSlider />` component: 40 tiles, quartic ease-out, center pointer, edge fades, HUD corners, skip button, 6s duration, configurable accent color + rarity color function.
+- **Bug fix**: `onComplete` callback ref pattern — was passed as useEffect dep, causing parent re-renders to retrigger the spin infinitely. Same class of bug as the earlier VIP loading intro.
+- Daily chest (`DAILY_CHEST_REWARDS` in InventoryTab) now has real `image` paths pointing at `/img/reward-coins-*.png`, `reward-voucher-*.png`, `reward-time-30m.png`. Opens full-screen slider then reveal phase (coin shower for tokens / gift burst for vouchers).
+
+#### ChestDropsPanels.tsx (reusable)
+- Extracted "Last Opened" + "Lucky Players" panels from ChestsTab into a shared component that listens to `chest-drops` collection. Mounted in StoreTab's chest tab.
+
+#### Store Chests — buy-and-open
+- Clicking a chest card in the store now opens a confirm popup (chest + rewards) with 3 buttons: CANCEL, SAVE FOR LATER (adds to inventory), OPEN NOW (spins immediately).
+- Previously just dropped into inventory silently.
+
+#### Club Custom Logo Upload (ClubPanel.tsx + ClubInfoCard.tsx)
+- New "UPLOAD CUSTOM LOGO" button in club create form. File picker → crops to square → resizes to 200x200 JPEG base64 → stored in club.logo.
+- Display sites (ClubPanel, ClubInfoCard) render `<img>` when logo is a data URL, fall back to emoji otherwise.
+- "Remove & use emoji" shortcut.
+
+#### New Pricing System (constants.ts + types + all store/topup UIs)
+- **Coin packages (7 tiers, paid in JOD):**
+  | Name | JOD | Coins | Bonus |
+  |------|-----|-------|-------|
+  | Starter | 1 | 100 | — |
+  | Plus | 2.25 | 250 | +11% |
+  | Pro (popular) | 5 | 575 | +15% |
+  | Elite | 10 | 1200 | +20% |
+  | Legend | 20 | 2600 | +30% |
+  | Ultimate | 30 | 4050 | +35% |
+  | Master | 50 | 7000 | +40% |
+- **Time packages (5 tiers, paid in coins):**
+  | Name | Hours | Coins | JOD/h |
+  |------|-------|-------|-------|
+  | Bronze | 1 | 100 | 1.00 |
+  | Silver | 3 | 250 | 0.83 |
+  | Gold (best) | 7 | 500 | 0.71 |
+  | Platinum | 12 | 780 | 0.65 |
+  | Diamond | 20 | 1160 | 0.58 |
+- `COST_PER_HOUR_JOD = 0.40` added for P&L calculations.
+- `CoinPackage` gained `name` + `bonusPercentage`, `TimePackage` gained `name`.
+- All four UIs (KioskDashboard TopUp modal, StoreTab, mobile StoreView, MobileDashboard) now import from shared constants — single source of truth.
+- Package IDs: `time_bronze/silver/gold/platinum/diamond` replace `time_1h/3h/7h/15h`; `pack_starter` through `pack_master` replace `pack_100/550/1150`. Historical Firestore docs with old IDs still render fine (display-only).
+
+#### Buy Time Swap Effect
+- Each time package card shows a big animated **TOKENS → HOURS** swap display.
+- `−X TOKENS` (yellow, 3xl) on left, swap arrow in middle, `+Yh NAME` (green, 3xl) on right.
+- When selected: both sides sway in opposite directions, arrow pulses, 3 flying gold coin particles continuously fly from tokens to time.
+- BEST badge moved to absolute `-top-2 right-4` on Gold card (solid gradient bg, black text). Outer `overflow-hidden` removed so the badge isn't clipped.
+- Gold card inner bg changed from rainbow gradient to solid dark so yellow/green text stays readable.
+
+#### Daily Tasks
+- "Play 30 Min" → **"Play 75 Min"** task everywhere (kiosk tab, admin panel, GamesTab target cap, mobile dashboard). Reward bumped 8 → 15 coins. Internal id `play_30_min` unchanged to preserve player progress.
+
+#### Food Prep Times
+- `FoodTab.placeOrder` now stamps a `prepTime` on each order: **3 min for drinks, 12 min for food/snacks**. Max across cart so countdown reflects slowest item. Per-item `preparationTime` override honored.
+
+#### Food Grid
+- Ninja Kitchen grid changed from **3 columns to 5 columns**, card internals shrunk (price badge, prep badge, item name, +/- buttons).
+
+#### Cross-link Buttons
+- Buy Time modal header now has a `BUY TOKENS` button that switches to Top Up without closing. Top Up header has a `BUY TIME` button that switches back. No loss of state.
+
+#### Low-Balance Trap Fix
+- If a player had `coins > 0` but less than 100 (minimum time package cost), and `remainingPlaytime <= 0`, they were shown Buy Time with no affordable option. Now the popup logic checks `coins >= Math.min(...TIME_PACKAGES.map(p => p.coins))` and falls through to Top Up instead.
+
+#### Admin PWA Icon (/adminchat)
+- Root layout's hardcoded `<link rel="manifest" href="/manifest.json" />` was injecting the wrong manifest on every route, including `/adminchat`, so iOS saved it with the `/app` icon.
+- Fix: removed from root layout, added `manifest: '/manifest.json'` to `src/app/app/layout.tsx`, scoped `public/manifest.json` to `/app` instead of `/`.
+- `/adminchat` uses `/public/manifest-admin.json` with `admin-icon.png` (Ninja Games logo, transparent corners filled with matching gray so iOS doesn't show black gaps).
+
+#### Hooks Violation Fixes (/adminchat, /ghanimadmin)
+- Both page components had `useEffect` after a conditional `if (loading) return ...`. Moved the `useEffect`s above the early return so hooks always run in the same order.
+
+#### Player Profile Card (PlayerProfileCard.tsx)
+- Add Friend button was stateless — reopening the card reset `requestSent` to false, letting users spam duplicate requests. Now subscribes to `friend-requests` for this `(from, to)` pair and sets `requestSent = !snap.empty`.
+
+#### Reset Daily Chests API
+- `POST /api/reset-daily-chests` — sets `lastFreeChest = 0` on every player so everyone can claim again.
+- Call: `fetch('/api/reset-daily-chests', { method: 'POST' }).then(r => r.json()).then(console.log)`.
+
+#### Miscellaneous
+- Plinko UI reverted to the pre-session state (user didn't like the rebuild; it had been accidentally swept into a VIP commit from a LAN-paired PC).
+- Free Drink Voucher image swapped from the soda can to `reward-voucher-food.png` (clearer "FREE VOUCHER" text).
+
+### Session 6 Files Added / Created
+- `server/src/components/kiosk/ChestSlider.tsx` — reusable roulette
+- `server/src/components/kiosk/ChestDropsPanels.tsx` — reusable last-opened + lucky-players panels
+- `server/src/components/kiosk/OrderBubble.tsx` — draggable floating delivery tracker
+- `server/src/lib/bundles.ts` — cross-sell bundle rules + helpers
+- `server/src/app/api/reset-daily-chests/route.ts` — admin reset endpoint
+- `server/public/img/admin-icon.png` — adminchat PWA icon
+- `server/src/components/admin/` × 11 — admin panel expansion (see Session 6 start)
+
 ## TODO / NEXT STEPS
 - Tournament PIN: Require PIN before entering, check for tournament voucher
 - Admin player management (see inventory, remove coins, remove items)
-- Admin shisha orders panel
 - Creator tools / launchers need real icons
 - Add welcome videos for epic/legendary/mythic skins
 - Test PWA "Add to Home Screen" on iOS Safari
+- Verify / re-wire Session-6 admin components in `AdminDashboard.tsx` on each LAN PC (files exist, imports may be missing)
+- Consider extracting the Buy Time / Top Up modals from KioskDashboard into their own component files — KioskDashboard is now ~2700 lines
