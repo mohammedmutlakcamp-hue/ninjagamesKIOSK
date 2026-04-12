@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, query, where, orderBy, limit } from 'firebase/firestore';
+import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import { UtensilsCrossed, Wind, Clock, CheckCircle2, ChefHat, X, ChevronDown, Snowflake } from 'lucide-react';
 
 interface Props {
@@ -54,39 +54,31 @@ export function OrderBubble({ playerUid }: Props) {
     }
   }, []);
 
-  // Listen to food orders
+  // Listen to food orders (no orderBy to avoid composite index requirement)
   useEffect(() => {
     if (!playerUid) return;
-    const q = query(
-      collection(db, 'orders'),
-      where('playerId', '==', playerUid),
-      orderBy('createdAt', 'desc'),
-      limit(10)
-    );
+    const q = query(collection(db, 'orders'), where('playerId', '==', playerUid));
     const unsub = onSnapshot(q, snap => {
       const active = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as any))
-        .filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
+        .filter(o => ['pending', 'preparing', 'ready'].includes(o.status))
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setFoodOrders(active);
-    });
+    }, err => console.error('Food orders listener failed:', err));
     return () => unsub();
   }, [playerUid]);
 
   // Listen to shisha orders
   useEffect(() => {
     if (!playerUid) return;
-    const q = query(
-      collection(db, 'shisha-orders'),
-      where('playerId', '==', playerUid),
-      orderBy('createdAt', 'desc'),
-      limit(10)
-    );
+    const q = query(collection(db, 'shisha-orders'), where('playerId', '==', playerUid));
     const unsub = onSnapshot(q, snap => {
       const active = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as any))
-        .filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
+        .filter(o => ['pending', 'preparing', 'ready'].includes(o.status))
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
       setShishaOrders(active);
-    });
+    }, err => console.error('Shisha orders listener failed:', err));
     return () => unsub();
   }, [playerUid]);
 
@@ -143,7 +135,7 @@ export function OrderBubble({ playerUid }: Props) {
   return (
     <>
       {/* Constraints for dragging (full viewport) */}
-      <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-[150]" />
+      <div ref={constraintsRef} className="fixed inset-0 pointer-events-none z-[249]" />
 
       {/* Floating bubble */}
       <motion.div
@@ -164,7 +156,7 @@ export function OrderBubble({ playerUid }: Props) {
         animate={{ scale: 1, opacity: 1 }}
         exit={{ scale: 0, opacity: 0 }}
         transition={{ type: 'spring', stiffness: 200, damping: 20 }}
-        className="fixed z-[155] cursor-grab active:cursor-grabbing"
+        className="fixed z-[250] cursor-grab active:cursor-grabbing"
         style={{ left: position.x, top: position.y, touchAction: 'none' }}
       >
         <motion.div
@@ -243,7 +235,7 @@ export function OrderBubble({ playerUid }: Props) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.9, y: 10 }}
             transition={{ duration: 0.2 }}
-            className="fixed z-[156] rounded-2xl overflow-hidden"
+            className="fixed z-[251] rounded-2xl overflow-hidden"
             style={{
               left: Math.min(window.innerWidth - 320, Math.max(10, position.x - 260)),
               top: Math.min(window.innerHeight - 400, Math.max(10, position.y - 20)),

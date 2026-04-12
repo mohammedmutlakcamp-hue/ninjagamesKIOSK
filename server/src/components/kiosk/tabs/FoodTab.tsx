@@ -125,56 +125,56 @@ export function FoodTab({ player }: Props) {
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
 
           {/* Price badge */}
-          <div className="absolute bottom-2 left-2 flex items-center gap-1 px-2 py-0.5 rounded-md"
-            style={{ background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}>
-            <Coins size={10} className="text-[#39FF14]" />
-            <span className="font-ninja text-xs text-[#39FF14]">{item.price}</span>
+          <div className="absolute bottom-1.5 left-1.5 flex items-center gap-0.5 px-1.5 py-0.5 rounded"
+            style={{ background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(4px)' }}>
+            <Coins size={8} className="text-[#39FF14]" />
+            <span className="font-ninja text-[10px] text-[#39FF14]">{item.price}</span>
           </div>
 
           {/* Prep time */}
           {item.preparationTime > 0 && (
-            <div className="absolute bottom-2 right-2 flex items-center gap-0.5 px-1.5 py-0.5 rounded-md"
-              style={{ background: 'rgba(0,0,0,0.7)' }}>
-              <Clock size={8} className="text-gray-400" />
-              <span className="font-body text-[8px] text-gray-400">{item.preparationTime}m</span>
+            <div className="absolute bottom-1.5 right-1.5 flex items-center gap-0.5 px-1 py-0.5 rounded"
+              style={{ background: 'rgba(0,0,0,0.75)' }}>
+              <Clock size={7} className="text-gray-400" />
+              <span className="font-body text-[7px] text-gray-400">{item.preparationTime}m</span>
             </div>
           )}
 
           {/* Selected overlay */}
           {selected && (
             <div className="absolute inset-0 bg-[#39FF14]/10 flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-[#39FF14] flex items-center justify-center">
-                <CheckCircle2 size={16} className="text-black" />
+              <div className="w-6 h-6 rounded-full bg-[#39FF14] flex items-center justify-center">
+                <CheckCircle2 size={12} className="text-black" />
               </div>
             </div>
           )}
         </div>
 
         {/* Info row */}
-        <div className="px-3 py-2.5 flex items-center justify-between" style={{ background: selected ? 'rgba(57,255,20,0.04)' : 'rgba(255,255,255,0.02)' }}>
+        <div className="px-1.5 py-1.5 flex items-center justify-between gap-1" style={{ background: selected ? 'rgba(57,255,20,0.04)' : 'rgba(255,255,255,0.02)' }}>
           <div className="min-w-0 flex-1">
-            <p className="font-ninja text-[11px] text-white truncate">{item.name}</p>
-            {item.nameAr && <p className="font-body text-[8px] text-gray-600 truncate" dir="rtl">{item.nameAr}</p>}
+            <p className="font-ninja text-[9px] text-white truncate leading-tight">{item.name}</p>
+            {item.nameAr && <p className="font-body text-[7px] text-gray-600 truncate leading-tight" dir="rtl">{item.nameAr}</p>}
           </div>
 
           {inCart > 0 ? (
-            <div className="flex items-center gap-1 shrink-0">
+            <div className="flex items-center gap-0.5 shrink-0">
               <button onClick={(e) => { e.stopPropagation(); removeFromCart(item.id); }}
-                className="w-6 h-6 rounded flex items-center justify-center text-red-400"
+                className="w-4 h-4 rounded flex items-center justify-center text-red-400"
                 style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.2)' }}>
-                <Minus size={10} />
+                <Minus size={8} />
               </button>
-              <span className="font-ninja text-xs text-white w-4 text-center">{inCart}</span>
+              <span className="font-ninja text-[10px] text-white w-3 text-center">{inCart}</span>
               <button onClick={(e) => { e.stopPropagation(); addToCart(item.id); }}
-                className="w-6 h-6 rounded flex items-center justify-center text-[#39FF14]"
+                className="w-4 h-4 rounded flex items-center justify-center text-[#39FF14]"
                 style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.2)' }}>
-                <Plus size={10} />
+                <Plus size={8} />
               </button>
             </div>
           ) : (
-            <div className="w-6 h-6 rounded flex items-center justify-center text-gray-600 shrink-0 group-hover:text-[#39FF14] group-hover:border-[#39FF14]/30 transition-all"
+            <div className="w-5 h-5 rounded flex items-center justify-center text-gray-600 shrink-0 group-hover:text-[#39FF14] group-hover:border-[#39FF14]/30 transition-all"
               style={{ border: '1.5px solid rgba(255,255,255,0.08)' }}>
-              <Plus size={12} />
+              <Plus size={10} />
             </div>
           )}
         </div>
@@ -192,7 +192,7 @@ export function FoodTab({ player }: Props) {
           <span className="font-body text-[9px] text-gray-700">{sectionItems.length}</span>
           <div className="flex-1 h-px ml-1" style={{ background: `${color}20` }} />
         </div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-5 gap-2">
           {sectionItems.map((item, i) => renderCard(item, i))}
         </div>
       </div>
@@ -252,7 +252,7 @@ export function FoodTab({ player }: Props) {
               {renderSection('SNACKS', snackItems, '#f59e0b')}
             </>
           ) : (
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-5 gap-2">
               {filtered.map((item, i) => renderCard(item, i))}
             </div>
           )}
