@@ -3,65 +3,23 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, query, where, getDocs, collection, onSnapshot, orderBy, limit } from 'firebase/firestore';
+import { doc, updateDoc, increment, query, where, getDocs, collection, onSnapshot } from 'firebase/firestore';
 import { VIP_CONFIG } from '@/lib/constants';
 import {
   Crown, Check, X, Timer, Gift, Star, Sparkles, Shield,
   Coffee, Coins, Lock, Send, Palette, ShoppingBag, Loader2,
-  Zap, Clock, Gem, Flame, Eye, ChevronRight, Award,
+  Zap, Clock, Gem, Eye, ChevronRight, Award,
 } from 'lucide-react';
 
 interface Props {
   player: any;
 }
 
-// ── Animated particles ─────────────────────────────────────────
-function FloatingParticles({ color, count = 20 }: { color: string; count?: number }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-      {Array.from({ length: count }).map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute rounded-full"
-          style={{
-            width: Math.random() * 4 + 1,
-            height: Math.random() * 4 + 1,
-            background: color,
-            left: `${Math.random() * 100}%`,
-            top: `${Math.random() * 100}%`,
-            opacity: 0,
-          }}
-          animate={{
-            y: [0, -(Math.random() * 200 + 100)],
-            x: [0, (Math.random() - 0.5) * 60],
-            opacity: [0, 0.6, 0],
-            scale: [0, 1, 0.5],
-          }}
-          transition={{
-            duration: Math.random() * 4 + 3,
-            repeat: Infinity,
-            delay: Math.random() * 5,
-            ease: 'easeOut',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
-// ── Glowing orb decoration ─────────────────────────────────────
-function GlowOrb({ color, size, x, y, delay = 0 }: { color: string; size: number; x: string; y: string; delay?: number }) {
-  return (
-    <motion.div
-      className="absolute rounded-full pointer-events-none"
-      style={{ width: size, height: size, left: x, top: y, background: `radial-gradient(circle, ${color}30, transparent 70%)`, filter: `blur(${size / 3}px)` }}
-      animate={{ scale: [1, 1.3, 1], opacity: [0.3, 0.6, 0.3] }}
-      transition={{ duration: 4, repeat: Infinity, delay, ease: 'easeInOut' }}
-    />
-  );
-}
-
-// No loading intro — direct content reveal
+// Gold color palette
+const GOLD = '#FFD700';
+const GOLD_LIGHT = '#FFE44D';
+const GOLD_DARK = '#B8860B';
+const AMBER = '#FF8C00';
 
 export function VIPTab({ player }: Props) {
   const isVIP = player.vip?.active === true && (player.vip?.expiresAt || 0) > Date.now();
@@ -73,7 +31,6 @@ export function VIPTab({ player }: Props) {
   const hasFreePlay = freePlayUntil > Date.now();
   const freePlayMinutes = hasFreePlay ? Math.ceil((freePlayUntil - Date.now()) / 60000) : 0;
 
-  // No loading gate — content shows immediately
   const [vipPlayers, setVipPlayers] = useState<any[]>([]);
   const [vipStats, setVipStats] = useState({ totalVip: 0, totalSpent: 0, avgPlaytime: 0 });
 
@@ -134,675 +91,520 @@ export function VIPTab({ player }: Props) {
     setInviteLoading(false);
   };
 
-  // ── Color scheme from the logo ───────────────────────────────
-  const GREEN = '#39FF14';
-  const PURPLE = '#7B50FF';
-  const BLUE = '#00C8FF';
-  const DARK_BG = '#050a14';
-  const GOLD = '#FFD700';
-
-  // Perk definitions
+  // Perk cards
   const PERKS = [
-    { icon: <Coffee size={22} />, color: BLUE, title: `${VIP_CONFIG.cafeDiscountPercent}%`, sub: 'CAFE DISCOUNT', desc: 'Save on all food & drinks' },
-    { icon: <Coins size={22} />, color: GOLD, title: '+1', sub: 'BONUS COIN', desc: 'Extra coin per daily task' },
-    { icon: <Palette size={22} />, color: '#FF1493', title: '3', sub: 'EXCLUSIVE SKINS', desc: 'Gold, Diamond & Platinum' },
-    { icon: <Star size={22} />, color: GREEN, title: 'VIP', sub: 'BADGE & FLAIR', desc: 'Stand out in leaderboard' },
-    { icon: <Gift size={22} />, color: PURPLE, title: 'DAILY', sub: 'GIFT POWER', desc: 'Send free play or coins' },
-    { icon: <Shield size={22} />, color: BLUE, title: 'PRIORITY', sub: 'SUPPORT', desc: 'Get help first' },
+    { icon: <Coffee size={20} />, title: `${VIP_CONFIG.cafeDiscountPercent}% OFF`, sub: 'Cafe Discount', desc: 'All food & drinks' },
+    { icon: <Coins size={20} />, title: '+1 COIN', sub: 'Per Task', desc: 'Extra daily task reward' },
+    { icon: <Palette size={20} />, title: 'SKINS', sub: 'Exclusive', desc: '3 VIP-only skins' },
+    { icon: <Star size={20} />, title: 'BADGE', sub: 'VIP Flair', desc: 'Leaderboard crown' },
+    { icon: <Gift size={20} />, title: 'DAILY', sub: 'Gift Power', desc: 'Free play or coins' },
+    { icon: <Shield size={20} />, title: 'PRIORITY', sub: 'Support', desc: 'Help queue first' },
   ];
 
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="relative w-full h-full overflow-hidden"
-      style={{ background: `radial-gradient(ellipse at 50% 0%, rgba(57,255,20,0.03) 0%, ${DARK_BG} 60%)` }}
-    >
-      {/* Background decorations */}
-      <div className="absolute inset-0 pointer-events-none">
-        <GlowOrb color={GREEN} size={300} x="-5%" y="-10%" delay={0} />
-        <GlowOrb color={PURPLE} size={250} x="70%" y="60%" delay={1.5} />
-        <GlowOrb color={BLUE} size={200} x="80%" y="-5%" delay={0.8} />
-        <FloatingParticles color={`${GREEN}60`} count={12} />
+      className="relative w-full h-full overflow-hidden">
+
+      {/* ═══ Background — same as Buy Time ═══ */}
+      <div className="absolute inset-0">
+        <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, #080c12 0%, #0a1018 30%, #0c1420 60%, #081014 100%)' }} />
+        <div className="absolute inset-0 opacity-30" style={{ backgroundImage: 'radial-gradient(circle at 20% 30%, rgba(255,215,0,0.06) 0%, transparent 50%), radial-gradient(circle at 80% 70%, rgba(255,140,0,0.05) 0%, transparent 50%)' }} />
+
+        {/* PCB traces — gold themed */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none" viewBox="0 0 800 1200" preserveAspectRatio="none">
+          <motion.path d="M0,60 L100,60 L120,80 L280,80 L300,60 L500,60 L520,80 L800,80" stroke={GOLD} strokeWidth="0.8" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.1 }} transition={{ duration: 2, delay: 0.2 }} />
+          <motion.path d="M800,180 L650,180 L630,160 L450,160 L430,180 L250,180 L230,160 L0,160" stroke={AMBER} strokeWidth="0.8" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.08 }} transition={{ duration: 2, delay: 0.5 }} />
+          <motion.path d="M0,350 L150,350 L170,370 L350,370 L370,350 L550,350 L570,370 L800,370" stroke={GOLD} strokeWidth="0.6" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.07 }} transition={{ duration: 2.5, delay: 0.7 }} />
+          <motion.path d="M800,520 L600,520 L580,500 L400,500 L380,520 L200,520 L180,500 L0,500" stroke={AMBER} strokeWidth="0.6" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.06 }} transition={{ duration: 2, delay: 0.9 }} />
+          <motion.path d="M0,700 L120,700 L140,720 L320,720 L340,700 L500,700" stroke={GOLD} strokeWidth="0.5" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.06 }} transition={{ duration: 2, delay: 1.1 }} />
+          {/* Vertical traces */}
+          <motion.path d="M120,60 L120,160 L140,180 L140,370" stroke={GOLD} strokeWidth="0.5" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.06 }} transition={{ duration: 1.8, delay: 0.8 }} />
+          <motion.path d="M550,80 L550,180 L530,200 L530,350" stroke={AMBER} strokeWidth="0.5" fill="none"
+            initial={{ pathLength: 0, opacity: 0 }} animate={{ pathLength: 1, opacity: 0.05 }} transition={{ duration: 1.8, delay: 1 }} />
+          {/* Via holes */}
+          <motion.circle cx="120" cy="80" r="2.5" fill={GOLD}
+            initial={{ opacity: 0 }} animate={{ opacity: [0, 0.2, 0.08] }} transition={{ duration: 1.5, delay: 2, repeat: Infinity, repeatDelay: 4 }} />
+          <motion.circle cx="550" cy="180" r="2.5" fill={AMBER}
+            initial={{ opacity: 0 }} animate={{ opacity: [0, 0.18, 0.07] }} transition={{ duration: 1.5, delay: 2.5, repeat: Infinity, repeatDelay: 5 }} />
+          <motion.circle cx="370" cy="350" r="2" fill={GOLD}
+            initial={{ opacity: 0 }} animate={{ opacity: [0, 0.15, 0.06] }} transition={{ duration: 1.5, delay: 3, repeat: Infinity, repeatDelay: 4.5 }} />
+          {/* IC chip pads */}
+          <motion.rect x="116" y="76" width="8" height="8" rx="1" fill="none" stroke={GOLD} strokeWidth="0.8"
+            initial={{ opacity: 0 }} animate={{ opacity: 0.12 }} transition={{ delay: 2 }} />
+          <motion.rect x="546" y="176" width="8" height="8" rx="1" fill="none" stroke={AMBER} strokeWidth="0.8"
+            initial={{ opacity: 0 }} animate={{ opacity: 0.1 }} transition={{ delay: 2.2 }} />
+        </svg>
       </div>
 
-      {/* Scan line */}
-      <motion.div
-        className="absolute left-0 right-0 h-[1px] pointer-events-none z-[5]"
-        style={{ background: `linear-gradient(90deg, transparent, ${GREEN}40, transparent)`, boxShadow: `0 0 15px ${GREEN}20` }}
-        animate={{ top: ['0%', '100%', '0%'] }}
-        transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
-      />
-
-      {/* Main content */}
+      {/* ═══ Content ═══ */}
       <div className="relative z-10 w-full h-full overflow-y-auto overflow-x-hidden"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: `${GREEN}30 transparent` }}
-      >
-            <div className="max-w-[780px] mx-auto px-6 py-6 space-y-5">
+        style={{ scrollbarWidth: 'thin', scrollbarColor: `${GOLD}30 transparent` }}>
+        <div className="max-w-[700px] mx-auto px-6 py-6 space-y-5">
 
-              {/* ══════════════════ HERO CARD ══════════════════ */}
+          {/* ══ HEADER — like Buy Time header ══ */}
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}
+            className="flex items-center justify-between mb-2">
+            <div className="flex items-center gap-3">
               <motion.div
-                initial={{ opacity: 0, y: 30 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1, duration: 0.6 }}
-                className="relative rounded-2xl overflow-hidden"
-                style={{
-                  background: isVIP
-                    ? `linear-gradient(135deg, ${DARK_BG}, rgba(57,255,20,0.04) 30%, rgba(120,80,255,0.03) 70%, ${DARK_BG})`
-                    : `linear-gradient(135deg, ${DARK_BG}, rgba(100,100,100,0.03) 50%, ${DARK_BG})`,
-                  border: `2px solid ${isVIP ? `${GREEN}35` : 'rgba(255,255,255,0.06)'}`,
-                  boxShadow: isVIP ? `0 0 40px ${GREEN}10, inset 0 0 60px ${GREEN}03` : 'none',
-                }}
-              >
-                {/* Animated border shimmer */}
-                {isVIP && (
-                  <motion.div
-                    className="absolute inset-0 rounded-2xl pointer-events-none"
-                    style={{ border: `1px solid transparent`, background: `linear-gradient(${DARK_BG}, ${DARK_BG}) padding-box, linear-gradient(90deg, transparent, ${GREEN}60, ${PURPLE}40, transparent) border-box` }}
-                    animate={{ backgroundPosition: ['0% 0%', '200% 0%'] }}
-                    transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
-                  />
-                )}
+                animate={{ rotate: [0, 360] }}
+                transition={{ duration: 20, repeat: Infinity, ease: 'linear' }}
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ border: `2px solid ${GOLD}60`, background: `radial-gradient(circle, ${GOLD}20 0%, transparent 70%)`, boxShadow: `0 0 20px ${GOLD}15` }}>
+                <Crown size={24} style={{ color: GOLD, filter: `drop-shadow(0 0 6px ${GOLD}80)` }} />
+              </motion.div>
+              <div>
+                <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
+                  className="font-ninja text-3xl tracking-wide"
+                  style={{ background: `linear-gradient(135deg, ${GOLD_LIGHT}, ${GOLD}, ${AMBER})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: 'none', filter: `drop-shadow(0 0 15px ${GOLD}40)` }}>
+                  VIP ZONE
+                </motion.h2>
+                <p className="font-body text-gray-500 text-xs mt-0.5">
+                  {isVIP ? `${daysLeft} days remaining` : isExpired ? 'Membership expired' : 'Unlock elite membership'}
+                </p>
+              </div>
+            </div>
+          </motion.div>
 
-                <div className="relative p-7">
-                  <div className="flex items-center gap-6">
-                    {/* Animated crown with shield */}
+          {/* ══ STATUS CARD — HUD framed like Buy Time cards ══ */}
+          <motion.div
+            initial={{ opacity: 0, x: -30 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.3, type: 'spring', stiffness: 100 }}
+            className="relative">
+            <motion.div
+              animate={isVIP ? { boxShadow: [`0 0 0px ${GOLD}00`, `0 0 25px ${GOLD}20`, `0 0 0px ${GOLD}00`] } : {}}
+              transition={{ duration: 3, repeat: Infinity }}
+              className="relative rounded-lg overflow-hidden"
+              style={{ border: `1px solid ${isVIP ? `${GOLD}50` : 'rgba(255,255,255,0.08)'}` }}>
+
+              {/* Changing gradient gold border for VIP */}
+              {isVIP && (
+                <motion.div className="absolute -inset-[2px] rounded-lg"
+                  animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
+                  transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
+                  style={{ background: `linear-gradient(135deg, ${GOLD}, ${AMBER}, ${GOLD_LIGHT}, ${GOLD})`, backgroundSize: '300% 300%' }} />
+              )}
+
+              <div className="relative rounded-lg px-6 py-5" style={{
+                background: isVIP
+                  ? `linear-gradient(135deg, rgba(255,215,0,0.06), rgba(255,140,0,0.04), rgba(184,134,11,0.03))`
+                  : 'rgba(255,255,255,0.02)',
+              }}>
+                {/* HUD corners */}
+                {[
+                  { pos: 'top-0 left-0', borders: { borderTop: `2px solid ${GOLD}`, borderLeft: `2px solid ${GOLD}` } },
+                  { pos: 'top-0 right-0', borders: { borderTop: `2px solid ${GOLD}60`, borderRight: `2px solid ${GOLD}60` } },
+                  { pos: 'bottom-0 left-0', borders: { borderBottom: `2px solid ${GOLD}60`, borderLeft: `2px solid ${GOLD}60` } },
+                  { pos: 'bottom-0 right-0', borders: { borderBottom: `2px solid ${GOLD}`, borderRight: `2px solid ${GOLD}` } },
+                ].map((c, i) => (
+                  <motion.div key={i}
+                    initial={{ opacity: 0, scale: 0 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ delay: 0.5 + i * 0.08 }}
+                    className={`absolute ${c.pos} w-4 h-4`} style={c.borders} />
+                ))}
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    {/* Crown with glow */}
                     <motion.div
-                      animate={isVIP ? { rotate: [0, 2, -2, 0] } : {}}
-                      transition={{ duration: 6, repeat: Infinity, ease: 'easeInOut' }}
-                      className="relative w-24 h-24 flex-shrink-0"
-                    >
-                      {/* Outer glow ring */}
-                      {isVIP && (
-                        <motion.div
-                          className="absolute inset-[-4px] rounded-2xl"
-                          animate={{ boxShadow: [`0 0 20px ${GREEN}25`, `0 0 40px ${GREEN}40`, `0 0 20px ${GREEN}25`] }}
-                          transition={{ duration: 2.5, repeat: Infinity }}
-                          style={{ border: `2px solid ${GREEN}40`, borderRadius: '18px' }}
-                        />
-                      )}
-                      <div className="w-full h-full rounded-2xl flex items-center justify-center relative overflow-hidden"
-                        style={{
-                          background: isVIP
-                            ? `linear-gradient(135deg, ${GREEN}15, ${PURPLE}10)`
-                            : 'rgba(255,255,255,0.02)',
-                          border: `2px solid ${isVIP ? `${GREEN}40` : 'rgba(255,255,255,0.06)'}`,
-                        }}>
-                        {/* Inner radial glow */}
-                        {isVIP && <div className="absolute inset-0" style={{ background: `radial-gradient(circle at center, ${GREEN}15, transparent 70%)` }} />}
-                        <Crown size={40} style={{
-                          color: isVIP ? GREEN : '#333',
-                          filter: isVIP ? `drop-shadow(0 0 12px ${GREEN}90)` : 'none',
-                        }} />
-                      </div>
+                      animate={{ boxShadow: [`0 0 10px ${GOLD}20`, `0 0 20px ${GOLD}40`, `0 0 10px ${GOLD}20`] }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                      className="w-16 h-16 rounded-xl flex items-center justify-center"
+                      style={{ background: `${GOLD}10`, border: `2px solid ${GOLD}30` }}>
+                      <Crown size={32} style={{ color: GOLD, filter: `drop-shadow(0 0 10px ${GOLD}80)` }} />
                     </motion.div>
-
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <motion.h1
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.3 }}
-                        className="font-ninja text-3xl tracking-wider"
-                        style={{
-                          color: isVIP ? GREEN : isExpired ? '#ff4444' : '#555',
-                          textShadow: isVIP ? `0 0 30px ${GREEN}60` : 'none',
-                        }}
-                      >
-                        {isVIP ? 'VIP MEMBER' : isExpired ? 'VIP EXPIRED' : 'VIP ZONE'}
-                      </motion.h1>
-
+                    <div>
+                      <p className="font-ninja text-xl" style={{ color: isVIP ? GOLD : '#666' }}>
+                        {isVIP ? 'VIP ACTIVE' : isExpired ? 'EXPIRED' : 'NOT A MEMBER'}
+                      </p>
                       {isVIP && daysLeft !== null && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          transition={{ delay: 0.5 }}
-                          className="flex items-center gap-3 mt-2"
-                        >
-                          {/* Progress bar for days remaining */}
-                          <div className="flex-1 h-2 rounded-full overflow-hidden max-w-[200px]"
-                            style={{ background: 'rgba(255,255,255,0.05)' }}>
+                        <div className="flex items-center gap-2 mt-1.5">
+                          <div className="w-32 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.05)' }}>
                             <motion.div
                               initial={{ width: 0 }}
                               animate={{ width: `${(daysLeft / 30) * 100}%` }}
-                              transition={{ duration: 1.5, delay: 0.6 }}
+                              transition={{ duration: 1.2, delay: 0.6 }}
                               className="h-full rounded-full"
-                              style={{
-                                background: daysLeft <= 5
-                                  ? 'linear-gradient(90deg, #ff4444, #ff6b00)'
-                                  : `linear-gradient(90deg, ${GREEN}, ${BLUE})`,
-                                boxShadow: daysLeft <= 5 ? '0 0 10px rgba(255,68,68,0.5)' : `0 0 10px ${GREEN}40`,
-                              }}
+                              style={{ background: daysLeft <= 5 ? 'linear-gradient(90deg, #ff4444, #ff6b00)' : `linear-gradient(90deg, ${GOLD}, ${AMBER})`, boxShadow: `0 0 8px ${daysLeft <= 5 ? '#ff4444' : GOLD}50` }}
                             />
                           </div>
-                          <span className="font-ninja text-xs" style={{ color: daysLeft <= 5 ? '#ff6b00' : GREEN }}>
-                            {daysLeft}D LEFT
-                          </span>
-                          {daysLeft <= 5 && (
-                            <motion.span
-                              animate={{ opacity: [1, 0.4, 1] }}
-                              transition={{ duration: 1, repeat: Infinity }}
-                              className="px-2 py-0.5 rounded font-ninja text-[9px] text-red-400"
-                              style={{ background: 'rgba(255,68,68,0.1)', border: '1px solid rgba(255,68,68,0.2)' }}
-                            >
-                              EXPIRING
-                            </motion.span>
-                          )}
-                        </motion.div>
+                          <span className="font-ninja text-[10px]" style={{ color: daysLeft <= 5 ? '#ff6b00' : GOLD }}>{daysLeft}D</span>
+                        </div>
                       )}
-
-                      {!isVIP && !isExpired && (
-                        <p className="font-body text-sm text-gray-500 mt-1">
-                          Unlock elite perks for <span style={{ color: GOLD }}>{VIP_CONFIG.priceCoins.toLocaleString()}</span> coins
-                        </p>
-                      )}
-                      {isExpired && <p className="font-body text-sm text-gray-500 mt-1">Renew to restore your powers</p>}
-                    </div>
-
-                    {/* CTA button */}
-                    <motion.button
-                      whileHover={{ scale: 1.05, boxShadow: `0 0 30px ${isVIP ? GREEN + '30' : GOLD + '40'}` }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={goToStore}
-                      className="px-7 py-3.5 rounded-xl font-ninja text-sm flex items-center gap-2 shrink-0 relative overflow-hidden"
-                      style={{
-                        background: isVIP
-                          ? `linear-gradient(135deg, ${GREEN}12, ${PURPLE}08)`
-                          : `linear-gradient(135deg, ${GREEN}, ${BLUE})`,
-                        color: isVIP ? GREEN : '#000',
-                        border: isVIP ? `1px solid ${GREEN}30` : 'none',
-                        boxShadow: isVIP ? 'none' : `0 0 25px ${GREEN}30`,
-                      }}
-                    >
-                      {/* Button shimmer */}
                       {!isVIP && (
-                        <motion.div
-                          className="absolute inset-0 pointer-events-none"
-                          animate={{ x: ['-100%', '200%'] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1 }}
-                          style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)', width: '50%' }}
-                        />
+                        <p className="font-body text-xs text-gray-500 mt-0.5">{VIP_CONFIG.priceCoins.toLocaleString()} coins · 30 days</p>
                       )}
-                      <ShoppingBag size={16} />
-                      {isVIP ? 'RENEW' : 'GET VIP'}
-                    </motion.button>
+                    </div>
                   </div>
+
+                  {/* CTA */}
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={goToStore}
+                    className="px-6 py-3 rounded-xl font-ninja text-sm flex items-center gap-2 relative overflow-hidden"
+                    style={{
+                      background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`,
+                      color: '#000',
+                      boxShadow: `0 0 20px ${GOLD}30`,
+                    }}>
+                    {/* Metallic sweep */}
+                    <motion.div className="absolute inset-0 pointer-events-none"
+                      animate={{ x: ['-100%', '250%'] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+                      style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)', width: '40%' }} />
+                    <ShoppingBag size={16} />
+                    {isVIP ? 'RENEW' : 'GET VIP'}
+                  </motion.button>
                 </div>
+              </div>
+            </motion.div>
+          </motion.div>
 
-                {/* Quick stats bar (VIP only) */}
-                {isVIP && (
-                  <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    className="grid grid-cols-3"
-                    style={{ borderTop: `1px solid ${GREEN}12` }}
-                  >
-                    {[
-                      { icon: <Coffee size={14} />, color: BLUE, text: `${VIP_CONFIG.cafeDiscountPercent}% CAFE OFF` },
-                      { icon: <Coins size={14} />, color: GOLD, text: '+1 PER TASK' },
-                      {
-                        icon: <Gift size={14} />,
-                        color: inviteUsedToday ? '#444' : GREEN,
-                        text: inviteUsedToday ? 'GIFT SENT' : 'SEND GIFT',
-                        onClick: () => !inviteUsedToday && setShowInviteModal(true),
-                        disabled: inviteUsedToday,
-                      },
-                    ].map((stat, i) => (
-                      <button
-                        key={i}
-                        onClick={stat.onClick}
-                        disabled={stat.disabled}
-                        className="flex items-center justify-center gap-2 py-3.5 transition-all hover:bg-white/[0.02] disabled:opacity-40"
-                        style={i === 1 ? { borderLeft: `1px solid ${GREEN}08`, borderRight: `1px solid ${GREEN}08` } : {}}
-                      >
-                        <span style={{ color: stat.color }}>{stat.icon}</span>
-                        <span className="font-ninja text-[10px] tracking-wider" style={{ color: stat.color }}>{stat.text}</span>
-                      </button>
-                    ))}
-                  </motion.div>
-                )}
+          {/* ══ QUICK STATS (VIP) — like Buy Time balance ══ */}
+          {isVIP && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+              className="grid grid-cols-3 gap-3">
+              {[
+                { icon: <Coffee size={14} />, text: `${VIP_CONFIG.cafeDiscountPercent}% CAFE OFF`, color: '#00C8FF' },
+                { icon: <Coins size={14} />, text: '+1 PER TASK', color: GOLD },
+                { icon: <Gift size={14} />, text: inviteUsedToday ? 'GIFT SENT' : 'SEND GIFT', color: inviteUsedToday ? '#444' : '#39FF14', onClick: () => !inviteUsedToday && setShowInviteModal(true) },
+              ].map((s, i) => (
+                <motion.button key={i}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 + i * 0.08 }}
+                  onClick={s.onClick}
+                  disabled={!s.onClick}
+                  className="flex items-center justify-center gap-2 py-3 rounded-lg relative overflow-hidden transition-all hover:bg-white/[0.03]"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${s.color}18` }}>
+                  {/* HUD corners */}
+                  <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${s.color}40`, borderLeft: `1px solid ${s.color}40` }} />
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: `1px solid ${s.color}40`, borderRight: `1px solid ${s.color}40` }} />
+                  <span style={{ color: s.color }}>{s.icon}</span>
+                  <span className="font-ninja text-[9px] tracking-wider" style={{ color: s.color }}>{s.text}</span>
+                </motion.button>
+              ))}
+            </motion.div>
+          )}
+
+          {/* ══ FREE PLAY BANNER ══ */}
+          {hasFreePlay && (
+            <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.4 }}
+              className="rounded-lg px-5 py-3.5 flex items-center gap-4 relative overflow-hidden"
+              style={{ background: 'rgba(57,255,20,0.03)', border: '1px solid rgba(57,255,20,0.15)' }}>
+              <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid #39FF14', borderLeft: '2px solid #39FF14' }} />
+              <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid #39FF14', borderRight: '2px solid #39FF14' }} />
+              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}
+                className="w-12 h-12 rounded-lg flex items-center justify-center shrink-0"
+                style={{ border: '2px solid rgba(57,255,20,0.3)', background: 'rgba(57,255,20,0.06)' }}>
+                <span className="font-ninja text-lg text-[#39FF14]">{freePlayMinutes}</span>
               </motion.div>
+              <div>
+                <p className="font-ninja text-sm text-[#39FF14] flex items-center gap-1.5"><Sparkles size={13} /> FREE PLAY ACTIVE</p>
+                <p className="font-body text-[10px] text-gray-500">{freePlayMinutes} minutes remaining</p>
+              </div>
+            </motion.div>
+          )}
 
-              {/* ══════════════════ FREE PLAY BANNER ══════════════════ */}
-              {hasFreePlay && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="rounded-xl px-5 py-4 flex items-center gap-4 relative overflow-hidden"
-                  style={{
-                    background: `linear-gradient(135deg, ${GREEN}06, ${BLUE}04)`,
-                    border: `1px solid ${GREEN}20`,
-                    boxShadow: `0 0 20px ${GREEN}08`,
-                  }}
-                >
+          {/* ══ PERKS — Buy Time card style with HUD corners ══ */}
+          <div>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
+              className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}60` }}>
+              MEMBER PERKS
+            </motion.p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {PERKS.map((perk, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: isVIP ? 1 : 0.5, x: 0 }}
+                  transition={{ delay: 0.55 + i * 0.08, type: 'spring', stiffness: 100 }}
+                  className="relative rounded-lg overflow-hidden group cursor-default"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${isVIP ? `${GOLD}20` : 'rgba(255,255,255,0.05)'}` }}>
+                  {/* HUD corners */}
+                  <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.7 + i * 0.06 }}
+                    className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: `2px solid ${isVIP ? GOLD : '#444'}`, borderLeft: `2px solid ${isVIP ? GOLD : '#444'}` }} />
+                  <motion.div initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.75 + i * 0.06 }}
+                    className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: `2px solid ${isVIP ? `${GOLD}60` : '#333'}`, borderRight: `2px solid ${isVIP ? `${GOLD}60` : '#333'}` }} />
+
+                  <div className="p-3.5 text-center relative">
+                    {/* Hover glow */}
+                    <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{ background: `radial-gradient(circle, ${GOLD}08, transparent 70%)` }} />
+
+                    <motion.div
+                      animate={isVIP ? { y: [0, -2, 0] } : {}}
+                      transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.3 }}
+                      className="w-10 h-10 rounded-lg flex items-center justify-center mx-auto mb-2"
+                      style={{ background: `${GOLD}08`, border: `1px solid ${isVIP ? `${GOLD}20` : '#333'}` }}>
+                      <span style={{ color: isVIP ? GOLD : '#333' }}>{perk.icon}</span>
+                    </motion.div>
+                    <p className="font-ninja text-xs" style={{ color: isVIP ? GOLD : '#444' }}>{perk.title}</p>
+                    <p className="font-body text-[8px] text-gray-600 mt-0.5">{perk.desc}</p>
+
+                    {/* Lock / check */}
+                    <div className="absolute top-2 right-2">
+                      {isVIP ? <Check size={10} style={{ color: GOLD }} /> : <Lock size={8} className="text-gray-700" />}
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* ══ DAILY GIFT — card style with HUD frame ══ */}
+          {isVIP && (
+            <motion.div
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.8, type: 'spring', stiffness: 100 }}
+              className="relative rounded-lg overflow-hidden"
+              style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${inviteUsedToday ? 'rgba(255,255,255,0.05)' : `${GOLD}20`}` }}>
+              {/* HUD corners */}
+              <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: `2px solid ${inviteUsedToday ? '#333' : GOLD}`, borderLeft: `2px solid ${inviteUsedToday ? '#333' : GOLD}` }} />
+              <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: `2px solid ${inviteUsedToday ? '#333' : `${GOLD}60`}`, borderRight: `2px solid ${inviteUsedToday ? '#333' : `${GOLD}60`}` }} />
+
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-4">
                   <motion.div
-                    animate={{ scale: [1, 1.15, 1], boxShadow: [`0 0 15px ${GREEN}30`, `0 0 25px ${GREEN}50`, `0 0 15px ${GREEN}30`] }}
+                    animate={inviteUsedToday ? {} : { boxShadow: [`0 0 8px ${GOLD}20`, `0 0 18px ${GOLD}35`, `0 0 8px ${GOLD}20`] }}
                     transition={{ duration: 2, repeat: Infinity }}
-                    className="w-14 h-14 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ border: `2px solid ${GREEN}40`, background: `${GREEN}10` }}
-                  >
-                    <span className="font-ninja text-xl" style={{ color: GREEN, textShadow: `0 0 10px ${GREEN}60` }}>{freePlayMinutes}</span>
+                    className="w-11 h-11 rounded-lg flex items-center justify-center"
+                    style={{ background: inviteUsedToday ? 'rgba(60,60,60,0.05)' : `${GOLD}08`, border: `1px solid ${inviteUsedToday ? '#333' : `${GOLD}25`}` }}>
+                    <Gift size={20} style={{ color: inviteUsedToday ? '#444' : GOLD }} />
                   </motion.div>
                   <div>
-                    <p className="font-ninja text-sm flex items-center gap-2" style={{ color: GREEN, textShadow: `0 0 15px ${GREEN}40` }}>
-                      <Sparkles size={14} /> FREE PLAY ACTIVE
+                    <p className="font-ninja text-xs flex items-center gap-2" style={{ color: inviteUsedToday ? '#555' : GOLD }}>
+                      DAILY GIFT
+                      {inviteUsedToday && <span className="text-[7px] px-1.5 py-0.5 rounded bg-gray-800/50 text-gray-600">USED</span>}
                     </p>
-                    <p className="font-body text-[11px] text-gray-500">{freePlayMinutes} minutes remaining</p>
+                    <p className="font-body text-[10px] text-gray-600">
+                      Send <span style={{ color: inviteUsedToday ? '#555' : '#39FF14' }}>30 min</span> or <span style={{ color: inviteUsedToday ? '#555' : GOLD }}>50 coins</span>
+                    </p>
                   </div>
-                </motion.div>
-              )}
-
-              {/* ══════════════════ PERKS GRID ══════════════════ */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <h3 className="font-ninja text-[10px] tracking-[0.25em] mb-4 px-1" style={{ color: `${GREEN}60` }}>
-                  ELITE PERKS
-                </h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {PERKS.map((perk, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.5 + i * 0.08 }}
-                      whileHover={isVIP ? { scale: 1.03, y: -2 } : {}}
-                      className="rounded-xl p-4 text-center relative group overflow-hidden"
-                      style={{
-                        background: isVIP ? `${perk.color}06` : 'rgba(255,255,255,0.01)',
-                        border: `1px solid ${isVIP ? `${perk.color}20` : 'rgba(255,255,255,0.04)'}`,
-                        boxShadow: isVIP ? `0 4px 20px ${perk.color}08` : 'none',
-                      }}
-                    >
-                      {/* Hover glow */}
-                      {isVIP && (
-                        <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
-                          style={{ background: `radial-gradient(circle at 50% 50%, ${perk.color}12, transparent 70%)` }} />
-                      )}
-
-                      <motion.div
-                        animate={isVIP ? { y: [0, -3, 0] } : {}}
-                        transition={{ duration: 3, repeat: Infinity, delay: i * 0.3 }}
-                        className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3 relative"
-                        style={{
-                          background: `${perk.color}10`,
-                          border: `1px solid ${perk.color}${isVIP ? '25' : '08'}`,
-                          boxShadow: isVIP ? `0 0 15px ${perk.color}15` : 'none',
-                        }}
-                      >
-                        <span style={{ color: isVIP ? perk.color : '#333' }}>{perk.icon}</span>
-                      </motion.div>
-                      <p className="font-ninja text-lg mb-0.5" style={{ color: isVIP ? perk.color : '#333' }}>{perk.title}</p>
-                      <p className="font-ninja text-[8px] tracking-wider" style={{ color: isVIP ? `${perk.color}80` : '#333' }}>{perk.sub}</p>
-                      <p className="font-body text-[9px] text-gray-600 mt-1">{perk.desc}</p>
-
-                      {/* Status badge */}
-                      <div className="absolute top-2 right-2">
-                        {isVIP ? (
-                          <div className="w-5 h-5 rounded-full flex items-center justify-center" style={{ background: `${perk.color}20`, border: `1px solid ${perk.color}30` }}>
-                            <Check size={10} style={{ color: perk.color }} />
-                          </div>
-                        ) : (
-                          <Lock size={10} className="text-gray-800" />
-                        )}
-                      </div>
-                    </motion.div>
-                  ))}
                 </div>
-              </motion.div>
+                <motion.button whileHover={inviteUsedToday ? {} : { scale: 1.05 }} whileTap={inviteUsedToday ? {} : { scale: 0.95 }}
+                  onClick={() => !inviteUsedToday && setShowInviteModal(true)} disabled={inviteUsedToday}
+                  className="px-5 py-2.5 rounded-lg font-ninja text-[11px] flex items-center gap-1.5 disabled:opacity-30 relative overflow-hidden"
+                  style={inviteUsedToday ? { background: 'rgba(40,40,40,0.15)', color: '#444' } : {
+                    background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`, color: '#000', boxShadow: `0 0 15px ${GOLD}20`,
+                  }}>
+                  {!inviteUsedToday && (
+                    <motion.div className="absolute inset-0 pointer-events-none"
+                      animate={{ x: ['-100%', '250%'] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 3 }}
+                      style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)', width: '35%' }} />
+                  )}
+                  {inviteUsedToday ? <Check size={14} /> : <Send size={14} />}
+                  {inviteUsedToday ? 'SENT' : 'SEND'}
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
 
-              {/* ══════════════════ DAILY GIFT (VIP) ══════════════════ */}
-              {isVIP && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="rounded-xl overflow-hidden relative"
-                  style={{
-                    border: `1px solid ${inviteUsedToday ? 'rgba(80,80,80,0.1)' : `${GREEN}18`}`,
-                    background: inviteUsedToday ? 'rgba(20,20,25,0.5)' : `linear-gradient(135deg, ${GREEN}03, ${PURPLE}02)`,
-                  }}
-                >
-                  <div className="flex items-center justify-between px-5 py-4">
-                    <div className="flex items-center gap-4">
-                      <motion.div
-                        animate={inviteUsedToday ? {} : { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                        transition={{ duration: 3, repeat: Infinity }}
-                        className="w-12 h-12 rounded-xl flex items-center justify-center"
-                        style={{
-                          background: inviteUsedToday ? 'rgba(80,80,80,0.05)' : `${GREEN}08`,
-                          border: `1px solid ${inviteUsedToday ? 'rgba(80,80,80,0.1)' : `${GREEN}22`}`,
-                          boxShadow: inviteUsedToday ? 'none' : `0 0 15px ${GREEN}10`,
-                        }}
-                      >
-                        <Gift size={22} style={{ color: inviteUsedToday ? '#444' : GREEN }} />
-                      </motion.div>
-                      <div>
-                        <p className="font-ninja text-sm flex items-center gap-2" style={{ color: inviteUsedToday ? '#555' : GREEN }}>
-                          DAILY GIFT
-                          {inviteUsedToday && (
-                            <span className="text-[8px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(80,80,80,0.2)', color: '#555' }}>USED</span>
-                          )}
-                        </p>
-                        <p className="font-body text-[10px] text-gray-600">
-                          Send <span style={{ color: inviteUsedToday ? '#555' : GREEN }}>30 min</span> or <span style={{ color: inviteUsedToday ? '#555' : GOLD }}>50 coins</span> to a friend
-                        </p>
+          {/* ══ HOW TO GET VIP — for non-VIP ══ */}
+          {!isVIP && (
+            <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, type: 'spring', stiffness: 100 }}>
+              <p className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>HOW TO BECOME VIP</p>
+              <div className="space-y-2.5">
+                {[
+                  { n: '01', icon: <ShoppingBag size={18} />, text: 'Buy VIP Pass from the Store' },
+                  { n: '02', icon: <Gem size={18} />, text: 'It appears in your Inventory' },
+                  { n: '03', icon: <Zap size={18} />, text: 'Click USE to activate 30 days!' },
+                ].map((step, i) => (
+                  <motion.div key={i}
+                    initial={{ opacity: 0, x: -30 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.8 + i * 0.12, type: 'spring', stiffness: 100 }}
+                    className="relative rounded-lg overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${GOLD}12` }}>
+                    {/* HUD corners */}
+                    <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: `2px solid ${GOLD}50`, borderLeft: `2px solid ${GOLD}50` }} />
+                    <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: `2px solid ${GOLD}30`, borderRight: `2px solid ${GOLD}30` }} />
+                    <div className="px-5 py-3.5 flex items-center gap-4">
+                      <span className="font-ninja text-lg" style={{ color: `${GOLD}25` }}>{step.n}</span>
+                      <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ background: `${GOLD}06`, border: `1px solid ${GOLD}12` }}>
+                        <span style={{ color: `${GOLD}60` }}>{step.icon}</span>
                       </div>
+                      <p className="font-body text-sm text-gray-400">{step.text}</p>
                     </div>
-                    <motion.button
-                      whileHover={inviteUsedToday ? {} : { scale: 1.05 }}
-                      whileTap={inviteUsedToday ? {} : { scale: 0.95 }}
-                      onClick={() => !inviteUsedToday && setShowInviteModal(true)}
-                      disabled={inviteUsedToday}
-                      className="px-5 py-2.5 rounded-xl font-ninja text-[11px] flex items-center gap-1.5 disabled:opacity-30"
-                      style={inviteUsedToday ? { background: 'rgba(40,40,40,0.2)', color: '#444' } : {
-                        background: `linear-gradient(135deg, ${GREEN}12, ${GREEN}06)`,
-                        color: GREEN,
-                        border: `1px solid ${GREEN}25`,
-                        boxShadow: `0 0 15px ${GREEN}10`,
-                      }}
-                    >
-                      {inviteUsedToday ? <Check size={14} /> : <Send size={14} />}
-                      {inviteUsedToday ? 'SENT' : 'SEND'}
-                    </motion.button>
-                  </div>
-                </motion.div>
-              )}
+                  </motion.div>
+                ))}
+              </div>
 
-              {/* ══════════════════ HOW TO GET VIP (non-VIP) ══════════════════ */}
-              {!isVIP && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="rounded-xl p-6 relative overflow-hidden"
-                  style={{ background: `linear-gradient(135deg, ${GREEN}03, ${PURPLE}02)`, border: `1px solid ${GREEN}12` }}
-                >
-                  <FloatingParticles color={`${GREEN}40`} count={8} />
-
-                  <p className="font-ninja text-[10px] tracking-[0.2em] mb-5 relative z-10" style={{ color: `${GREEN}60` }}>HOW TO BECOME VIP</p>
-
-                  <div className="grid grid-cols-3 gap-4 relative z-10">
-                    {[
-                      { n: '01', icon: <ShoppingBag size={20} />, text: 'Buy VIP Pass from Store', color: GREEN },
-                      { n: '02', icon: <Gem size={20} />, text: 'It appears in your Inventory', color: BLUE },
-                      { n: '03', icon: <Zap size={20} />, text: 'Activate and unleash power!', color: PURPLE },
-                    ].map((step, i) => (
-                      <motion.div
-                        key={i}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.8 + i * 0.15 }}
-                        className="rounded-xl p-4 text-center relative"
-                        style={{
-                          background: `${step.color}04`,
-                          border: `1px solid ${step.color}12`,
-                        }}
-                      >
-                        {/* Step number */}
-                        <div className="absolute top-2 left-2">
-                          <span className="font-ninja text-[10px]" style={{ color: `${step.color}30` }}>{step.n}</span>
-                        </div>
-                        {/* Connecting arrow */}
-                        {i < 2 && (
-                          <div className="absolute top-1/2 -right-3 z-10">
-                            <ChevronRight size={14} style={{ color: `${GREEN}30` }} />
-                          </div>
-                        )}
-                        <motion.div
-                          animate={{ y: [0, -4, 0] }}
-                          transition={{ duration: 2.5, repeat: Infinity, delay: i * 0.4 }}
-                          className="w-12 h-12 rounded-xl flex items-center justify-center mx-auto mb-3"
-                          style={{ background: `${step.color}10`, border: `1px solid ${step.color}18` }}
-                        >
-                          <span style={{ color: `${step.color}70` }}>{step.icon}</span>
-                        </motion.div>
-                        <p className="font-body text-[10px] text-gray-500 leading-tight">{step.text}</p>
-                      </motion.div>
-                    ))}
-                  </div>
-
-                  {/* Big CTA */}
-                  <motion.button
-                    whileHover={{ scale: 1.02, boxShadow: `0 0 40px ${GREEN}30` }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={goToStore}
-                    className="w-full mt-6 py-4 rounded-xl font-ninja text-base flex items-center justify-center gap-3 relative overflow-hidden z-10"
-                    style={{
-                      background: `linear-gradient(135deg, ${GREEN}, ${BLUE})`,
-                      color: '#000',
-                      boxShadow: `0 0 30px ${GREEN}25`,
-                    }}
-                  >
-                    {/* Sweep shimmer */}
-                    <motion.div
-                      className="absolute inset-0 pointer-events-none"
-                      animate={{ x: ['-100%', '300%'] }}
-                      transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
-                      style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent)', width: '30%' }}
-                    />
-                    <Crown size={20} />
-                    BECOME VIP — {VIP_CONFIG.priceCoins.toLocaleString()} COINS
-                  </motion.button>
-                </motion.div>
-              )}
-
-              {/* ══════════════════ VIP STATS ══════════════════ */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.8 }}
-              >
-                <h3 className="font-ninja text-[10px] tracking-[0.25em] mb-4 px-1" style={{ color: `${GREEN}60` }}>
-                  VIP COMMUNITY
-                </h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { icon: <Crown size={18} />, value: String(vipStats.totalVip), label: 'VIP MEMBERS', color: GREEN },
-                    { icon: <Coins size={18} />, value: vipStats.totalSpent > 1000 ? `${(vipStats.totalSpent / 1000).toFixed(1)}K` : String(vipStats.totalSpent), label: 'TOTAL SPENT', color: GOLD },
-                    { icon: <Clock size={18} />, value: `${vipStats.avgPlaytime}h`, label: 'AVG PLAYTIME', color: BLUE },
-                  ].map((stat, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.9 + i * 0.1 }}
-                      className="rounded-xl p-4 text-center relative overflow-hidden"
-                      style={{
-                        background: `${stat.color}04`,
-                        border: `1px solid ${stat.color}15`,
-                      }}
-                    >
-                      <div className="w-9 h-9 rounded-lg flex items-center justify-center mx-auto mb-2"
-                        style={{ background: `${stat.color}10`, border: `1px solid ${stat.color}18` }}>
-                        <span style={{ color: stat.color }}>{stat.icon}</span>
-                      </div>
-                      <p className="font-ninja text-xl" style={{ color: stat.color, textShadow: `0 0 15px ${stat.color}30` }}>{stat.value}</p>
-                      <p className="font-ninja text-[7px] tracking-wider text-gray-600 mt-0.5">{stat.label}</p>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-
-              {/* ══════════════════ VIP PLAYERS LIST ══════════════════ */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.9 }}
-                className="rounded-xl overflow-hidden"
-                style={{
-                  background: `linear-gradient(180deg, ${GREEN}03, transparent)`,
-                  border: `1px solid ${GREEN}10`,
-                }}
-              >
-                <div className="px-5 py-3 flex items-center justify-between"
-                  style={{ borderBottom: `1px solid ${GREEN}08` }}>
-                  <div className="flex items-center gap-2">
-                    <Crown size={14} style={{ color: GREEN }} />
-                    <span className="font-ninja text-[10px] tracking-wider" style={{ color: `${GREEN}80` }}>VIP MEMBERS</span>
-                  </div>
-                  <span className="font-ninja text-[9px]" style={{ color: `${GREEN}40` }}>{vipPlayers.length} ACTIVE</span>
-                </div>
-
-                {vipPlayers.length === 0 ? (
-                  <div className="py-8 text-center">
-                    <Crown size={24} className="mx-auto mb-2" style={{ color: 'rgba(255,255,255,0.06)' }} />
-                    <p className="font-body text-[10px] text-gray-700">No VIP members yet</p>
-                    <p className="font-body text-[9px] text-gray-800 mt-0.5">Be the first!</p>
-                  </div>
-                ) : (
-                  <div className="divide-y" style={{ borderColor: `${GREEN}06` }}>
-                    {vipPlayers.slice(0, 8).map((vp: any, i) => {
-                      const isCurrentPlayer = vp.uid === player.uid;
-                      const vpDaysLeft = vp.vip?.expiresAt ? Math.max(0, Math.ceil((vp.vip.expiresAt - Date.now()) / 86400000)) : 0;
-                      return (
-                        <motion.div
-                          key={vp.uid}
-                          initial={{ opacity: 0, x: -10 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 1 + i * 0.06 }}
-                          className="flex items-center gap-3 px-5 py-3 relative"
-                          style={{
-                            background: isCurrentPlayer ? `${GREEN}05` : 'transparent',
-                          }}
-                        >
-                          {/* Rank */}
-                          <span className="font-ninja text-[10px] w-5 text-center" style={{ color: i === 0 ? GOLD : i === 1 ? '#C0C0C0' : i === 2 ? '#CD7F32' : `${GREEN}30` }}>
-                            {i < 3 ? ['1', '2', '3'][i] : `${i + 1}`}
-                          </span>
-
-                          {/* Avatar circle */}
-                          <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
-                            style={{
-                              background: `linear-gradient(135deg, ${GREEN}15, ${PURPLE}10)`,
-                              border: `1.5px solid ${isCurrentPlayer ? GREEN : GREEN + '25'}`,
-                              boxShadow: isCurrentPlayer ? `0 0 8px ${GREEN}25` : 'none',
-                            }}>
-                            {vp.profilePhoto ? (
-                              <img src={vp.profilePhoto} alt="" className="w-full h-full object-cover" />
-                            ) : (
-                              <span className="font-ninja text-[10px]" style={{ color: GREEN }}>{(vp.username || '?')[0]?.toUpperCase()}</span>
-                            )}
-                          </div>
-
-                          {/* Info */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <p className="font-ninja text-[11px] truncate" style={{ color: isCurrentPlayer ? GREEN : '#ccc' }}>
-                                {vp.username?.toUpperCase()}
-                              </p>
-                              {isCurrentPlayer && (
-                                <span className="px-1 py-0.5 rounded text-[7px] font-ninja" style={{ background: `${GREEN}15`, color: GREEN, border: `1px solid ${GREEN}20` }}>YOU</span>
-                              )}
-                              {i === 0 && (
-                                <Award size={10} style={{ color: GOLD }} />
-                              )}
-                            </div>
-                            <p className="font-body text-[9px] text-gray-600">
-                              Lvl {vp.level || 1} · {Math.round((vp.totalPlaytime || 0) / 60)}h played
-                            </p>
-                          </div>
-
-                          {/* Days left */}
-                          <div className="text-right flex-shrink-0">
-                            <p className="font-ninja text-[9px]" style={{ color: vpDaysLeft <= 5 ? '#ff6b00' : `${GREEN}60` }}>
-                              {vpDaysLeft}D
-                            </p>
-                          </div>
-                        </motion.div>
-                      );
-                    })}
-                    {vipPlayers.length > 8 && (
-                      <div className="px-5 py-2 text-center">
-                        <span className="font-body text-[9px]" style={{ color: `${GREEN}30` }}>+{vipPlayers.length - 8} more VIP members</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </motion.div>
-
-              {/* ══════════════════ VIP EXCLUSIVE SKINS PREVIEW ══════════════════ */}
-              <motion.div
+              {/* Big CTA button with metallic gold */}
+              <motion.button
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 1.1 }}
-                className="rounded-xl p-5 relative overflow-hidden"
-                style={{
-                  background: `linear-gradient(135deg, ${PURPLE}05, ${GREEN}03)`,
-                  border: `1px solid ${PURPLE}15`,
-                }}
-              >
-                <h3 className="font-ninja text-[10px] tracking-[0.25em] mb-4" style={{ color: `${PURPLE}90` }}>
-                  VIP EXCLUSIVE SKINS
-                </h3>
-                <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { name: 'GOLD NINJA', tier: 'RARE', color: GOLD, gradient: `linear-gradient(135deg, ${GOLD}20, ${GOLD}08)` },
-                    { name: 'DIAMOND NINJA', tier: 'EPIC', color: BLUE, gradient: `linear-gradient(135deg, ${BLUE}20, ${BLUE}08)` },
-                    { name: 'PLATINUM NINJA', tier: 'LEGENDARY', color: '#E5E4E2', gradient: `linear-gradient(135deg, #E5E4E220, #E5E4E208)` },
-                  ].map((skin, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 1.2 + i * 0.1 }}
-                      whileHover={{ scale: 1.05, y: -3 }}
-                      className="rounded-xl p-4 text-center relative group cursor-pointer"
-                      style={{
-                        background: skin.gradient,
-                        border: `1px solid ${skin.color}20`,
-                        boxShadow: `0 4px 15px ${skin.color}08`,
-                      }}
-                    >
-                      {/* Glow on hover */}
-                      <div className="absolute inset-0 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity"
-                        style={{ background: `radial-gradient(circle, ${skin.color}15, transparent 70%)` }} />
+                whileHover={{ scale: 1.02, boxShadow: `0 0 35px ${GOLD}35` }}
+                whileTap={{ scale: 0.98 }}
+                onClick={goToStore}
+                className="w-full mt-5 py-4 rounded-lg font-ninja text-base flex items-center justify-center gap-3 relative overflow-hidden"
+                style={{ background: `linear-gradient(135deg, ${GOLD}, ${AMBER})`, color: '#000', boxShadow: `0 0 25px ${GOLD}25` }}>
+                {/* Metallic sweep */}
+                <motion.div className="absolute inset-0 pointer-events-none"
+                  animate={{ x: ['-100%', '300%'] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+                  style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.4) 50%, transparent 70%)', width: '30%' }} />
+                <Crown size={20} /> BECOME VIP — {VIP_CONFIG.priceCoins.toLocaleString()} COINS
+              </motion.button>
+            </motion.div>
+          )}
 
-                      <motion.div
-                        animate={{ y: [0, -3, 0] }}
-                        transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
-                        className="w-14 h-14 rounded-xl flex items-center justify-center mx-auto mb-2 relative"
-                        style={{ background: `${skin.color}10`, border: `2px solid ${skin.color}25` }}
-                      >
-                        <Eye size={22} style={{ color: skin.color, filter: `drop-shadow(0 0 6px ${skin.color}50)` }} />
-                        {!isVIP && (
-                          <div className="absolute inset-0 rounded-xl flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
-                            <Lock size={14} style={{ color: skin.color }} />
-                          </div>
-                        )}
-                      </motion.div>
-                      <p className="font-ninja text-[10px] relative z-10" style={{ color: skin.color }}>{skin.name}</p>
-                      <p className="font-ninja text-[7px] tracking-wider mt-0.5 relative z-10" style={{ color: `${skin.color}60` }}>{skin.tier}</p>
-                    </motion.div>
-                  ))}
-                </div>
-                {!isVIP && (
-                  <p className="font-body text-[9px] text-gray-600 text-center mt-3">
-                    Get VIP to unlock these exclusive skins
-                  </p>
-                )}
-              </motion.div>
-
-              {/* Footer */}
-              <motion.p
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 1.3 }}
-                className="font-body text-[9px] text-center py-2"
-                style={{ color: 'rgba(255,255,255,0.15)' }}
-              >
-                {VIP_CONFIG.priceCoins.toLocaleString()} coins · 30 days · {VIP_CONFIG.cafeDiscountPercent}% cafe discount · exclusive skins · daily gifts
-              </motion.p>
+          {/* ══ VIP COMMUNITY STATS ══ */}
+          <div>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
+              className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>
+              VIP COMMUNITY
+            </motion.p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {[
+                { icon: <Crown size={16} />, value: String(vipStats.totalVip), label: 'MEMBERS' },
+                { icon: <Coins size={16} />, value: vipStats.totalSpent > 1000 ? `${(vipStats.totalSpent / 1000).toFixed(1)}K` : String(vipStats.totalSpent), label: 'SPENT' },
+                { icon: <Clock size={16} />, value: `${vipStats.avgPlaytime}h`, label: 'AVG PLAY' },
+              ].map((stat, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1 + i * 0.1 }}
+                  className="rounded-lg p-3.5 text-center relative"
+                  style={{ background: 'rgba(255,255,255,0.02)', border: `1px solid ${GOLD}12` }}>
+                  <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${GOLD}40`, borderLeft: `1px solid ${GOLD}40` }} />
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: `1px solid ${GOLD}30`, borderRight: `1px solid ${GOLD}30` }} />
+                  <span style={{ color: GOLD }}>{stat.icon}</span>
+                  <p className="font-ninja text-lg mt-1" style={{ color: GOLD }}>{stat.value}</p>
+                  <p className="font-ninja text-[7px] tracking-wider text-gray-600">{stat.label}</p>
+                </motion.div>
+              ))}
             </div>
+          </div>
+
+          {/* ══ VIP MEMBERS LIST ══ */}
+          <motion.div
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 1.1 }}
+            className="rounded-lg overflow-hidden relative"
+            style={{ background: 'rgba(255,255,255,0.015)', border: `1px solid ${GOLD}10` }}>
+            {/* HUD corners */}
+            <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: `2px solid ${GOLD}40`, borderLeft: `2px solid ${GOLD}40` }} />
+            <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: `2px solid ${GOLD}30`, borderRight: `2px solid ${GOLD}30` }} />
+
+            <div className="px-5 py-3 flex items-center justify-between" style={{ borderBottom: `1px solid ${GOLD}08` }}>
+              <div className="flex items-center gap-2">
+                <Crown size={13} style={{ color: GOLD }} />
+                <span className="font-ninja text-[10px] tracking-wider" style={{ color: `${GOLD}70` }}>VIP MEMBERS</span>
+              </div>
+              <span className="font-ninja text-[9px]" style={{ color: `${GOLD}35` }}>{vipPlayers.length} ACTIVE</span>
+            </div>
+
+            {vipPlayers.length === 0 ? (
+              <div className="py-8 text-center">
+                <Crown size={22} className="mx-auto mb-2" style={{ color: `${GOLD}15` }} />
+                <p className="font-body text-[10px] text-gray-700">No VIP members yet. Be the first!</p>
+              </div>
+            ) : (
+              <div>
+                {vipPlayers.slice(0, 6).map((vp: any, i) => {
+                  const isMe = vp.uid === player.uid;
+                  const vpDays = vp.vip?.expiresAt ? Math.max(0, Math.ceil((vp.vip.expiresAt - Date.now()) / 86400000)) : 0;
+                  const rankColors = [GOLD, '#C0C0C0', '#CD7F32'];
+                  return (
+                    <motion.div key={vp.uid}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 1.2 + i * 0.06 }}
+                      className="flex items-center gap-3 px-5 py-2.5"
+                      style={{ borderBottom: `1px solid ${GOLD}06`, background: isMe ? `${GOLD}04` : 'transparent' }}>
+                      <span className="font-ninja text-[10px] w-5 text-center" style={{ color: i < 3 ? rankColors[i] : `${GOLD}25` }}>
+                        {i + 1}
+                      </span>
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center overflow-hidden"
+                        style={{ background: `${GOLD}10`, border: `1.5px solid ${isMe ? GOLD : `${GOLD}20`}` }}>
+                        {vp.profilePhoto
+                          ? <img src={vp.profilePhoto} alt="" className="w-full h-full object-cover" />
+                          : <span className="font-ninja text-[9px]" style={{ color: GOLD }}>{(vp.username || '?')[0]?.toUpperCase()}</span>
+                        }
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-ninja text-[11px] truncate" style={{ color: isMe ? GOLD : '#ccc' }}>
+                          {vp.username?.toUpperCase()}
+                          {isMe && <span className="ml-1.5 text-[7px] px-1 py-0.5 rounded" style={{ background: `${GOLD}15`, color: GOLD }}>YOU</span>}
+                        </p>
+                      </div>
+                      <span className="font-ninja text-[9px]" style={{ color: `${GOLD}40` }}>{vpDays}D</span>
+                    </motion.div>
+                  );
+                })}
+                {vipPlayers.length > 6 && (
+                  <div className="px-5 py-2 text-center">
+                    <span className="font-body text-[8px]" style={{ color: `${GOLD}25` }}>+{vipPlayers.length - 6} more</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </motion.div>
+
+          {/* ══ VIP SKINS PREVIEW ══ */}
+          <div>
+            <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2 }}
+              className="font-ninja text-[10px] tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>
+              EXCLUSIVE SKINS
+            </motion.p>
+            <div className="grid grid-cols-3 gap-2.5">
+              {[
+                { name: 'GOLD', tier: 'RARE', color: GOLD },
+                { name: 'DIAMOND', tier: 'EPIC', color: '#00C8FF' },
+                { name: 'PLATINUM', tier: 'LEGENDARY', color: '#E5E4E2' },
+              ].map((skin, i) => (
+                <motion.div key={i}
+                  initial={{ opacity: 0, y: 15 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 1.3 + i * 0.1 }}
+                  whileHover={{ scale: 1.03 }}
+                  className="rounded-lg p-4 text-center relative overflow-hidden group"
+                  style={{ background: `${skin.color}04`, border: `1px solid ${skin.color}15` }}>
+                  {/* HUD corners */}
+                  <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${skin.color}40`, borderLeft: `1px solid ${skin.color}40` }} />
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: `1px solid ${skin.color}30`, borderRight: `1px solid ${skin.color}30` }} />
+
+                  <motion.div animate={{ y: [0, -3, 0] }} transition={{ duration: 3, repeat: Infinity, delay: i * 0.5 }}
+                    className="w-12 h-12 rounded-lg flex items-center justify-center mx-auto mb-2 relative"
+                    style={{ background: `${skin.color}08`, border: `1px solid ${skin.color}20` }}>
+                    <Eye size={20} style={{ color: skin.color, filter: `drop-shadow(0 0 4px ${skin.color}50)` }} />
+                    {!isVIP && (
+                      <div className="absolute inset-0 rounded-lg flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.5)' }}>
+                        <Lock size={12} style={{ color: skin.color }} />
+                      </div>
+                    )}
+                  </motion.div>
+                  <p className="font-ninja text-[10px]" style={{ color: skin.color }}>{skin.name}</p>
+                  <p className="font-ninja text-[7px] tracking-wider mt-0.5" style={{ color: `${skin.color}50` }}>{skin.tier}</p>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+
+          {/* Footer */}
+          <p className="font-body text-[8px] text-center py-2" style={{ color: `${GOLD}15` }}>
+            {VIP_CONFIG.priceCoins.toLocaleString()} coins · 30 days · {VIP_CONFIG.cafeDiscountPercent}% cafe discount · exclusive skins · daily gifts
+          </p>
+        </div>
       </div>
 
-      {/* ══════════════════ INVITE MODAL ══════════════════ */}
+      {/* ══ INVITE MODAL ══ */}
       <AnimatePresence>
         {showInviteModal && (
           <div className="absolute inset-0 z-[200] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(16px)' }}
+            style={{ background: 'rgba(0,0,0,0.9)', backdropFilter: 'blur(12px)' }}
             onClick={() => setShowInviteModal(false)}>
             <motion.div
               initial={{ scale: 0.85, opacity: 0, y: 30 }}
@@ -810,101 +612,75 @@ export function VIPTab({ player }: Props) {
               exit={{ scale: 0.85, opacity: 0, y: 30 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
               className="rounded-2xl p-6 w-[400px] max-w-[90%] relative overflow-hidden"
-              style={{
-                background: `linear-gradient(180deg, #0c1020 0%, ${DARK_BG} 100%)`,
-                border: `1px solid ${GREEN}18`,
-                boxShadow: `0 30px 80px rgba(0,0,0,0.9), 0 0 40px ${GREEN}08`,
-              }}
-              onClick={e => e.stopPropagation()}
-            >
-              {/* Modal glow */}
+              style={{ background: 'linear-gradient(180deg, #0c1020 0%, #080c14 100%)', border: `1px solid ${GOLD}18`, boxShadow: `0 30px 80px rgba(0,0,0,0.9), 0 0 30px ${GOLD}08` }}
+              onClick={e => e.stopPropagation()}>
+
+              {/* Top gold accent */}
               <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[200px] h-[2px]"
-                style={{ background: `linear-gradient(90deg, transparent, ${GREEN}60, ${BLUE}40, transparent)` }} />
+                style={{ background: `linear-gradient(90deg, transparent, ${GOLD}60, ${AMBER}40, transparent)` }} />
+              {/* HUD corners */}
+              <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: `2px solid ${GOLD}`, borderLeft: `2px solid ${GOLD}` }} />
+              <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: `2px solid ${GOLD}60`, borderRight: `2px solid ${GOLD}60` }} />
 
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-ninja text-lg flex items-center gap-2" style={{ color: GREEN, textShadow: `0 0 20px ${GREEN}40` }}>
-                  <Gift size={20} /> SEND GIFT
-                </h3>
-                <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5 transition-all">
-                  <X size={18} className="text-gray-500" />
-                </button>
+                <h3 className="font-ninja text-lg flex items-center gap-2" style={{ color: GOLD }}><Gift size={20} /> SEND GIFT</h3>
+                <button onClick={() => setShowInviteModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/5"><X size={18} className="text-gray-500" /></button>
               </div>
-
-              <p className="font-body text-xs text-gray-500 mb-4">Choose a gift for your friend:</p>
 
               <div className="grid grid-cols-2 gap-3 mb-5">
                 {([
-                  { id: 'time' as const, icon: <Timer size={26} />, val: '30', unit: 'MIN', sub: 'Free Play', color: GREEN },
-                  { id: 'coins' as const, icon: <Coins size={26} />, val: '50', unit: 'COINS', sub: 'Bonus', color: GOLD },
+                  { id: 'time' as const, icon: <Timer size={24} />, val: '30', unit: 'MIN', sub: 'Free Play', color: '#39FF14' },
+                  { id: 'coins' as const, icon: <Coins size={24} />, val: '50', unit: 'COINS', sub: 'Bonus', color: GOLD },
                 ]).map(opt => {
                   const sel = inviteChoice === opt.id;
                   return (
-                    <motion.button key={opt.id} whileTap={{ scale: 0.97 }} whileHover={{ y: -2 }}
+                    <motion.button key={opt.id} whileTap={{ scale: 0.97 }}
                       onClick={() => setInviteChoice(opt.id)}
-                      className="rounded-xl p-5 text-center relative overflow-hidden"
+                      className="rounded-lg p-4 text-center relative overflow-hidden"
                       style={{
-                        background: sel ? `${opt.color}08` : 'rgba(255,255,255,0.01)',
+                        background: sel ? `${opt.color}06` : 'rgba(255,255,255,0.01)',
                         border: sel ? `2px solid ${opt.color}40` : '2px solid rgba(255,255,255,0.05)',
-                        boxShadow: sel ? `0 0 25px ${opt.color}15` : 'none',
-                      }}
-                    >
+                        boxShadow: sel ? `0 0 20px ${opt.color}10` : 'none',
+                      }}>
+                      {/* HUD corners on selected */}
+                      {sel && <>
+                        <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: `2px solid ${opt.color}`, borderLeft: `2px solid ${opt.color}` }} />
+                        <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: `2px solid ${opt.color}60`, borderRight: `2px solid ${opt.color}60` }} />
+                      </>}
                       {sel && (
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
+                        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                           className="absolute top-2 right-2 w-5 h-5 rounded-full flex items-center justify-center"
-                          style={{ background: opt.color }}
-                        >
-                          <Check size={10} className="text-black" />
-                        </motion.div>
+                          style={{ background: opt.color }}><Check size={10} className="text-black" /></motion.div>
                       )}
-                      <motion.div
-                        animate={sel ? { y: [0, -3, 0] } : {}}
-                        transition={{ duration: 2, repeat: Infinity }}
-                        className="w-14 h-14 rounded-xl mx-auto mb-3 flex items-center justify-center"
-                        style={{ background: `${opt.color}10`, border: `1px solid ${opt.color}20` }}
-                      >
+                      <div className="w-12 h-12 rounded-lg mx-auto mb-2 flex items-center justify-center"
+                        style={{ background: `${opt.color}08`, border: `1px solid ${opt.color}18` }}>
                         <span style={{ color: sel ? opt.color : '#444' }}>{opt.icon}</span>
-                      </motion.div>
-                      <p className="font-ninja text-3xl" style={{ color: sel ? opt.color : '#444' }}>{opt.val}</p>
+                      </div>
+                      <p className="font-ninja text-2xl" style={{ color: sel ? opt.color : '#444' }}>{opt.val}</p>
                       <p className="font-ninja text-[8px] tracking-wider" style={{ color: sel ? `${opt.color}70` : '#333' }}>{opt.unit}</p>
-                      <p className="font-body text-[9px] text-gray-600 mt-0.5">{opt.sub}</p>
                     </motion.button>
                   );
                 })}
               </div>
 
-              <input type="text" value={inviteUsername} onChange={(e) => setInviteUsername(e.target.value)}
-                placeholder="Friend's username" onKeyDown={(e) => e.key === 'Enter' && handleDailyInvite()}
-                className="w-full rounded-xl px-4 py-3.5 text-sm text-white font-body mb-3 focus:outline-none"
-                style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: `1px solid ${GREEN}15`,
-                  colorScheme: 'dark',
-                }}
-              />
+              <input type="text" value={inviteUsername} onChange={e => setInviteUsername(e.target.value)}
+                placeholder="Friend's username" onKeyDown={e => e.key === 'Enter' && handleDailyInvite()}
+                className="w-full rounded-lg px-4 py-3 text-sm text-white font-body mb-3 focus:outline-none"
+                style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${GOLD}12`, colorScheme: 'dark' }} />
 
-              {inviteMsg && (
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-                  className={`text-xs font-body mb-3 ${inviteMsg.includes('Sent') ? '' : 'text-red-400'}`}
-                  style={inviteMsg.includes('Sent') ? { color: GREEN } : {}}
-                >{inviteMsg}</motion.p>
-              )}
+              {inviteMsg && <p className={`text-xs font-body mb-3 ${inviteMsg.includes('Sent') ? '' : 'text-red-400'}`} style={inviteMsg.includes('Sent') ? { color: '#39FF14' } : {}}>{inviteMsg}</p>}
 
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={handleDailyInvite}
-                disabled={inviteLoading || !inviteUsername.trim()}
-                className="w-full py-3.5 rounded-xl font-ninja text-sm flex items-center justify-center gap-2 disabled:opacity-30 relative overflow-hidden"
+              <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                onClick={handleDailyInvite} disabled={inviteLoading || !inviteUsername.trim()}
+                className="w-full py-3.5 rounded-lg font-ninja text-sm flex items-center justify-center gap-2 disabled:opacity-30 relative overflow-hidden"
                 style={{
-                  background: inviteChoice === 'time'
-                    ? `linear-gradient(135deg, ${GREEN}, ${BLUE})`
-                    : `linear-gradient(135deg, ${GOLD}, #FF8C00)`,
-                  color: '#000',
-                  boxShadow: `0 0 20px ${inviteChoice === 'time' ? GREEN : GOLD}25`,
-                }}
-              >
+                  background: inviteChoice === 'time' ? 'linear-gradient(135deg, #39FF14, #00C8FF)' : `linear-gradient(135deg, ${GOLD}, ${AMBER})`,
+                  color: '#000', boxShadow: `0 0 20px ${inviteChoice === 'time' ? '#39FF14' : GOLD}20`,
+                }}>
+                <motion.div className="absolute inset-0 pointer-events-none"
+                  animate={{ x: ['-100%', '250%'] }}
+                  transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
+                  style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.35) 50%, transparent 70%)', width: '35%' }} />
                 {inviteLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
                 SEND GIFT
               </motion.button>

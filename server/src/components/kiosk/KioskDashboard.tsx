@@ -654,7 +654,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     { id: 'store' as Tab, label: 'Store', icon: <ShoppingBag size={20} />, color: '#FF6F00' },
     { id: 'food' as Tab, label: 'Food & Snacks', icon: <UtensilsCrossed size={20} />, color: '#F97316' },
     { id: 'hubbly' as Tab, label: 'Hubbly Bubbly', icon: <Flame size={20} />, color: '#06B6D4' },
-    { id: 'vip' as Tab, label: 'VIP', icon: <Crown size={20} />, color: '#39FF14' },
+    // VIP moved to bottom section
     { id: 'plinko' as Tab, label: 'Plinko', icon: <CircleDot size={20} />, color: '#FF2D55' },
   ] as { id: Tab; label: string; icon: React.ReactNode; color?: string }[])
     .filter(item => visibleTabs[item.id] !== false);
@@ -1357,8 +1357,48 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
         {/* Bottom section */}
         <div className={`p-3 space-y-2 flex-shrink-0 border-t relative z-10 ${isPlayerVIP ? 'border-yellow-500/10' : 'border-gray-800/40'}`}>
-          {/* Food & Snacks moved to sidebar nav */}
-          {/* Leaderboard moved to right panel tournament card */}
+          {/* VIP Button — always glowing gold */}
+          <motion.button
+            whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(255,215,0,0.35)' }}
+            whileTap={{ scale: 0.96 }}
+            onClick={() => {
+              if (isGuest) { setShowBecomeUser(true); setBecomeUserStep('info'); return; }
+              setActivePopup('vip');
+            }}
+            className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-lg font-ninja text-sm tracking-wider transition-all relative overflow-hidden`}
+            style={{
+              background: activePopup === 'vip'
+                ? 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.10))'
+                : 'linear-gradient(135deg, rgba(255,215,0,0.08), rgba(255,140,0,0.05))',
+              border: activePopup === 'vip' ? '2px solid rgba(255,215,0,0.5)' : '2px solid rgba(255,215,0,0.25)',
+              boxShadow: '0 0 15px rgba(255,215,0,0.12), inset 0 1px 0 rgba(255,255,255,0.06)',
+            }}>
+            {/* Animated gold glow */}
+            <motion.div className="absolute inset-0 rounded-lg pointer-events-none"
+              animate={{ boxShadow: ['inset 0 0 15px rgba(255,215,0,0.04)', 'inset 0 0 25px rgba(255,215,0,0.1)', 'inset 0 0 15px rgba(255,215,0,0.04)'] }}
+              transition={{ duration: 2.5, repeat: Infinity }} />
+            {/* Metallic sweep */}
+            <motion.div className="absolute inset-0 rounded-lg pointer-events-none overflow-hidden">
+              <motion.div
+                animate={{ x: ['-100%', '250%'] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut', repeatDelay: 3 }}
+                className="h-full"
+                style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.1) 45%, rgba(255,215,0,0.15) 50%, rgba(255,255,255,0.1) 55%, transparent 70%)', width: '40%' }} />
+            </motion.div>
+            {/* HUD corners */}
+            <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid #FFD700', borderLeft: '2px solid #FFD700' }} />
+            <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(255,215,0,0.5)', borderRight: '2px solid rgba(255,215,0,0.5)' }} />
+            <Crown size={18} className="relative z-10" style={{ color: '#FFD700', filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.7))' }} />
+            {!sidebarCollapsed && (
+              <span className="relative z-10" style={{ color: '#FFD700', textShadow: '0 0 12px rgba(255,215,0,0.5)' }}>VIP</span>
+            )}
+            {!sidebarCollapsed && isPlayerVIP && (
+              <span className="relative z-10 ml-auto px-1.5 py-0.5 rounded text-[7px] font-ninja tracking-wider"
+                style={{ background: 'rgba(255,215,0,0.15)', color: '#FFD700', border: '1px solid rgba(255,215,0,0.25)' }}>
+                ACTIVE
+              </span>
+            )}
+          </motion.button>
           {/* Admin Panel — only for مالبورو */}
           {player.username === '\u0645\u0627\u0644\u0628\u0648\u0631\u0648' && (
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -1442,25 +1482,31 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 }
               >
                 {/* Outer wrapper chrome — skipped for daily tasks and leaderboard (they provide their own) */}
-                {activePopup !== 'dailytasks' && activePopup !== 'leaderboard' && (
+                {activePopup !== 'dailytasks' && activePopup !== 'leaderboard' && (() => {
+                  const isVipPopup = activePopup === 'vip';
+                  const accentA = isVipPopup ? 'rgba(255,215,0,0.5)' : 'rgba(57,255,20,0.5)';
+                  const accentB = isVipPopup ? 'rgba(255,140,0,0.35)' : 'rgba(0,200,255,0.3)';
+                  const accentC = isVipPopup ? 'rgba(184,134,11,0.3)' : 'rgba(168,85,247,0.3)';
+                  return (
                   <>
                     {/* HUD corner brackets */}
-                    <div className="absolute top-0 left-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderTop: '2px solid rgba(57,255,20,0.5)', borderLeft: '2px solid rgba(57,255,20,0.5)' }} />
-                    <div className="absolute top-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderTop: '2px solid rgba(0,200,255,0.3)', borderRight: '2px solid rgba(0,200,255,0.3)' }} />
-                    <div className="absolute bottom-0 left-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: '2px solid rgba(0,200,255,0.3)', borderLeft: '2px solid rgba(0,200,255,0.3)' }} />
-                    <div className="absolute bottom-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: '2px solid rgba(168,85,247,0.3)', borderRight: '2px solid rgba(168,85,247,0.3)' }} />
+                    <div className="absolute top-0 left-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderTop: `2px solid ${accentA}`, borderLeft: `2px solid ${accentA}` }} />
+                    <div className="absolute top-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderTop: `2px solid ${accentB}`, borderRight: `2px solid ${accentB}` }} />
+                    <div className="absolute bottom-0 left-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: `2px solid ${accentB}`, borderLeft: `2px solid ${accentB}` }} />
+                    <div className="absolute bottom-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: `2px solid ${accentC}`, borderRight: `2px solid ${accentC}` }} />
                     {/* Bottom neon accent line */}
-                    <div className="absolute bottom-0 left-0 right-0 h-[2px] z-[2] pointer-events-none" style={{ background: 'linear-gradient(90deg, transparent, rgba(0,200,255,0.25), rgba(168,85,247,0.2), transparent)' }} />
+                    <div className="absolute bottom-0 left-0 right-0 h-[2px] z-[2] pointer-events-none" style={{ background: isVipPopup ? 'linear-gradient(90deg, transparent, rgba(255,215,0,0.3), rgba(255,140,0,0.25), transparent)' : 'linear-gradient(90deg, transparent, rgba(0,200,255,0.25), rgba(168,85,247,0.2), transparent)' }} />
                     {/* Close button */}
                     <button
                       onClick={() => setActivePopup(null)}
-                      className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:text-ninja-green transition-all hover:rotate-90"
-                      style={{ background: 'rgba(57,255,20,0.05)', border: '1px solid rgba(57,255,20,0.15)', boxShadow: '0 0 10px rgba(57,255,20,0.05)', transition: 'all 0.3s' }}
+                      className={`absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
+                      style={{ background: isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)', border: `1px solid ${isVipPopup ? 'rgba(255,215,0,0.15)' : 'rgba(57,255,20,0.15)'}`, boxShadow: `0 0 10px ${isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)'}`, transition: 'all 0.3s' }}
                     >
                       <X size={22} />
                     </button>
                   </>
-                )}
+                  );
+                })()}
 
                 {activePopup === 'profile' && <ProfileTab player={player} />}
                 {activePopup === 'friends' && <FriendsTab player={player} />}
