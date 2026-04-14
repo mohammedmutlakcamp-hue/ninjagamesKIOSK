@@ -19,7 +19,6 @@ import { SoftwareTab } from './tabs/SoftwareTab';
 import { HubblyTab } from './tabs/HubblyTab';
 import { StoreTab } from './tabs/StoreTab';
 import { VIPTab } from './tabs/VIPTab';
-import { PlinkoTab } from './tabs/PlinkoTab';
 import { ChatBubble } from './ChatBubble';
 import { OrderBubble } from './OrderBubble';
 import { SupportBubble } from './SupportBubble';
@@ -40,10 +39,10 @@ import {
   Gamepad2, Package, UtensilsCrossed, Trophy, User,
   Coins, LogOut, AlertTriangle, Swords, Backpack, ClipboardCheck,
   Users, ChevronLeft, ChevronRight, Send, Timer, Loader2,
-  Monitor, Globe, UserCog, CreditCard, X, Gift, ShoppingBag, Crown, Wrench, Play, Plus, Shield, Eye, EyeOff, Settings, Sparkles, UserPlus, Check, Lock, Flame, Wind, CircleDot, TrendingUp, ArrowRight, Clock
+  Monitor, Globe, UserCog, CreditCard, X, Gift, ShoppingBag, Crown, Wrench, Play, Plus, Shield, Eye, EyeOff, Settings, Sparkles, UserPlus, Check, Lock, Flame, Wind, TrendingUp, ArrowRight, Clock
 } from 'lucide-react';
 
-type Tab = 'games' | 'chests' | 'food' | 'hubbly' | 'tournaments' | 'inventory' | 'profile' | 'leaderboard' | 'dailytasks' | 'friends' | 'software' | 'store' | 'vip' | 'plinko';
+type Tab = 'games' | 'chests' | 'food' | 'hubbly' | 'tournaments' | 'inventory' | 'profile' | 'leaderboard' | 'dailytasks' | 'friends' | 'software' | 'store' | 'vip';
 
 // Error Boundary to prevent crashes
 class ErrorBoundary extends Component<{ children: ReactNode; fallback: ReactNode }> {
@@ -74,7 +73,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const [lang, setLang] = useState<Lang>(() => (typeof window !== 'undefined' && localStorage.getItem('kiosk-lang') as Lang) || 'en');
   const [tab, setTab] = useState<Tab>('games');
   const [activePopup, setActivePopup] = useState<Tab | null>(null);
-  const [plinkoBusy, setPlinkoBusy] = useState(false);
   const [player, setPlayer] = useState(initialPlayer);
   const [coins, setCoins] = useState(initialPlayer.isGuest ? 0 : initialPlayer.coins);
   const [remainingPlaytime, setRemainingPlaytime] = useState(initialPlayer.remainingPlaytime || 0); // minutes of playtime left
@@ -157,18 +155,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   // Order matters: the most-recently-pushed handler runs first (innermost),
   // so we register outermost first and innermost last. (showLevelUpModal ESC
   // is bound later, once its state is declared.)
-  // Block escape key from closing Plinko while balls are in play (lock bets)
-  useEscapeKey(() => { if (!(activePopup === 'plinko' && plinkoBusy)) setActivePopup(null); }, activePopup !== null);
-
-  // Listen for plinko busy state (balls in play)
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const detail = (e as CustomEvent).detail;
-      setPlinkoBusy(!!detail?.busy);
-    };
-    window.addEventListener('plinko-busy', handler);
-    return () => window.removeEventListener('plinko-busy', handler);
-  }, []);
+  useEscapeKey(() => setActivePopup(null), activePopup !== null);
   useEscapeKey(() => setShowBuyTimeOnLogin(false), showBuyTimeOnLogin);
   useEscapeKey(() => setShowSendCoinsModal(false), showSendCoinsModal);
   useEscapeKey(() => setShowTopUpModal(false), showTopUpModal);
@@ -677,7 +664,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     { id: 'food' as Tab, label: 'Food & Snacks', icon: <UtensilsCrossed size={20} />, color: '#F97316' },
     { id: 'hubbly' as Tab, label: 'Hubbly Bubbly', icon: <Flame size={20} />, color: '#06B6D4' },
     // VIP moved to bottom section
-    { id: 'plinko' as Tab, label: 'Plinko', icon: <CircleDot size={20} />, color: '#FF2D55' },
   ] as { id: Tab; label: string; icon: React.ReactNode; color?: string }[])
     .filter(item => visibleTabs[item.id] !== false);
 
@@ -1473,7 +1459,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[150] flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-              onClick={() => { if (!(activePopup === 'plinko' && plinkoBusy)) setActivePopup(null); }}
+              onClick={() => setActivePopup(null)}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -1521,12 +1507,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="absolute bottom-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: `2px solid ${accentC}`, borderRight: `2px solid ${accentC}` }} />
                     {/* Bottom neon accent line */}
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] z-[2] pointer-events-none" style={{ background: isVipPopup ? 'linear-gradient(90deg, transparent, rgba(255,215,0,0.3), rgba(255,140,0,0.25), transparent)' : 'linear-gradient(90deg, transparent, rgba(0,200,255,0.25), rgba(168,85,247,0.2), transparent)' }} />
-                    {/* Close button — disabled during Plinko ball drops so players can't close mid-bet */}
+                    {/* Close button */}
                     <button
-                      onClick={() => { if (!(activePopup === 'plinko' && plinkoBusy)) setActivePopup(null); }}
-                      disabled={activePopup === 'plinko' && plinkoBusy}
-                      title={activePopup === 'plinko' && plinkoBusy ? 'Wait for balls to land' : 'Close'}
-                      className={`absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 transition-all hover:rotate-90 disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:rotate-0 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
+                      onClick={() => setActivePopup(null)}
+                      title="Close"
+                      className={`absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
                       style={{ background: isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)', border: `1px solid ${isVipPopup ? 'rgba(255,215,0,0.15)' : 'rgba(57,255,20,0.15)'}`, boxShadow: `0 0 10px ${isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)'}`, transition: 'all 0.3s' }}
                     >
                       <X size={22} />
@@ -1559,7 +1544,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   />
                 )}
                 {activePopup === 'vip' && <VIPTab player={player} />}
-                {activePopup === 'plinko' && <PlinkoTab player={player} />}
                 {activePopup === 'food' && <FoodTab player={player} />}
                 {activePopup === 'hubbly' && <HubblyTab player={player} />}
                 {activePopup === 'leaderboard' && <LeaderboardTab onClose={() => setActivePopup(null)} />}

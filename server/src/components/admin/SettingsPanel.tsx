@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { COIN_PACKAGES } from '@/lib/constants';
-import { Save, CheckCircle2, Settings, Clock, Coins, Sliders, LayoutDashboard, Eye, EyeOff, CircleDot } from 'lucide-react';
+import { Save, CheckCircle2, Settings, Clock, Coins, Sliders, LayoutDashboard, Eye, EyeOff } from 'lucide-react';
 import { onSnapshot } from 'firebase/firestore';
 
 export function SettingsPanel() {
@@ -27,10 +27,6 @@ export function SettingsPanel() {
   });
   const [sidebarSaved, setSidebarSaved] = useState(false);
 
-  // Plinko house edge
-  const [plinkoLuck, setPlinkoLuck] = useState(50);
-  const [plinkoSaved, setPlinkoSaved] = useState(false);
-
   // Crash house edge
   const [crashBias, setCrashBias] = useState(50);
   const [crashSaved, setCrashSaved] = useState(false);
@@ -44,16 +40,6 @@ export function SettingsPanel() {
     };
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Live-sync plinko luck from Firestore
-  useEffect(() => {
-    const unsub = onSnapshot(doc(db, 'game-settings', 'plinko'), (snap) => {
-      if (snap.exists() && typeof snap.data().luckFactor === 'number') {
-        setPlinkoLuck(snap.data().luckFactor);
-      }
-    });
-    return () => unsub();
   }, []);
 
   // Live-sync crash bias from Firestore
@@ -74,17 +60,6 @@ export function SettingsPanel() {
       setTimeout(() => setCrashSaved(false), 2000);
     } catch (e) {
       console.error('Failed to save crash settings:', e);
-    }
-  };
-
-  const savePlinkoLuck = async (val: number) => {
-    setPlinkoLuck(val);
-    try {
-      await setDoc(doc(db, 'game-settings', 'plinko'), { luckFactor: val }, { merge: true });
-      setPlinkoSaved(true);
-      setTimeout(() => setPlinkoSaved(false), 2000);
-    } catch (e) {
-      console.error('Failed to save plinko settings:', e);
     }
   };
 
@@ -222,64 +197,6 @@ export function SettingsPanel() {
                 <span className="text-[#0071e3] font-medium text-sm">{settings.currency} {(p.price * settings.coinRate).toFixed(2)}</span>
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* Plinko House Edge */}
-        <div className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60">
-          <h3 className="text-lg font-semibold text-[#ff3b30] mb-4 flex items-center gap-2">
-            <CircleDot size={16} /> Plinko -- House Edge
-          </h3>
-          <div className="space-y-4">
-            <div>
-              <div className="flex justify-between items-center mb-2">
-                <label className="text-[#86868b] text-sm">Outcome Bias</label>
-                <span className="text-lg font-semibold text-[#ff3b30]">{plinkoLuck}%</span>
-              </div>
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={plinkoLuck}
-                onChange={e => savePlinkoLuck(Number(e.target.value))}
-                className="w-full accent-[#ff3b30] h-2"
-              />
-              <div className="flex justify-between text-xs text-[#86868b] mt-1">
-                <span>0% -- House Wins</span>
-                <span>50% -- Fair</span>
-                <span>100% -- Player Wins</span>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-6 gap-2">
-              {[10, 25, 40, 50, 65, 80].map(v => (
-                <button
-                  key={v}
-                  onClick={() => savePlinkoLuck(v)}
-                  className={`py-2 rounded-xl text-xs font-medium transition-all ${
-                    plinkoLuck === v
-                      ? 'bg-[#ff3b30]/10 border-[#ff3b30]/40 text-[#ff3b30]'
-                      : 'bg-[#f5f5f7] border-[#d2d2d7] text-[#86868b] hover:text-[#1d1d1f]'
-                  } border`}
-                >
-                  {v}%
-                </button>
-              ))}
-            </div>
-
-            <div className="bg-[#f5f5f7] rounded-xl p-3 border border-[#e5e5ea]/60">
-              <div className="text-xs text-[#86868b] leading-relaxed space-y-1">
-                <p><span className="text-[#ff3b30] font-semibold">0-30%</span> -- Balls land mostly center (low multipliers). House profits more.</p>
-                <p><span className="text-[#ff9500] font-semibold">40-60%</span> -- Natural/fair distribution. Balanced gameplay.</p>
-                <p><span className="text-[#34c759] font-semibold">70-100%</span> -- Balls land mostly edges (high multipliers). Players win more.</p>
-              </div>
-            </div>
-
-            {plinkoSaved && (
-              <div className="flex items-center gap-2 text-[#34c759] text-sm">
-                <CheckCircle2 size={14} /> Saved -- applies to all players instantly
-              </div>
-            )}
           </div>
         </div>
 
