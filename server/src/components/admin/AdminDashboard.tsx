@@ -19,6 +19,7 @@ import { GamesManagement } from './GamesManagement';
 import { ChestManagement } from './ChestManagement';
 import { SkinsManagement } from './SkinsManagement';
 import { DailyTasksManagement } from './DailyTasksManagement';
+import { SocialTasksVerification } from './SocialTasksVerification';
 import { ChatModeration } from './ChatModeration';
 import { SoftwareManagement } from './SoftwareManagement';
 import { LeaderboardManagement } from './LeaderboardManagement';
@@ -46,10 +47,10 @@ import {
   UserPlus, ShieldCheck, X as XIcon, Phone, Bell, Crown, Gamepad2, Package,
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
-  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight
+  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates';
 
 interface Props {
   admin: any;
@@ -485,6 +486,7 @@ export function AdminDashboard({ admin }: Props) {
         { id: 'skins', label: 'Skins', icon: <Palette size={18} /> },
         { id: 'achievements', label: 'Achievements', icon: <Award size={18} /> },
         { id: 'dailytasks', label: 'Daily Tasks', icon: <ClipboardCheck size={18} /> },
+        { id: 'socialtasks', label: 'Social Verify', icon: <Instagram size={18} /> },
         { id: 'chat', label: 'Chat', icon: <MessageSquare size={18} /> },
         { id: 'software', label: 'Software', icon: <Wrench size={18} /> },
         { id: 'leaderboard', label: 'Leaderboard', icon: <Trophy size={18} /> },
@@ -625,6 +627,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'chests' && <ChestManagement />}
           {tab === 'skins' && <SkinsManagement />}
           {tab === 'dailytasks' && <DailyTasksManagement />}
+          {tab === 'socialtasks' && <SocialTasksVerification admin={admin} />}
           {tab === 'chat' && <ChatModeration />}
           {tab === 'software' && <SoftwareManagement />}
           {tab === 'leaderboard' && <LeaderboardManagement />}

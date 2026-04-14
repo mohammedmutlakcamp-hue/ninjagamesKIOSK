@@ -3,13 +3,13 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, getDoc, setDoc } from 'firebase/firestore';
+import { doc, updateDoc, increment, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { VIP_CONFIG } from '@/lib/constants';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import {
   Coins, CheckCircle2, Sparkles, Calendar, Flame,
   LogIn, Package, Send, UtensilsCrossed, Gamepad2, Target, UserPlus,
-  Loader2, ArrowRight, X, Gift, Lock,
+  Loader2, ArrowRight, X, Gift, Lock, Instagram,
 } from 'lucide-react';
 
 export type DailyShortcutAction = 'food' | 'chests' | 'send-coins' | 'add-friend';
@@ -72,13 +72,12 @@ interface DailyTask {
 }
 
 const DAILY_TASKS: DailyTask[] = [
-  { id: 'daily_login',  title: 'Check-in',      description: 'Log in to the kiosk today',       icon: <CheckCircle2 size={32} />,     color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 2 },
-  { id: 'play_game',    title: 'Play a Game',    description: 'Launch any game',                 icon: <Gamepad2 size={32} />,          color: '#A855F7', glowColor: '168,85,247',  target: 1,  reward: 3 },
-  { id: 'open_chest',   title: 'Open Chest',     description: 'Open any chest',                  icon: <Package size={32} />,           color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN' },
-  { id: 'send_coins',   title: 'Send Coins',     description: 'Send coins to a friend',          icon: <Send size={32} />,              color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND' },
-  { id: 'order_food',   title: 'Order Food',     description: 'Order something from the menu',   icon: <UtensilsCrossed size={32} />,   color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER' },
-  { id: 'add_friend',   title: 'Add Friend',     description: 'Send a friend request',           icon: <UserPlus size={32} />,          color: '#FACC15', glowColor: '250,204,21',  target: 1,  reward: 2, shortcut: 'add-friend', shortcutLabel: 'ADD' },
-  { id: 'play_30_min',  title: 'Play 75 Min',    description: 'Play for at least 75 minutes',    icon: <Target size={32} />,            color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 15 },
+  { id: 'daily_login',    title: 'Check-in',                   description: 'Log in to the kiosk today',                                         icon: <CheckCircle2 size={32} />,    color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 2 },
+  { id: 'open_chest',     title: 'Open Chest',                 description: 'Open any chest',                                                    icon: <Package size={32} />,         color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN' },
+  { id: 'send_coins',     title: 'Send Coins',                 description: 'Send coins to a friend',                                            icon: <Send size={32} />,            color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND' },
+  { id: 'order_food',     title: 'Order from Food & Snacks',   description: 'Place any order from the Food & Snacks menu',                       icon: <UtensilsCrossed size={32} />, color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER' },
+  { id: 'check_socials',  title: 'Check Our Socials',          description: 'Watch our story, follow us, and like 3 posts — admin will verify', icon: <Instagram size={32} />,       color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 25 },
+  { id: 'play_30_min',    title: 'Play 75 Min',                description: 'Play for at least 75 minutes',                                      icon: <Target size={32} />,          color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 10 },
 ];
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
@@ -218,7 +217,29 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
     try {
       const playerRef = doc(db, 'players', player.uid);
       const taskDocRef = doc(db, 'daily-tasks', `${player.uid}_${todayKey}`);
-      await updateDoc(playerRef, { coins: increment(DAILY_FULL_BONUS_COINS) });
+      // Daily chest reward — only if 24h cooldown has elapsed
+      const FREE_CHEST_COOLDOWN = 24 * 60 * 60 * 1000;
+      const lastChest = player?.lastFreeChest || 0;
+      const chestReady = Date.now() - lastChest >= FREE_CHEST_COOLDOWN;
+      const updates: any = {
+        coins: increment(DAILY_FULL_BONUS_COINS),
+      };
+      if (chestReady) {
+        const chestItem = {
+          id: `daily_chest_${Date.now()}`,
+          type: 'chest',
+          name: 'Daily Chest',
+          rarity: 'rare',
+          value: 0,
+          chestTier: 'daily',
+          obtainedAt: Date.now(),
+          used: false,
+          tradeable: true,
+        };
+        updates.lastFreeChest = Date.now();
+        updates.inventory = arrayUnion(chestItem);
+      }
+      await updateDoc(playerRef, updates);
       await updateDoc(taskDocRef, { fullBonusClaimed: true });
       setFullBonusClaimed(true);
     } catch (err) {
@@ -313,7 +334,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
               className="font-body text-gray-500 text-sm">
-              Complete tasks to earn bonus coins every day
+              Finish ALL tasks to unlock bonus coins + your FREE DAILY CHEST
             </motion.p>
           </div>
 
@@ -833,13 +854,13 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
               }} />
             ))}
             <div className="relative z-[5] flex items-center gap-4 px-5 py-4">
-              <Sparkles size={32} className="text-yellow-400 flex-shrink-0" style={{ filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.7))' }} />
+              <Gift size={32} className="text-yellow-400 flex-shrink-0" style={{ filter: 'drop-shadow(0 0 8px rgba(255,215,0,0.7))' }} />
               <div className="flex-1 min-w-0">
                 <p className="font-ninja text-xl text-yellow-400 tracking-wide" style={{ textShadow: '0 0 12px rgba(255,215,0,0.5)', fontStyle: 'italic' }}>
                   ALL TASKS COMPLETE!
                 </p>
                 <p className="font-body text-xs text-gray-400 mt-0.5">
-                  {fullBonusClaimed ? 'Come back tomorrow for new tasks' : 'Claim your bonus reward'}
+                  {fullBonusClaimed ? 'Chest added to your inventory — come back tomorrow!' : 'Claim your bonus coins + FREE DAILY CHEST'}
                 </p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">

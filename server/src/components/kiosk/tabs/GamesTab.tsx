@@ -359,8 +359,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       let count = 0;
       // Check each task: completed (progress >= target) but not claimed
       const TASK_TARGETS: Record<string, number> = {
-        daily_login: 1, play_game: 1, open_chest: 1, send_coins: 1,
-        order_food: 1, add_friend: 1, play_30_min: 75,
+        daily_login: 1, open_chest: 1, send_coins: 1,
+        order_food: 1, check_socials: 1, play_30_min: 75,
       };
       let totalTasks = 0;
       let claimedTasks = 0;
@@ -867,7 +867,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
             <div className="relative h-full flex flex-col items-center justify-between px-4 py-5">
               <div className="flex flex-col items-center">
                 <p className="font-ninja text-[14px] tracking-[0.3em] mb-1" style={{ color: '#00BFFF', textShadow: '0 0 15px rgba(0,191,255,0.6)' }}>FREE DAILY CHEST</p>
-                <p className="font-body text-[10px] text-gray-500">Claim once daily — gift it to a friend!</p>
+                <p className="font-body text-[10px] text-gray-500">Finish all daily tasks to unlock your chest!</p>
               </div>
               <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }} className="relative my-1">
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-36 h-10 rounded-full"
@@ -893,14 +893,14 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   </div>
                 ) : (
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
-                    onClick={claimFreeChest} disabled={claimingFreeChest}
-                    className="relative w-full flex items-center justify-center gap-2 py-3 text-sm font-ninja tracking-[0.1em] rounded-md transition-all overflow-hidden disabled:opacity-50"
+                    onClick={() => window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'dailytasks' }))}
+                    className="relative w-full flex items-center justify-center gap-2 py-3 text-sm font-ninja tracking-[0.1em] rounded-md transition-all overflow-hidden"
                     style={{ background: 'linear-gradient(135deg, rgba(0,191,255,0.18), rgba(0,191,255,0.06))', border: '1px solid rgba(0,191,255,0.5)', color: '#00BFFF', boxShadow: '0 0 15px rgba(0,191,255,0.2), inset 0 0 12px rgba(0,191,255,0.05)' }}>
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid #00BFFF', borderLeft: '2px solid #00BFFF' }} />
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid #00BFFF', borderRight: '2px solid #00BFFF' }} />
                     <div className="absolute top-0 left-[20%] right-[20%] h-[2px]" style={{ background: '#00BFFF', boxShadow: '0 0 6px #00BFFF' }} />
-                    {claimingFreeChest ? <Loader2 size={16} className="animate-spin" /> : <Gift size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(0,191,255,0.7))' }} />}
-                    {claimingFreeChest ? 'OPENING...' : 'CLAIM FREE CHEST'}
+                    <Gift size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(0,191,255,0.7))' }} />
+                    CLAIM FREE CHEST
                   </motion.button>
                 )}
                 <div className="relative" style={{ overflow: 'visible' }}>

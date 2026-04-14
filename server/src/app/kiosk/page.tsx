@@ -979,6 +979,25 @@ export default function KioskPage() {
                     </div>{/* end z-[5] content wrapper */}
                   </div>
                 </div>
+
+                {/* Socials — "Check this out" link to info page */}
+                <a
+                  href="https://www.ninjagamesjo.com/info"
+                  target="_blank"
+                  rel="noopener"
+                  className="mt-6 group flex items-center gap-3 px-5 py-3 rounded-xl transition-all hover:scale-105"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(232,121,249,0.08), rgba(57,255,20,0.06))',
+                    border: '1px solid rgba(232,121,249,0.3)',
+                    boxShadow: '0 0 18px rgba(232,121,249,0.15)',
+                  }}
+                >
+                  <Instagram size={18} className="text-pink-400 group-hover:scale-110 transition-transform" style={{ filter: 'drop-shadow(0 0 6px rgba(232,121,249,0.7))' }} />
+                  <span className="font-ninja text-sm tracking-wider text-pink-300" style={{ textShadow: '0 0 8px rgba(232,121,249,0.4)' }}>
+                    {lang === 'ar' ? 'تابعنا — شاهد روابطنا' : 'CHECK THIS OUT — FOLLOW US'}
+                  </span>
+                  <ArrowRight size={14} className="text-pink-300 group-hover:translate-x-1 transition-transform" />
+                </a>
               </div>
 
             </motion.div>

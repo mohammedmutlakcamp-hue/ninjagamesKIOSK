@@ -7,7 +7,7 @@ import { collection, getDocs, query, where, orderBy, limit } from 'firebase/fire
 import {
   ListChecks, LogIn, Gamepad2, Package, Send, UtensilsCrossed, Star, Target,
   Coins, Flame, Trophy, Users, RefreshCw, TrendingUp, Calendar, CheckCircle2,
-  ChevronDown, ChevronUp, Award,
+  ChevronDown, ChevronUp, Award, Instagram,
 } from 'lucide-react';
 
 // ── Task definitions (must match DailyTasksTab.tsx) ──────────
@@ -21,13 +21,12 @@ interface TaskDef {
 }
 
 const TASK_DEFS: TaskDef[] = [
-  { id: 'daily_login',  title: 'Check-in',      icon: <LogIn size={18} />,            color: '#34c759', target: 1,  reward: 3 },
-  { id: 'play_game',    title: 'Play a Game',    icon: <Gamepad2 size={18} />,         color: '#af52de', target: 1,  reward: 5 },
-  { id: 'open_chest',   title: 'Open Chest',     icon: <Package size={18} />,          color: '#ff9500', target: 1,  reward: 5 },
-  { id: 'send_coins',   title: 'Send Coins',     icon: <Send size={18} />,             color: '#0071e3', target: 1,  reward: 5 },
-  { id: 'order_food',   title: 'Order Food',     icon: <UtensilsCrossed size={18} />,  color: '#ff9500', target: 1,  reward: 3 },
-  { id: 'add_friend',   title: 'Add Friend',     icon: <Star size={18} />,             color: '#ff9f0a', target: 1,  reward: 3 },
-  { id: 'play_30_min',  title: 'Play 75 Min',    icon: <Target size={18} />,           color: '#34c759', target: 75, reward: 15 },
+  { id: 'daily_login',   title: 'Check-in',                 icon: <LogIn size={18} />,            color: '#34c759', target: 1,  reward: 3 },
+  { id: 'open_chest',    title: 'Open Chest',               icon: <Package size={18} />,          color: '#ff9500', target: 1,  reward: 5 },
+  { id: 'send_coins',    title: 'Send Coins',               icon: <Send size={18} />,             color: '#0071e3', target: 1,  reward: 5 },
+  { id: 'order_food',    title: 'Order from Food & Snacks', icon: <UtensilsCrossed size={18} />,  color: '#ff9500', target: 1,  reward: 3 },
+  { id: 'check_socials', title: 'Check Our Socials',        icon: <Instagram size={18} />,        color: '#e879f9', target: 1,  reward: 25 },
+  { id: 'play_30_min',   title: 'Play 75 Min',              icon: <Target size={18} />,           color: '#34c759', target: 75, reward: 10 },
 ];
 
 function getTodayKey(): string {

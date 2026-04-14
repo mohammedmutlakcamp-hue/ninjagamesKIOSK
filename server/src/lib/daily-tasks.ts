@@ -26,9 +26,9 @@ const ACTION_TO_TASKS: Record<TaskAction, string[]> = {
   open_chest:    ['open_chest'],
   order_food:    ['order_food'],
   play_time:     ['play_30_min'],
-  add_friend:    ['add_friend'],
-  launch_game:   ['play_game'],
-  play_minigame: ['play_game'],
+  add_friend:    [],
+  launch_game:   [],
+  play_minigame: [],
   get_headshot:  [],
   earn_coins:    [],
 };

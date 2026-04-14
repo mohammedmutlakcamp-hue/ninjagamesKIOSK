@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
-import { Loader2, Coins, Globe } from 'lucide-react';
+import { Loader2, Coins, Globe, Instagram, ExternalLink } from 'lucide-react';
 import { Lang, t } from '@/lib/translations';
 // ─── OneSignal helpers (SDK init is in root layout.tsx) ──────
 function loginOneSignal(playerUid: string, username: string) {
@@ -376,6 +376,20 @@ export default function MobileApp() {
             {lang === 'ar' ? 'جديد؟ أنشئ حساب' : 'New here? Create account'}
           </button>
         </motion.div>
+
+        {/* Socials — "Check this out" link to info page */}
+        <a
+          href="https://www.ninjagamesjo.com/info"
+          target="_blank"
+          rel="noopener"
+          className="mt-4 flex items-center justify-center gap-2 text-[12px] text-white/50 hover:text-white/80 transition-colors py-2"
+        >
+          <Instagram size={14} className="text-ninja-green" />
+          <span className="font-medium tracking-wide">
+            {lang === 'ar' ? 'تابعنا — شاهد روابطنا' : 'Follow us — check this out'}
+          </span>
+          <ExternalLink size={12} />
+        </a>
       </div>
     </div>
   );

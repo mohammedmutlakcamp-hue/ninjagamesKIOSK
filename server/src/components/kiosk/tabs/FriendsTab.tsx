@@ -79,6 +79,7 @@ export function FriendsTab({ player }: Props) {
   const [friendProfileLoading, setFriendProfileLoading] = useState(false);
   const [showGiftMessage, setShowGiftMessage] = useState(false);
   const [sendCoinsTo, setSendCoinsTo] = useState<FriendData | null>(null);
+  const [actionFriend, setActionFriend] = useState<FriendData | null>(null);
   const [sendAmount, setSendAmount] = useState('');
   const [sendLoading, setSendLoading] = useState(false);
   const [sendSuccess, setSendSuccess] = useState('');
@@ -873,8 +874,8 @@ export function FriendsTab({ player }: Props) {
                       <div className="space-y-2">
                         {(filteredFriends || onlineFriends).map((friend, i) => (
                           <motion.div key={friend.uid} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                            onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: friend.uid } }))}
-                            className="relative flex items-center gap-4 p-4 pl-5 rounded-2xl cursor-pointer overflow-hidden"
+                            onClick={() => setActionFriend(friend)}
+                            className="relative flex items-center gap-4 p-4 pl-5 rounded-2xl cursor-pointer overflow-hidden hover:scale-[1.01] transition-transform"
                             style={{
                               background: 'linear-gradient(180deg, rgba(57,255,20,0.05) 0%, #040608 40%, #030508 100%)',
                               border: '1px solid rgba(57,255,20,0.18)',
@@ -901,8 +902,8 @@ export function FriendsTab({ player }: Props) {
                               )}
                             </div>
                             <div className="flex-1 min-w-0 relative z-10">
-                              <p className="font-ninja text-sm text-white tracking-wider">{friend.username}</p>
-                              <p className={`font-body text-xs flex items-center gap-1.5 mt-0.5 ${friend.onlineStatus?.isOnline ? 'text-ninja-green' : 'text-gray-600'}`}>
+                              <p className="font-ninja text-xl text-white tracking-wider truncate">{friend.username}</p>
+                              <p className={`font-body text-xs flex items-center gap-1.5 mt-1 ${friend.onlineStatus?.isOnline ? 'text-ninja-green' : 'text-gray-600'}`}>
                                 {friend.onlineStatus?.isOnline ? (
                                   <span className="flex items-center gap-1 px-1.5 py-0.5 rounded"
                                     style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.2)' }}>
@@ -913,41 +914,7 @@ export function FriendsTab({ player }: Props) {
                                 )}
                               </p>
                             </div>
-                            <div className="flex gap-1.5 flex-shrink-0 relative z-10">
-                              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.dispatchEvent(new CustomEvent('open-private-chat', {
-                                    detail: { friendId: friend.uid, friendName: friend.username }
-                                  }));
-                                }}
-                                className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title="Message"
-                                style={{ background: 'rgba(0,200,255,0.1)', border: '1px solid rgba(0,200,255,0.3)', boxShadow: '0 0 10px rgba(0,200,255,0.12)' }}>
-                                <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(0,200,255,0.5)', borderLeft: '1px solid rgba(0,200,255,0.5)' }} />
-                                <MessageSquare size={13} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 4px rgba(0,200,255,0.6))' }} />
-                              </motion.button>
-                              {friend.onlineStatus?.isOnline && (
-                                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    window.dispatchEvent(new CustomEvent('start-voice-call', {
-                                      detail: { friendId: friend.uid, friendName: friend.username }
-                                    }));
-                                  }}
-                                  className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title="Call"
-                                  style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 10px rgba(168,85,247,0.12)' }}>
-                                  <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(168,85,247,0.5)', borderLeft: '1px solid rgba(168,85,247,0.5)' }} />
-                                  <Phone size={13} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.6))' }} />
-                                </motion.button>
-                              )}
-                              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                                onClick={(e) => { e.stopPropagation(); setSendCoinsTo(friend); }}
-                                className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title="Send coins"
-                                style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.4)', boxShadow: '0 0 12px rgba(57,255,20,0.18)' }}>
-                                <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(57,255,20,0.6)', borderLeft: '1px solid rgba(57,255,20,0.6)' }} />
-                                <Send size={13} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.8))' }} />
-                              </motion.button>
-                            </div>
+                            <ChevronRight size={18} className="text-ninja-green/60 flex-shrink-0 relative z-10" />
                           </motion.div>
                         ))}
                       </div>
@@ -967,7 +934,7 @@ export function FriendsTab({ player }: Props) {
                       {offlineFriends.map((friend, i) => (
                         <motion.div key={friend.uid} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: (onlineFriends.length + i) * 0.05 }}
-                          onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: friend.uid } }))}
+                          onClick={() => setActionFriend(friend)}
                           className="relative flex items-center gap-4 p-4 pl-5 rounded-2xl cursor-pointer opacity-75 hover:opacity-100 transition-opacity overflow-hidden"
                           style={{
                             background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, #040608 40%, #030508 100%)',
@@ -988,33 +955,13 @@ export function FriendsTab({ player }: Props) {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0 relative z-10">
-                            <p className="font-ninja text-sm text-gray-300 tracking-wider">{friend.username}</p>
-                            <p className="text-gray-600 font-body text-xs flex items-center gap-1 mt-0.5">
+                            <p className="font-ninja text-xl text-gray-300 tracking-wider truncate">{friend.username}</p>
+                            <p className="text-gray-600 font-body text-xs flex items-center gap-1 mt-1">
                               <Clock size={12} />
                               {friend.onlineStatus?.lastSeen ? `Last seen ${formatLastSeen(friend.onlineStatus.lastSeen)}` : 'Offline'}
                             </p>
                           </div>
-                          <div className="flex gap-1.5 flex-shrink-0 relative z-10">
-                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                window.dispatchEvent(new CustomEvent('open-private-chat', {
-                                  detail: { friendId: friend.uid, friendName: friend.username }
-                                }));
-                              }}
-                              className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title="Message"
-                              style={{ background: 'rgba(0,200,255,0.06)', border: '1px solid rgba(0,200,255,0.2)' }}>
-                              <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(0,200,255,0.4)', borderLeft: '1px solid rgba(0,200,255,0.4)' }} />
-                              <MessageSquare size={13} className="text-cyan-400/80" />
-                            </motion.button>
-                            <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                              onClick={(e) => { e.stopPropagation(); setSendCoinsTo(friend); }}
-                              className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title="Send coins"
-                              style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)' }}>
-                              <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(57,255,20,0.4)', borderLeft: '1px solid rgba(57,255,20,0.4)' }} />
-                              <Send size={13} className="text-ninja-green/80" />
-                            </motion.button>
-                          </div>
+                          <ChevronRight size={18} className="text-gray-500 flex-shrink-0 relative z-10" />
                         </motion.div>
                       ))}
                     </div>
@@ -1027,6 +974,113 @@ export function FriendsTab({ player }: Props) {
       </AnimatePresence>
 
       </div>
+
+      {/* Friend action popup — opens when a friend row is clicked */}
+      <AnimatePresence>
+        {actionFriend && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[105] flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
+            onClick={() => setActionFriend(null)}>
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              onClick={(e) => e.stopPropagation()}
+              className="rounded-2xl p-6 w-[420px] max-w-[92vw] relative overflow-hidden"
+              style={{
+                background: 'linear-gradient(180deg, #060810 0%, #040608 50%, #050a10 100%)',
+                border: '1px solid rgba(57,255,20,0.25)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 40px rgba(57,255,20,0.1)',
+              }}>
+              {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, ci) => (
+                <div key={ci} className={`absolute ${pos} w-4 h-4 pointer-events-none z-[2]`} style={{
+                  ...(pos.includes('top') ? { borderTop: '2px solid rgba(57,255,20,0.5)' } : { borderBottom: '2px solid rgba(0,200,255,0.3)' }),
+                  ...(pos.includes('left') ? { borderLeft: '2px solid rgba(57,255,20,0.5)' } : { borderRight: '2px solid rgba(0,200,255,0.3)' }),
+                }} />
+              ))}
+              <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, transparent, rgba(57,255,20,0.5), rgba(0,200,255,0.3), transparent)', boxShadow: '0 0 10px rgba(57,255,20,0.3)' }} />
+
+              <button onClick={() => setActionFriend(null)}
+                className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-ninja-green transition-all z-[10]"
+                style={{ background: 'rgba(57,255,20,0.05)', border: '1px solid rgba(57,255,20,0.15)' }}>
+                <X size={16} />
+              </button>
+
+              <div className="relative z-[3]">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="w-16 h-16 rounded-full overflow-hidden flex-shrink-0"
+                    style={{ border: '2px solid rgba(57,255,20,0.45)', boxShadow: '0 0 14px rgba(57,255,20,0.3)' }}>
+                    <img src={actionFriend.profilePhoto || `/img/pfp-${actionFriend.ninjaType}.png`} alt={actionFriend.username}
+                      className="w-16 h-16 object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).src = '/img/pfp-neon.png'; }} />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ninja text-2xl text-white tracking-wider truncate" style={{ textShadow: '0 0 12px rgba(57,255,20,0.3)' }}>
+                      {actionFriend.username}
+                    </p>
+                    <p className={`font-body text-xs flex items-center gap-1.5 mt-1 ${actionFriend.onlineStatus?.isOnline ? 'text-ninja-green' : 'text-gray-600'}`}>
+                      {actionFriend.onlineStatus?.isOnline ? (
+                        <span className="flex items-center gap-1"><Gamepad2 size={10} /> {actionFriend.onlineStatus?.currentActivity || 'In lobby'}</span>
+                      ) : (
+                        <><Clock size={12} /> {actionFriend.onlineStatus?.lastSeen ? formatLastSeen(actionFriend.onlineStatus.lastSeen) : 'Offline'}</>
+                      )}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      window.dispatchEvent(new CustomEvent('open-private-chat', {
+                        detail: { friendId: actionFriend.uid, friendName: actionFriend.username },
+                      }));
+                      setActionFriend(null);
+                    }}
+                    className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
+                    style={{ background: 'rgba(0,200,255,0.1)', border: '1px solid rgba(0,200,255,0.35)', boxShadow: '0 0 14px rgba(0,200,255,0.15)' }}>
+                    <MessageSquare size={22} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 6px rgba(0,200,255,0.7))' }} />
+                    <span className="font-ninja text-xs text-cyan-300 tracking-wider">MESSAGE</span>
+                  </motion.button>
+                  {actionFriend.onlineStatus?.isOnline && (
+                    <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                      onClick={() => {
+                        window.dispatchEvent(new CustomEvent('start-voice-call', {
+                          detail: { friendId: actionFriend.uid, friendName: actionFriend.username },
+                        }));
+                        setActionFriend(null);
+                      }}
+                      className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
+                      style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.35)', boxShadow: '0 0 14px rgba(168,85,247,0.15)' }}>
+                      <Phone size={22} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 6px rgba(168,85,247,0.7))' }} />
+                      <span className="font-ninja text-xs text-purple-300 tracking-wider">VOICE CALL</span>
+                    </motion.button>
+                  )}
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      const f = actionFriend;
+                      setActionFriend(null);
+                      setSendCoinsTo(f);
+                    }}
+                    className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
+                    style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.4)', boxShadow: '0 0 14px rgba(57,255,20,0.18)' }}>
+                    <Send size={22} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.8))' }} />
+                    <span className="font-ninja text-xs text-ninja-green tracking-wider">SEND COINS</span>
+                  </motion.button>
+                  <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => {
+                      const uid = actionFriend.uid;
+                      setActionFriend(null);
+                      window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid } }));
+                    }}
+                    className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
+                    style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}>
+                    <User size={22} className="text-gray-300" />
+                    <span className="font-ninja text-xs text-gray-300 tracking-wider">VIEW PROFILE</span>
+                  </motion.button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Send Coins Modal */}
       <AnimatePresence>
