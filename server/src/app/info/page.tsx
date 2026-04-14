@@ -39,16 +39,34 @@ function qrImageUrl(url: string, size = 320): string {
 }
 
 function handleBackToKiosk() {
+  if (typeof window === 'undefined') return;
+
   // 1) Native bridge when running inside the C# kiosk WebView2
-  const api = (typeof window !== 'undefined' ? (window as any).electronAPI : null);
-  if (api?.returnToKiosk) { try { api.returnToKiosk(); return; } catch {} }
-  // 2) Browser history if we came from the kiosk
-  if (typeof document !== 'undefined' && /\/(kiosk|app)(\?|$)/.test(document.referrer || '')) {
-    window.history.back();
-    return;
-  }
-  // 3) Default — navigate to the kiosk page
-  window.location.href = '/kiosk';
+  try {
+    const api = (window as any).electronAPI;
+    if (api?.returnToKiosk) { api.returnToKiosk(); return; }
+  } catch {}
+
+  // 2) If we were opened in a popup window (target="_blank"), close it
+  try {
+    if (window.opener && window.opener !== window) {
+      window.close();
+      return;
+    }
+  } catch {}
+
+  // 3) If we came from /kiosk or /app in the same tab, go back in history
+  try {
+    const ref = document.referrer || '';
+    const sameOrigin = ref && new URL(ref).origin === window.location.origin;
+    if (sameOrigin && /\/(kiosk|app)(\?|$|\/)/.test(ref)) {
+      window.history.back();
+      return;
+    }
+  } catch {}
+
+  // 4) Last resort — hard-navigate to /kiosk in the current window
+  window.location.replace('/kiosk');
 }
 
 export default function InfoPage() {
