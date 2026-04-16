@@ -17,6 +17,7 @@ import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import Image from 'next/image';
 import { notifyAdmin } from '@/lib/notify-admin';
+import { initLaunchOverrides } from '@/lib/launch';
 
 type Screen = 'login' | 'register' | 'welcome' | 'dashboard' | 'admin-login' | 'killswitch';
 
@@ -63,6 +64,11 @@ export default function KioskPage() {
   // Zero-coins top-up overlay on login
   const [showLoginTopUp, setShowLoginTopUp] = useState(false);
   const [zeroCoinsPlayer, setZeroCoinsPlayer] = useState<any>(null);
+  // Legacy (Tinasoft/EasyCafe) migrated user flow
+  const [legacyPlayer, setLegacyPlayer] = useState<any>(null);   // detected migrated user
+  const [legacyPassword, setLegacyPassword] = useState('');      // free-text input
+  const [pinSetupMode, setPinSetupMode] = useState(false);       // after legacy auth, set new PIN
+  const [pinConfirm, setPinConfirm] = useState('');
   // Guest request state
   const [guestRequestPending, setGuestRequestPending] = useState(false);
   const [guestRequestId, setGuestRequestId] = useState<string | null>(null);
@@ -93,18 +99,43 @@ export default function KioskPage() {
     return () => unsub();
   }, []);
 
+  // Detect legacy (migrated) user as username is typed (debounced)
+  useEffect(() => {
+    if (screen !== 'login') return;
+    const u = username.trim().toLowerCase();
+    if (!u) { setLegacyPlayer(null); setPinSetupMode(false); setLegacyPassword(''); setPinConfirm(''); return; }
+    const handle = setTimeout(async () => {
+      try {
+        const q = query(
+          collection(db, 'players'),
+          where('username', '==', u),
+          where('isLegacyUser', '==', true),
+          limit(1)
+        );
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          setLegacyPlayer({ uid: snap.docs[0].id, ...snap.docs[0].data() });
+        } else {
+          setLegacyPlayer(null);
+          setPinSetupMode(false);
+        }
+      } catch { /* ignore — fall back to normal PIN flow */ }
+    }, 350);
+    return () => clearTimeout(handle);
+  }, [username, screen]);
+
   // Get PC identity from Electron
   useEffect(() => {
     const api = (window as any).electronAPI;
     if (api?.getPcInfo) {
       api.getPcInfo().then((info: any) => {
-        if (info?.pcDocId) setPcDocId(info.pcDocId);
+        if (info?.pcDocId) { setPcDocId(info.pcDocId); initLaunchOverrides(info.pcDocId); }
         if (info?.pcName) setPcNameDisplay(info.pcName);
       });
     }
     if (api?.onPcInfo) {
       api.onPcInfo((info: any) => {
-        if (info?.pcDocId) setPcDocId(info.pcDocId);
+        if (info?.pcDocId) { setPcDocId(info.pcDocId); initLaunchOverrides(info.pcDocId); }
         if (info?.pcName) setPcNameDisplay(info.pcName);
       });
     }
@@ -164,7 +195,70 @@ export default function KioskPage() {
     return () => clearTimeout(timer);
   }, [screen]);
 
+  // Step 2 of legacy flow: write the new PIN, clear legacy fields, then fall through to normal login
+  const finishPinSetup = async () => {
+    if (!legacyPlayer) return;
+    if (pin.length !== 6) { setError(lang === 'ar' ? 'يجب أن يكون رمز PIN من 6 أرقام' : 'PIN must be 6 digits'); return; }
+    if (pin !== pinConfirm) { setError(lang === 'ar' ? 'رمز PIN غير متطابق' : 'PINs do not match'); return; }
+    setLoading(true); setError('');
+    try {
+      await updateDoc(doc(db, 'players', legacyPlayer.uid), {
+        pin,
+        isLegacyUser: false,
+        legacyPassword: '',
+      });
+      // Refetch fresh doc and continue with normal login checks
+      const fresh = { ...legacyPlayer, pin, isLegacyUser: false, legacyPassword: '' };
+      const hasTokens = (fresh as any).coins > 0;
+      const hasPlaytime = (fresh as any).remainingPlaytime > 0;
+      if ((fresh as any).banned) { setError(t(lang, 'account_banned')); setLoading(false); return; }
+      if (!hasTokens && !hasPlaytime) {
+        setError(lang === 'ar' ? 'رصيدك 0! يرجى شحن حسابك للعب 💰' : 'Your balance is 0! Please top up to play 💰');
+        setZeroCoinsPlayer(fresh);
+        setLoading(false);
+        setTimeout(() => setShowLoginTopUp(true), 1000);
+        return;
+      }
+      setPlayer({ ...fresh, coinsAtLogin: (fresh as any).coins, loginTime: Date.now() });
+      updateDoc(doc(db, 'players', legacyPlayer.uid), {
+        lastLogin: Date.now(),
+        lastPcUsed: pcNameDisplay || 'unknown',
+        lastPcId: pcDocId || null,
+      }).catch(() => {});
+      updatePcStatus('occupied', fresh).catch(() => {});
+      const api = (window as any).electronAPI;
+      if (api?.sessionLogin) api.sessionLogin();
+      if (api?.playerLogin) api.playerLogin({ username: (fresh as any).username, uid: (fresh as any).uid });
+      // Reset legacy state
+      setLegacyPlayer(null); setPinSetupMode(false); setLegacyPassword(''); setPinConfirm(''); setPin('');
+      setScreen('welcome');
+    } catch {
+      setError(t(lang, 'connection_error'));
+    }
+    setLoading(false);
+  };
+
+  // Step 1 of legacy flow: validate the old EasyCafe password
+  const handleLegacyPasswordSubmit = () => {
+    if (!legacyPlayer) return;
+    const stored = (legacyPlayer.legacyPassword || '').trim();
+    const entered = legacyPassword.trim();
+    if (!entered) { setError(lang === 'ar' ? 'أدخل كلمة المرور القديمة' : 'Enter your old password'); return; }
+    if (entered.toLowerCase() !== stored.toLowerCase()) {
+      setError(lang === 'ar' ? 'كلمة المرور القديمة غير صحيحة' : 'Old password is incorrect');
+      return;
+    }
+    setError('');
+    setPin(''); setPinConfirm('');
+    setPinSetupMode(true);
+  };
+
   const handleLogin = async () => {
+    // Branch 1: legacy user, awaiting PIN setup
+    if (pinSetupMode) { await finishPinSetup(); return; }
+    // Branch 2: legacy user, awaiting old password
+    if (legacyPlayer) { handleLegacyPasswordSubmit(); return; }
+
     if (!username || !pin) {
       setError(t(lang, 'enter_credentials'));
       return;
@@ -770,7 +864,92 @@ export default function KioskPage() {
                         </div>
                       </div>
 
-                      {/* PIN — modern glass input with dot indicators */}
+                      {/* Mode A: legacy user — free-text old password input */}
+                      {legacyPlayer && !pinSetupMode && (
+                        <div className="space-y-2">
+                          <div className="text-[11px] tracking-[0.25em] uppercase font-mono text-amber-400/90 text-center" style={{ textShadow: '0 0 8px rgba(251,191,36,0.4)' }}>
+                            {lang === 'ar'
+                              ? '⚡ حساب قديم — أدخل كلمة المرور السابقة'
+                              : '⚡ LEGACY ACCOUNT — ENTER YOUR OLD PASSWORD'}
+                          </div>
+                          <div className="relative group">
+                            <div className="relative">
+                              <KeyRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-amber-400/80 z-[2] pointer-events-none group-focus-within:text-amber-300 transition-colors" style={{ filter: 'drop-shadow(0 0 4px rgba(251,191,36,0.5))' }} />
+                              <input
+                                type="password"
+                                value={legacyPassword}
+                                onChange={(e) => setLegacyPassword(e.target.value)}
+                                className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-base tracking-wider outline-none transition-all z-[1]"
+                                style={{
+                                  background: 'rgba(8,12,18,0.9)',
+                                  backdropFilter: 'blur(8px)',
+                                  border: '1px solid rgba(251,191,36,0.3)',
+                                  boxShadow: 'inset 0 1px 0 rgba(255,255,255,0.04), 0 4px 16px rgba(0,0,0,0.4)',
+                                  color: '#ffffff',
+                                  colorScheme: 'dark',
+                                  WebkitTextFillColor: '#ffffff',
+                                }}
+                                placeholder={lang === 'ar' ? 'كلمة المرور القديمة' : 'Old password'}
+                                onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleLogin()}
+                              />
+                              <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-0 group-focus-within:w-full transition-all duration-300 pointer-events-none"
+                                style={{ background: 'linear-gradient(90deg, transparent, #fbbf24, transparent)', boxShadow: '0 0 8px #fbbf24' }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mode B: legacy user just authenticated — set new 6-digit PIN */}
+                      {pinSetupMode && (
+                        <div className="space-y-3">
+                          <div className="text-[11px] tracking-[0.25em] uppercase font-mono text-ninja-green text-center" style={{ textShadow: '0 0 8px rgba(57,255,20,0.5)' }}>
+                            {lang === 'ar' ? '✓ تم التحقق — اختر رمز PIN جديد' : '✓ VERIFIED — CHOOSE YOUR NEW 6-DIGIT PIN'}
+                          </div>
+                          <div className="relative group">
+                            <div className="relative">
+                              <KeyRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ninja-green/70 z-[2] pointer-events-none group-focus-within:text-ninja-green transition-colors" />
+                              <input
+                                type="password"
+                                value={pin}
+                                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
+                                style={{
+                                  background: 'rgba(8,12,18,0.9)', backdropFilter: 'blur(8px)',
+                                  border: '1px solid rgba(57,255,20,0.2)',
+                                  textShadow: '0 0 10px rgba(57,255,20,0.6)',
+                                  color: '#ffffff', colorScheme: 'dark', WebkitTextFillColor: '#ffffff',
+                                }}
+                                placeholder={lang === 'ar' ? 'رمز PIN الجديد' : 'New PIN'}
+                                maxLength={6}
+                              />
+                            </div>
+                          </div>
+                          <div className="relative group">
+                            <div className="relative">
+                              <KeyRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ninja-green/70 z-[2] pointer-events-none group-focus-within:text-ninja-green transition-colors" />
+                              <input
+                                type="password"
+                                value={pinConfirm}
+                                onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
+                                style={{
+                                  background: 'rgba(8,12,18,0.9)', backdropFilter: 'blur(8px)',
+                                  border: '1px solid rgba(57,255,20,0.2)',
+                                  textShadow: '0 0 10px rgba(57,255,20,0.6)',
+                                  color: '#ffffff', colorScheme: 'dark', WebkitTextFillColor: '#ffffff',
+                                }}
+                                placeholder={lang === 'ar' ? 'تأكيد رمز PIN' : 'Confirm PIN'}
+                                maxLength={6}
+                                onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleLogin()}
+                              />
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Mode C (default): regular 6-digit PIN with dot indicators */}
+                      {!legacyPlayer && !pinSetupMode && (
                       <div className="relative group">
                         <div className="relative">
                           <KeyRound size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-ninja-green/70 z-[2] pointer-events-none group-focus-within:text-ninja-green transition-colors" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.5))' }} />
@@ -815,6 +994,7 @@ export default function KioskPage() {
                           ))}
                         </div>
                       </div>
+                      )}
                     </div>
 
                     {error && (

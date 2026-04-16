@@ -64,8 +64,18 @@ public partial class SetupWindow : Window
             await firebase.AuthenticateAsync();
             await firebase.RegisterStationAsync(id, name);
 
-            // Save locally
+            // Scan local PC for installed games and push to Firestore so admin
+            // can see what each station has, and the web UI can override its
+            // catalog default exe paths with the real discovered ones.
+            BtnSave.Content = "Scanning installed games...";
+            var games = await Task.Run(() => GameDiscovery.ScanInstalled());
+            App.Log($"DISCOVERY: found {games.Count} installed games on {id}");
+            try { await firebase.UpdateInstalledGamesAsync(id, games); }
+            catch (Exception ex) { App.Log($"DISCOVERY_PUSH_ERR: {ex.Message}"); }
+
+            // Save locally (config + discovered-games cache)
             SaveConfig(id, name);
+            SaveDiscoveredGames(games);
 
             StationId = id;
             StationName = name;
@@ -113,5 +123,19 @@ public partial class SetupWindow : Window
     public static void ClearConfig()
     {
         try { if (File.Exists(ConfigFile)) File.Delete(ConfigFile); } catch { }
+    }
+
+    private static readonly string DiscoveredGamesFile =
+        Path.Combine(ConfigDir, "discovered-games.json");
+
+    public static void SaveDiscoveredGames(IReadOnlyList<GameDiscovery.InstalledGame> games)
+    {
+        try
+        {
+            Directory.CreateDirectory(ConfigDir);
+            File.WriteAllText(DiscoveredGamesFile, JsonSerializer.Serialize(games));
+            App.Log($"DISCOVERY_SAVED: {games.Count} games -> {DiscoveredGamesFile}");
+        }
+        catch (Exception ex) { App.Log($"DISCOVERY_SAVE_ERR: {ex.Message}"); }
     }
 }

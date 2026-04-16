@@ -440,6 +440,39 @@ public class FirestoreService : IDisposable
         await PatchAsync($"pcs/{stationId}", fields, "screenshot", "screenshotAt");
     }
 
+    // ── Installed games (pushed by GameDiscovery on install / re-scan) ──
+
+    public async Task UpdateInstalledGamesAsync(string stationId, IReadOnlyList<GameDiscovery.InstalledGame> games)
+    {
+        await EnsureAuthAsync();
+        var gameValues = games.Select(g => new Dictionary<string, object>
+        {
+            ["mapValue"] = new Dictionary<string, object>
+            {
+                ["fields"] = new Dictionary<string, object>
+                {
+                    ["id"]      = StringField(g.Id),
+                    ["name"]    = StringField(g.Name),
+                    ["exePath"] = StringField(g.ExePath),
+                    ["source"]  = StringField(g.Source),
+                }
+            }
+        }).Cast<object>().ToList();
+
+        var fields = new Dictionary<string, object>
+        {
+            ["installedGames"] = new Dictionary<string, object>
+            {
+                ["arrayValue"] = new Dictionary<string, object> { ["values"] = gameValues }
+            },
+            ["installedGamesScannedAt"] = TimestampField(DateTime.UtcNow),
+            ["installedGamesCount"]     = IntField(games.Count),
+        };
+        await PatchAsync($"pcs/{stationId}", fields,
+            "installedGames", "installedGamesScannedAt", "installedGamesCount");
+        App.Log($"FIREBASE_INSTALLED_GAMES: {stationId} pushed {games.Count} entries");
+    }
+
     // ── Command Response (admin exec/list-processes/system-info) ──
 
     public async Task UploadCommandResponseAsync(string stationId, string type, string data)

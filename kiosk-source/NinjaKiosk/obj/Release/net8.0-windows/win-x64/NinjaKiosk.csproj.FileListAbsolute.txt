@@ -489,3 +489,4 @@ C:\Users\vip-2\Desktop\Ninja Games Kiosk Final 2026\kiosk-source\NinjaKiosk\obj\
 C:\Users\vip-2\Desktop\Ninja Games Kiosk Final 2026\kiosk-source\NinjaKiosk\obj\Release\net8.0-windows\win-x64\NinjaKiosk.pdb
 C:\Users\vip-2\Desktop\Ninja Games Kiosk Final 2026\kiosk-source\NinjaKiosk\obj\Release\net8.0-windows\win-x64\NinjaKiosk.genruntimeconfig.cache
 C:\Users\vip-2\Desktop\Ninja Games Kiosk Final 2026\kiosk-source\NinjaKiosk\obj\Release\net8.0-windows\win-x64\ref\NinjaKiosk.dll
+C:\Users\vip-2\Desktop\Ninja Games Kiosk Final 2026\kiosk-source\NinjaKiosk\obj\Release\net8.0-windows\win-x64\NinjaKiosk.sourcelink.json

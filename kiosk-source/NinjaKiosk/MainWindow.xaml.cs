@@ -61,7 +61,7 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _guardTimer;
     private readonly DispatcherTimer _heartbeatTimer;
     private readonly DispatcherTimer _commandTimer;
-    private readonly DispatcherTimer _screenshotTimer;
+    private readonly DispatcherTimer _liveScreenTimer;
     private readonly string _cmdDir;
     private readonly string _cmdFile;
     private bool _webViewReady;
@@ -122,14 +122,22 @@ public partial class MainWindow : Window
         _heartbeatTimer.Start();
 
         // Firebase command polling (every 5s)
-        _commandTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
+        // Slowed from 5s -> 8s to cut Firestore reads ~40% with no admin UX hit.
+        _commandTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
         _commandTimer.Tick += async (_, _) => await FirebasePollCommandAsync();
         _commandTimer.Start();
 
         // Live screenshot upload (every 5s, only when unlocked) — admin "live view"
-        _screenshotTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(5) };
-        _screenshotTimer.Tick += async (_, _) => await UploadScreenshotAsync();
-        _screenshotTimer.Start();
+        // No periodic screenshot upload — purely on-demand. The admin panel
+        // sends a `screenshot` command (see PCManagement.tsx) when it opens a
+        // PC's screen view or has auto-refresh enabled. Saves continuous
+        // CPU + bandwidth on every kiosk PC.
+
+        // Live-screen timer: only runs when the admin sends `live-on`. Stops
+        // on `live-off`. Pushes a screenshot every second for an MJPEG-like
+        // monitoring feel without paying the cost when no one is looking.
+        _liveScreenTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        _liveScreenTimer.Tick += async (_, _) => await UploadScreenshotAsync(force: true);
 
         // Boot cleanup — tear down any leftover per-player junctions from a
         // previous session that didn't shut down cleanly. Safe to call always.
@@ -433,6 +441,12 @@ public partial class MainWindow : Window
         if (string.IsNullOrEmpty(_currentPlayerUid)) return;
         try { PlayerSession.SaveSession(_currentPlayerUid); }
         catch (Exception ex) { App.Log($"PLAYER_LOGOUT_SAVE_FAIL: {ex.Message}"); }
+
+        // After roaming data is safely on the server share, hard-wipe any
+        // account-bleeding folders not covered by the junction system
+        // (currently: AppData\Local\FortniteGame caches/EAC tokens).
+        try { PlayerSession.HardCleanupAfterLogout(); }
+        catch (Exception ex) { App.Log($"PLAYER_LOGOUT_CLEANUP_FAIL: {ex.Message}"); }
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -1654,6 +1668,39 @@ public partial class MainWindow : Window
                         // Force an immediate screenshot upload (even when locked)
                         _ = Task.Run(async () => { try { await UploadScreenshotAsync(force: true); } catch { } });
                         break;
+                    case "live-on":
+                        // Admin opened the screen tab — start 1fps stream
+                        if (!_liveScreenTimer.IsEnabled)
+                        {
+                            _liveScreenTimer.Start();
+                            App.Log("LIVE_SCREEN: started");
+                            _ = Task.Run(async () => { try { await UploadScreenshotAsync(force: true); } catch { } });
+                        }
+                        break;
+                    case "live-off":
+                        // Admin closed the screen tab — stop the stream
+                        if (_liveScreenTimer.IsEnabled)
+                        {
+                            _liveScreenTimer.Stop();
+                            App.Log("LIVE_SCREEN: stopped");
+                        }
+                        break;
+                    case "rescan-games":
+                        // Re-scan installed games and push to Firestore. Useful when
+                        // the shop installs/uninstalls a game without re-running setup.
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                var games = GameDiscovery.ScanInstalled();
+                                App.Log($"RESCAN_GAMES: found {games.Count}");
+                                if (!string.IsNullOrEmpty(_stationId))
+                                    await _firebase.UpdateInstalledGamesAsync(_stationId, games);
+                                SetupWindow.SaveDiscoveredGames(games);
+                            }
+                            catch (Exception ex) { App.Log($"RESCAN_GAMES_FAIL: {ex.Message}"); }
+                        });
+                        break;
                     default:
                         // Commands with payload (format: "verb:payload")
                         if (cmd.StartsWith("freeze"))
@@ -2067,7 +2114,7 @@ public partial class MainWindow : Window
         _guardTimer.Stop();
         _heartbeatTimer.Stop();
         _commandTimer.Stop();
-        _screenshotTimer.Stop();
+        _liveScreenTimer.Stop();
         if (_hookId != IntPtr.Zero) { UnhookWindowsHookEx(_hookId); _hookId = IntPtr.Zero; }
 
         // Remove tray icon

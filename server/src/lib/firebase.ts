@@ -1,5 +1,5 @@
 import { initializeApp, getApps } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { getAuth, onAuthStateChanged, signInAnonymously } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
 import { getDatabase } from 'firebase/database';
 import { getStorage } from 'firebase/storage';
@@ -20,4 +20,19 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const rtdb = getDatabase(app);
 export const storage = getStorage(app);
+
+// Ensure every Firestore call has an authenticated user (anonymous if nothing
+// else). Lets us tighten Firestore rules from `allow write: if true` to
+// `if request.auth != null` without breaking the kiosk web UI. Persists in
+// localStorage so the same anonymous UID is reused across reloads.
+if (typeof window !== 'undefined') {
+  onAuthStateChanged(auth, (user) => {
+    if (!user) {
+      signInAnonymously(auth).catch((err) => {
+        console.error('[firebase] anonymous sign-in failed:', err);
+      });
+    }
+  });
+}
+
 export default app;

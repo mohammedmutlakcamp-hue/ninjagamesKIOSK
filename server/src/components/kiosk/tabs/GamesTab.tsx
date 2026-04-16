@@ -17,6 +17,7 @@ import { db } from '@/lib/firebase';
 import { doc, getDoc, getDocs, addDoc, collection, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { notifyFriendsGameStart } from '@/lib/notifications';
 import { trackDailyTask } from '@/lib/daily-tasks';
+import { launchOnPc } from '@/lib/launch';
 
 interface FriendData {
   uid: string;
@@ -483,7 +484,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
   };
 
   const launchApp = (id: string, exePath: string) => {
-    if ((window as any).electronAPI) (window as any).electronAPI.launchGame(id, exePath);
+    launchOnPc(id, exePath);
   };
 
   const launchGame = (game: any) => {
@@ -536,8 +537,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
         <div className="flex-1 flex flex-col min-w-0 gap-2.5">
 
           {/* ── Hero Game ── */}
-          <div className="min-h-0 pl-1" style={{ flex: '1 1 55%' }}>
-            <div className="h-full relative rounded-2xl overflow-hidden border border-white/[0.08]">
+          <div className="min-h-0" style={{ flex: '1 1 55%' }}>
+            <div className="h-full relative rounded-r-2xl overflow-hidden border border-white/[0.08] border-l-0">
               <AnimatePresence mode="wait">
                 {activeGame && (
                   <motion.div key={activeGame.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
@@ -662,7 +663,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
           </div>
 
           {/* ── Suggested Games (auto-scrolling) ── */}
-          <div className="min-h-0 pl-1 flex flex-col" style={{ flex: '1 1 45%' }}>
+          <div className="min-h-0 flex flex-col" style={{ flex: '1 1 45%' }}>
             <div className="flex items-center gap-2 mb-2 flex-shrink-0">
               <Gamepad2 size={13} className="text-gray-500" />
               <span className="font-ninja text-[12px] text-gray-400 tracking-wider">Suggested Games</span>
@@ -681,7 +682,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                 {[...allSuggested, ...allSuggested].map((game, i) => (
                   <motion.div key={`${game.id}-${i}`}
                     onClick={() => setSelectedGame(game)}
-                    className="rounded-xl overflow-hidden border border-white/[0.06] hover:border-ninja-green/30 cursor-pointer group transition-all relative flex-shrink-0"
+                    className="rounded-xl first:rounded-l-none overflow-hidden border border-white/[0.06] first:border-l-0 hover:border-ninja-green/30 cursor-pointer group transition-all relative flex-shrink-0"
                     style={{ background: 'rgba(8,8,12,0.9)', width: `calc((100% - ${(VISIBLE_CARDS - 1) * 10}px) / ${VISIBLE_CARDS})` }}
                     whileHover={{ y: -5, scale: 1.02, boxShadow: '0 10px 30px rgba(57,255,20,0.15)' }}>
 

@@ -575,6 +575,44 @@ public static class PlayerSession
     }
 
     /// <summary>
+    /// Hard-deletes specific folders after a player logs out, on top of the
+    /// junction-restore done by SaveSession. The junction system already wipes
+    /// the player's auth (Chrome/Edge/Riot/etc.), but some apps stash
+    /// account-locked data OUTSIDE their tracked subfolders (e.g. Fortnite
+    /// caches MFA tokens in FortniteGame/Caches). Anything in this list is
+    /// nuked completely so the next player starts truly fresh.
+    /// </summary>
+    private static readonly string[] HardCleanupPaths =
+    {
+        // Fortnite — caches, crash dumps, EAC tokens. Saved is already roamed
+        // separately via JunctionApps; this wipes the rest.
+        @"%LOCALAPPDATA%\FortniteGame",
+    };
+
+    public static void HardCleanupAfterLogout()
+    {
+        foreach (var raw in HardCleanupPaths)
+        {
+            var path = Environment.ExpandEnvironmentVariables(
+                raw.Replace("%USERNAME%", Environment.UserName, StringComparison.OrdinalIgnoreCase));
+            try
+            {
+                if (!Directory.Exists(path))
+                {
+                    App.Log($"HARD_CLEANUP: skip (missing) {path}");
+                    continue;
+                }
+                Directory.Delete(path, recursive: true);
+                App.Log($"HARD_CLEANUP: deleted {path}");
+            }
+            catch (Exception ex)
+            {
+                App.Log($"HARD_CLEANUP: FAILED {path}: {ex.Message}");
+            }
+        }
+    }
+
+    /// <summary>
     /// Boot-time cleanup: removes any leftover junctions from a previous
     /// session (e.g., if the PC was hard-rebooted mid-session). Restores
     /// the .ninjabak defaults so the PC starts in a clean state.

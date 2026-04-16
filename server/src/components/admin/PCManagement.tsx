@@ -17,7 +17,7 @@ import {
   LayoutGrid, List, Loader2, Camera,
   Trash2, ArrowRight, Settings2, History,
   Moon, ExternalLink, Play, Square, ChevronDown,
-  Globe, Server, Zap, Hash, Network, Info
+  Globe, Server, Zap, Hash, Network, Info, Gamepad2
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════
@@ -336,6 +336,16 @@ export function PCManagement() {
     }
     return () => { if (autoRefreshRef.current) clearInterval(autoRefreshRef.current); };
   }, [autoRefresh, selectedPC?.id]);
+
+  // Live screen: while admin is on the Screen tab the kiosk runs a 1fps
+  // upload loop locally. We send `live-on` on enter, `live-off` on leave.
+  useEffect(() => {
+    if (!selectedPC || !isOnline(selectedPC)) return;
+    if (detailTab === 'screen') {
+      sendCommand(selectedPC.id, 'live-on');
+      return () => { sendCommand(selectedPC.id, 'live-off'); };
+    }
+  }, [detailTab, selectedPC?.id]);
 
   useEffect(() => {
     if (!selectedPC) {
@@ -786,6 +796,26 @@ export function PCManagement() {
                       </div>
                     </div>
 
+                    <div className="rounded-2xl bg-[#34c759]/5 border border-[#34c759]/10 p-4">
+                      <h4 className="text-xs font-semibold text-[#34c759] mb-2 flex items-center gap-1.5"><Gamepad2 size={12} /> Installed Games</h4>
+                      <div className="flex items-center justify-between">
+                        <div className="text-xs text-[#86868b]">
+                          <span className="font-semibold text-[#1d1d1f]">{(selectedPC as any).installedGamesCount ?? 0}</span> games detected
+                          {(selectedPC as any).installedGamesScannedAt && (
+                            <span className="ml-2 text-[10px]">· last scan {timeAgo(
+                              typeof (selectedPC as any).installedGamesScannedAt === 'object'
+                                ? ((selectedPC as any).installedGamesScannedAt.seconds * 1000)
+                                : (selectedPC as any).installedGamesScannedAt
+                            )}</span>
+                          )}
+                        </div>
+                        <button onClick={() => sendCommand(selectedPC.id, 'rescan-games')} disabled={!isOnline(selectedPC)}
+                          className="px-4 py-2 rounded-xl font-medium text-xs bg-[#34c759]/10 text-[#34c759] border border-[#34c759]/20 hover:bg-[#34c759]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
+                          <RotateCcw size={12} /> Re-scan
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="rounded-2xl bg-[#ff3b30]/5 border border-[#ff3b30]/10 p-4">
                       <h4 className="text-xs font-semibold text-[#ff3b30] mb-2 flex items-center gap-1.5"><Square size={12} /> Kill Application</h4>
                       <div className="flex gap-2">
@@ -1059,6 +1089,33 @@ export function PCManagement() {
                           {(selectedPC as any).sessionStartedAt && <InfoRow label="Duration" value={getSessionDuration((selectedPC as any).sessionStartedAt)} icon={<Timer size={10} />} />}
                           {(selectedPC as any).coinsRemaining != null && <InfoRow label="Tokens" value={String(Math.floor((selectedPC as any).coinsRemaining))} icon={<Coins size={10} />} />}
                           {(selectedPC as any).minutesRemaining != null && <InfoRow label="Time Left" value={`${(selectedPC as any).minutesRemaining} min`} icon={<Clock size={10} />} />}
+                        </div>
+                      </div>
+                    )}
+
+                    {Array.isArray((selectedPC as any).installedGames) && (selectedPC as any).installedGames.length > 0 && (
+                      <div className="rounded-2xl bg-[#f5f5f7] border border-[#e5e5ea]/60 p-4">
+                        <div className="flex items-center justify-between mb-3">
+                          <h4 className="text-xs font-semibold text-[#86868b] flex items-center gap-1.5"><Gamepad2 size={12} className="text-[#34c759]" /> Installed Games ({(selectedPC as any).installedGames.length})</h4>
+                          <button onClick={() => sendCommand(selectedPC.id, 'rescan-games')} disabled={!isOnline(selectedPC)}
+                            className="px-2.5 py-1 rounded-lg font-medium text-[9px] bg-white text-[#86868b] hover:text-[#1d1d1f] border border-[#e5e5ea] transition-all disabled:opacity-30 flex items-center gap-1">
+                            <RotateCcw size={9} /> Re-scan
+                          </button>
+                        </div>
+                        <div className="space-y-1 max-h-[280px] overflow-y-auto">
+                          {((selectedPC as any).installedGames as any[]).map((g, i) => (
+                            <div key={i} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-white">
+                              <span className="px-1.5 py-0.5 rounded text-[8px] font-mono uppercase tracking-wider"
+                                style={{
+                                  background: g.source === 'steam' ? '#0071e310' : g.source === 'epic' ? '#1d1d1f10' : g.source === 'desktop-lnk' ? '#af52de10' : '#34c75910',
+                                  color: g.source === 'steam' ? '#0071e3' : g.source === 'epic' ? '#1d1d1f' : g.source === 'desktop-lnk' ? '#af52de' : '#34c759',
+                                }}>{g.source}</span>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[11px] font-medium text-[#1d1d1f] truncate">{g.name}</p>
+                                <p className="text-[9px] text-[#86868b] font-mono truncate">{g.exePath}</p>
+                              </div>
+                            </div>
+                          ))}
                         </div>
                       </div>
                     )}

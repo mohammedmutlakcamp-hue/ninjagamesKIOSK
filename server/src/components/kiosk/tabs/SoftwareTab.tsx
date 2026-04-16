@@ -6,6 +6,7 @@ import { Download, ExternalLink, Search } from 'lucide-react';
 import { NinjaInput } from '@/components/kiosk/NinjaInput';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
+import { launchOnPc } from '@/lib/launch';
 
 interface Software {
   id: string;
@@ -56,12 +57,10 @@ export function SoftwareTab() {
   });
 
   const launchSoftware = (sw: Software) => {
-    const api = (window as any).electronAPI;
-    if (api?.launchGame) {
-      api.launchGame(sw.id, sw.exePath);
-    }
+    launchOnPc(sw.id, sw.exePath);
     // Bring kiosk back after a short delay so user can still use sidebar
     setTimeout(() => {
+      const api = (window as any).electronAPI;
       if (api?.returnToKiosk) api.returnToKiosk();
     }, 2000);
   };

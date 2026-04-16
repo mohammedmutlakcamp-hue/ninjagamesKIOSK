@@ -383,7 +383,7 @@ export interface DailyRevenue {
 }
 
 // ==================== KIOSK COMMANDS ====================
-export type KioskCommand = 'lock' | 'unlock' | 'restart' | 'shutdown' | 'message' | 'wake' | 'lockdown' | 'fullaccess' | 'send-wol' | 'force-logout' | 'freeze' | 'show-message';
+export type KioskCommand = 'lock' | 'unlock' | 'restart' | 'shutdown' | 'message' | 'wake' | 'lockdown' | 'fullaccess' | 'send-wol' | 'force-logout' | 'freeze' | 'show-message' | 'rescan-games' | 'screenshot' | 'live-on' | 'live-off';
 
 export interface KioskCommandMsg {
   id: string;

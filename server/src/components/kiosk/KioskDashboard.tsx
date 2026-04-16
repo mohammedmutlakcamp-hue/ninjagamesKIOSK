@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, addDoc, collection, increment, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, COIN_PACKAGES, TIME_PACKAGES } from '@/lib/constants';
+import { launchOnPc } from '@/lib/launch';
 import { GamesTab } from './tabs/GamesTab';
 import { ChestsTab } from './tabs/ChestsTab';
 import { FoodTab } from './tabs/FoodTab';
@@ -1162,16 +1163,16 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.2 }} className="overflow-hidden">
                       <div className="pl-3 space-y-0.5 mt-0.5">
                         {[
-                          { id: 'steam', name: 'Steam', exePath: 'C:\\Program Files (x86)\\Steam\\steam.exe', icon: '/games/steam.jpg' },
-                          { id: 'epicgames', name: 'Epic Games', exePath: 'C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win64\\EpicGamesLauncher.exe', icon: '/games/fortnite.jpg' },
-                          { id: 'battlenet', name: 'Battle.net', exePath: 'C:\\Program Files (x86)\\Battle.net\\Battle.net Launcher.exe', icon: '/games/battlenet.jpg' },
-                          { id: 'riotclient', name: 'Riot Client', exePath: 'C:\\Riot Games\\Riot Client\\RiotClientServices.exe', icon: '/games/valorant.jpg' },
-                          { id: 'roblox', name: 'Roblox', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\Roblox\\Versions\\version-b130242ed064436f\\RobloxPlayerBeta.exe', icon: '/games/roblox.jpg' },
-                          { id: 'faceit', name: 'FACEIT', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\FACEIT\\FACEIT.exe', icon: '/games/faceit.jpg' },
-                          { id: 'fivem', name: 'FiveM', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\FiveM\\FiveM.exe', icon: '/games/fivem.jpg' },
+                          { id: 'steam', name: 'Steam', exePath: 'C:\\Program Files (x86)\\Steam\\steam.exe', icon: '/launchers/steam.png' },
+                          { id: 'epicgames', name: 'Epic Games', exePath: 'C:\\Program Files (x86)\\Epic Games\\Launcher\\Portal\\Binaries\\Win64\\EpicGamesLauncher.exe', icon: '/launchers/epicgames.png' },
+                          { id: 'battlenet', name: 'Battle.net', exePath: 'C:\\Program Files (x86)\\Battle.net\\Battle.net Launcher.exe', icon: '/launchers/battlenet.png' },
+                          { id: 'riotclient', name: 'Riot Client', exePath: 'C:\\Riot Games\\Riot Client\\RiotClientServices.exe', icon: '/launchers/riot.png' },
+                          { id: 'roblox', name: 'Roblox', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\Roblox\\Versions\\version-b130242ed064436f\\RobloxPlayerBeta.exe', icon: '/launchers/roblox.png' },
+                          { id: 'faceit', name: 'FACEIT', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\FACEIT\\FACEIT.exe', icon: '/launchers/faceit.png' },
+                          { id: 'fivem', name: 'FiveM', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\FiveM\\FiveM.exe', icon: '/launchers/fivem.png' },
                         ].map(lnch => (
                           <button key={lnch.id}
-                            onClick={() => { const api = (window as any).electronAPI; if (api?.launchGame) api.launchGame(lnch.id, lnch.exePath); }}
+                            onClick={() => launchOnPc(lnch.id, lnch.exePath)}
                             className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-left hover:bg-white/[0.03] transition-all group border border-transparent">
                             <img src={lnch.icon} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
                             <span className="font-body text-[13px] text-gray-500 group-hover:text-gray-300">{lnch.name}</span>
@@ -1232,17 +1233,17 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         <div className="my-1 border-t border-gray-800/40" />
                         {/* All software items */}
                         {[
-                          { id: 'chrome', name: 'Google Chrome', exePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', icon: '/games/chrome.png', color: '#4285F4' },
-                          { id: 'edge', name: 'Microsoft Edge', exePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', icon: '/games/discord.jpg', color: '#0078D7' },
-                          { id: 'discord', name: 'Discord', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\Update.exe --processStart Discord.exe', icon: '/games/discord.jpg', color: '#5865F2' },
-                          { id: 'obs', name: 'OBS Studio', exePath: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe', icon: '', color: '#302E31' },
-                          { id: 'streamlabs', name: 'Streamlabs', exePath: 'C:\\Program Files\\Streamlabs OBS\\Streamlabs OBS.exe', icon: '', color: '#80F5D2' },
-                          { id: 'hyperx', name: 'HyperX NGENUITY', exePath: 'C:\\Program Files\\HyperX\\HyperX NGENUITY\\HyperXNGENUITY.exe', icon: '', color: '#FF0000' },
-                          { id: 'geforce', name: 'GeForce Experience', exePath: 'C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA GeForce Experience.exe', icon: '', color: '#76B900' },
-                          { id: 'razer', name: 'Razer Synapse', exePath: 'C:\\Program Files (x86)\\Razer\\Synapse3\\UserProcess\\Razer Synapse 3.exe', icon: '', color: '#44D62C' },
+                          { id: 'chrome', name: 'Google Chrome', exePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe', icon: '/software/chrome.png', color: '#4285F4' },
+                          { id: 'edge', name: 'Microsoft Edge', exePath: 'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe', icon: '/software/edge.png', color: '#0078D7' },
+                          { id: 'discord', name: 'Discord', exePath: 'C:\\Users\\%USERNAME%\\AppData\\Local\\Discord\\Update.exe --processStart Discord.exe', icon: '/software/discord.png', color: '#5865F2' },
+                          { id: 'obs', name: 'OBS Studio', exePath: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe', icon: '/software/obs.png', color: '#302E31' },
+                          { id: 'streamlabs', name: 'Streamlabs', exePath: 'C:\\Program Files\\Streamlabs OBS\\Streamlabs OBS.exe', icon: '/software/streamlabs.png', color: '#80F5D2' },
+                          { id: 'hyperx', name: 'HyperX NGENUITY', exePath: 'C:\\Program Files\\HyperX\\HyperX NGENUITY\\HyperXNGENUITY.exe', icon: '/software/hyperx.png', color: '#FF0000' },
+                          { id: 'geforce', name: 'GeForce Experience', exePath: 'C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA GeForce Experience.exe', icon: '/software/geforce.png', color: '#76B900' },
+                          { id: 'razer', name: 'Razer Synapse', exePath: 'C:\\Program Files (x86)\\Razer\\Synapse3\\UserProcess\\Razer Synapse 3.exe', icon: '/software/razer.png', color: '#44D62C' },
                         ].map(sw => (
                           <button key={sw.id}
-                            onClick={() => { const api = (window as any).electronAPI; if (api?.launchGame) api.launchGame(sw.id, sw.exePath); }}
+                            onClick={() => launchOnPc(sw.id, sw.exePath)}
                             className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-left hover:bg-white/[0.03] transition-all group border border-transparent">
                             {sw.icon ? (
                               <img src={sw.icon} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
