@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, onSnapshot, getDocs, doc, updateDoc, deleteDoc, addDoc } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, doc, updateDoc, deleteDoc, addDoc, increment } from 'firebase/firestore';
 import { PCManagement } from './PCManagement';
 import { PlayerManagement } from './PlayerManagement';
 import { MenuManagement } from './MenuManagement';
@@ -47,7 +47,7 @@ import {
   UserPlus, ShieldCheck, X as XIcon, Phone, Bell, Crown, Gamepad2, Package,
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
-  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key
+  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check
 } from 'lucide-react';
 
 type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates';
@@ -202,6 +202,10 @@ export function AdminDashboard({ admin }: Props) {
   const [pinResetNotification, setPinResetNotification] = useState<{ id: string; username: string; pcName?: string | null; playerId?: string } | null>(null);
   const [pinResetActioning, setPinResetActioning] = useState(false);
   const pinResetSeenIds = useRef<Set<string>>(new Set());
+  // Social-task verification requests (player did IG/Google/Bio task)
+  const [socialVerifNotification, setSocialVerifNotification] = useState<{ id: string; playerId: string; playerName: string; bonusId: string; bonusTitle: string; reward: number } | null>(null);
+  const [socialVerifActioning, setSocialVerifActioning] = useState(false);
+  const socialVerifSeenIds = useRef<Set<string>>(new Set());
   const [guestRegTopUp, setGuestRegTopUp] = useState<{ id: string; playerName: string; coins: number; priceJOD: number } | null>(null);
   const [guestRegApproving, setGuestRegApproving] = useState(false);
   const [notifQueue, setNotifQueue] = useState<any[]>([]);
@@ -390,6 +394,66 @@ export function AdminDashboard({ admin }: Props) {
       await deleteDoc(doc(db, 'pin-reset-requests', pinResetNotification.id));
     } catch {}
     setPinResetNotification(null);
+  };
+
+  // Listen for social-verification requests (IG / Google review / Bio task)
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'social-verification-requests'), (snap) => {
+      const pending = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter((r: any) => r.status === 'pending')
+        .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      const unseen = pending.find((r: any) => !socialVerifSeenIds.current.has(r.id));
+      if (unseen) {
+        setSocialVerifNotification({
+          id: unseen.id,
+          playerId: unseen.playerId,
+          playerName: unseen.playerName || 'unknown',
+          bonusId: unseen.bonusId,
+          bonusTitle: unseen.bonusTitle || 'Social Task',
+          reward: unseen.reward || 10,
+        });
+        playNotifSound();
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const approveSocialVerif = async () => {
+    if (!socialVerifNotification) return;
+    setSocialVerifActioning(true);
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      // Credit coins + mark claimed with timestamp (so kiosk cooldown logic works)
+      await updateDoc(doc(db, 'players', socialVerifNotification.playerId), {
+        coins: increment(socialVerifNotification.reward),
+        [`socialBonus.${socialVerifNotification.bonusId}.claimed`]: true,
+        [`socialBonus.${socialVerifNotification.bonusId}.claimedAt`]: Date.now(),
+        [`socialBonus.${socialVerifNotification.bonusId}.requested`]: false,
+      });
+      await deleteDoc(doc(db, 'social-verification-requests', socialVerifNotification.id));
+    } catch (err) {
+      console.error('Social verif approve failed:', err);
+    }
+    socialVerifSeenIds.current.add(socialVerifNotification.id);
+    setSocialVerifActioning(false);
+    setSocialVerifNotification(null);
+  };
+
+  const rejectSocialVerif = async () => {
+    if (!socialVerifNotification) return;
+    setSocialVerifActioning(true);
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      // Clear the pending flag so player can re-request
+      await updateDoc(doc(db, 'players', socialVerifNotification.playerId), {
+        [`socialBonus.${socialVerifNotification.bonusId}.requested`]: false,
+      });
+      await deleteDoc(doc(db, 'social-verification-requests', socialVerifNotification.id));
+    } catch {}
+    socialVerifSeenIds.current.add(socialVerifNotification.id);
+    setSocialVerifActioning(false);
+    setSocialVerifNotification(null);
   };
 
   const dismissTopUpPopup = () => {
@@ -950,6 +1014,54 @@ export function AdminDashboard({ admin }: Props) {
                   className="flex-1 py-3.5 bg-[#fbbf24] text-[#1d1d1f] rounded-xl font-medium hover:bg-[#f59e0b] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {pinResetActioning ? <Loader2 size={18} className="animate-spin" /> : <Key size={18} />} Reset PIN
+                </button>
+              </div>
+            </div>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* Social-task Verification Request — player did IG/Google/Bio task */}
+      <AnimatePresence>
+        {socialVerifNotification && !activeNotification && !guestNotification && !regNotification && !pinResetNotification && (
+          <ModalOverlay>
+            <div className="w-[440px] max-w-[90vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#e879f9]/10 flex items-center justify-center text-2xl">📸</div>
+              <h1 className="text-xl md:text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">Social Task Verification</h1>
+              <p className="text-[#86868b] text-sm mb-5">A player completed a social task — verify it visually before paying out</p>
+              <div className="bg-[#f5f5f7] rounded-xl p-5 mb-4 text-left space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Player</span>
+                  <span className="text-[#1d1d1f] font-semibold">{socialVerifNotification.playerName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Task</span>
+                  <span className="text-[#1d1d1f] font-semibold">{socialVerifNotification.bonusTitle}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Reward</span>
+                  <span className="text-[#e879f9] font-bold flex items-center gap-1">+{socialVerifNotification.reward} <span className="text-xs font-normal">tokens</span></span>
+                </div>
+              </div>
+              <div className="bg-[#fdf4ff] border border-[#e879f9]/30 rounded-xl p-3 mb-5 text-left">
+                <p className="text-[#86868b] text-xs leading-relaxed">
+                  Check the player's phone or screenshot, then approve. If this is a repeatable task (Instagram / Google review), they can claim again in <span className="font-bold text-[#1d1d1f]">10 days</span>.
+                </p>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={rejectSocialVerif}
+                  disabled={socialVerifActioning}
+                  className="flex-1 py-3.5 border border-[#d2d2d7] rounded-xl text-[#86868b] font-medium hover:bg-[#fafafa] transition-all flex items-center justify-center gap-2"
+                >
+                  Reject
+                </button>
+                <button
+                  onClick={approveSocialVerif}
+                  disabled={socialVerifActioning}
+                  className="flex-1 py-3.5 bg-[#e879f9] text-white rounded-xl font-medium hover:bg-[#d946ef] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {socialVerifActioning ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />} Approve & Pay
                 </button>
               </div>
             </div>

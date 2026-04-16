@@ -1,4 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;500;600;700;800;900&family=Rajdhani:wght@300;400;500;600;700&family=Cairo:wght@400;500;600;700;800;900&family=Tajawal:wght@400;500;700;800;900&display=swap');
+
+/* Arabic font when document is in RTL mode. Applies to everything except
+   brand-style headers that already use Orbitron (kept for the "ninja" look). */
+html[dir="rtl"],
+html[dir="rtl"] body {
+  font-family: 'Cairo', 'Tajawal', 'Rajdhani', sans-serif;
+}
+html[dir="rtl"] .font-body {
+  font-family: 'Cairo', 'Tajawal', sans-serif !important;
+}
+html[dir="rtl"] .font-ninja {
+  font-family: 'Tajawal', 'Cairo', 'Orbitron', sans-serif !important;
+  font-weight: 800;
+  letter-spacing: 0 !important;
+}
+
+/* RTL polish: flip directional chevron icons (ChevronRight / ArrowRight)
+   so the UI visually points the correct way in Arabic. We target them by
+   the lucide class name. */
+html[dir="rtl"] .lucide-chevron-right,
+html[dir="rtl"] .lucide-arrow-right,
+html[dir="rtl"] .lucide-chevron-left,
+html[dir="rtl"] .lucide-arrow-left {
+  transform: scaleX(-1);
+}
+
+/* Keep numeric inputs (PIN, phone, money) LTR even in RTL mode so digits
+   read correctly. */
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] input[inputmode="numeric"],
+html[dir="rtl"] input[maxlength="6"] {
+  direction: ltr;
+  text-align: center;
+}
 
 @tailwind base;
 @tailwind components;

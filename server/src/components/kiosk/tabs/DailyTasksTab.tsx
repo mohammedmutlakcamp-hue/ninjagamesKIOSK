@@ -219,6 +219,14 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
         status: 'pending',
         createdAt: Date.now(),
       });
+      // Mark requested on player doc so UI stays in "PENDING" across reloads.
+      // Also clear any expired `claimed`/`claimedAt` from a previous cycle so
+      // the new request isn't mistaken for the old one.
+      await updateDoc(doc(db, 'players', player.uid), {
+        [`socialBonus.${bonus.id}.requested`]: true,
+        [`socialBonus.${bonus.id}.requestedAt`]: Date.now(),
+        [`socialBonus.${bonus.id}.claimed`]: false,
+      }).catch(() => {});
       setSocialSubmitted(bonus.id);
     } catch (err) {
       console.error('Social request failed', err);
@@ -944,14 +952,16 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
             {SOCIAL_BONUS_TASKS.map((b, i) => {
               const sb = (player.socialBonus && player.socialBonus[b.id]) || {};
-              // Repeatable bonus: claimed state expires after repeatEveryDays days.
               const cooldownMs = b.repeatEveryDays ? b.repeatEveryDays * 24 * 60 * 60 * 1000 : null;
               const claimedAt: number = sb.claimedAt || 0;
+              const requestedAt: number = sb.requestedAt || 0;
               const cooldownActive = cooldownMs !== null && claimedAt > 0 && (Date.now() - claimedAt) < cooldownMs;
               const claimed = cooldownMs === null
-                ? !!sb.claimed                         // one-time
-                : cooldownActive;                       // cooldown still running
-              const requested = !claimed && (!!sb.requested || socialSubmitted === b.id);
+                ? !!sb.claimed                         // one-time bonus
+                : cooldownActive;                       // repeatable: cooldown still running
+              // "Pending" only if the most-recent request happened AFTER the most-recent claim.
+              // This prevents a stale `requested:true` from a previous cycle from sticking.
+              const requested = !claimed && (socialSubmitted === b.id || (!!sb.requested && requestedAt > claimedAt));
               const daysRemaining = cooldownActive ? Math.max(1, Math.ceil((cooldownMs! - (Date.now() - claimedAt)) / (24 * 60 * 60 * 1000))) : 0;
               return (
                 <motion.button key={b.id}
