@@ -467,7 +467,7 @@ public partial class MainWindow : Window
             string? base64 = null;
             await Task.Run(() =>
             {
-                try { base64 = CaptureScreenAsBase64Jpeg(targetWidth: 640, jpegQuality: 55); }
+                try { base64 = CaptureScreenAsBase64Jpeg(targetWidth: 1280, jpegQuality: 80); }
                 catch (Exception ex) { App.Log($"SCREENSHOT_CAP_FAIL: {ex.Message}"); }
             });
             if (string.IsNullOrEmpty(base64)) return;
@@ -506,7 +506,10 @@ public partial class MainWindow : Window
         using var scaled = new System.Drawing.Bitmap(w, h);
         using (var g = System.Drawing.Graphics.FromImage(scaled))
         {
-            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBilinear;
+            g.InterpolationMode = System.Drawing.Drawing2D.InterpolationMode.HighQualityBicubic;
+            g.SmoothingMode      = System.Drawing.Drawing2D.SmoothingMode.HighQuality;
+            g.PixelOffsetMode    = System.Drawing.Drawing2D.PixelOffsetMode.HighQuality;
+            g.CompositingQuality = System.Drawing.Drawing2D.CompositingQuality.HighQuality;
             g.DrawImage(full, 0, 0, w, h);
         }
 
