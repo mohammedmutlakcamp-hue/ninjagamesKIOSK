@@ -185,22 +185,24 @@ const RARE_REWARDS: ChestReward[] = [
   { id: 'r_coins_150', type: 'coins',   name: '150 Tokens',    description: 'BIG FIND!',           rarity: 'legendary', value: 150, icon: 'coins', image: '/img/reward-coins-150.png', dropRate: 0.02 },
 ];
 
-// --- LEGENDARY CHEST REWARDS (cost 200, EV ~124) ---
+// --- LEGENDARY CHEST REWARDS (cost 200, EV ~143 = 28% house margin) ---
+// Rebalanced April 2026 after Monte Carlo showed old rates had -88% EV.
+// Skin drop rates cut from 4% to 1% (void/dragon), 2% to 0.3% (eclipse).
 const LEGENDARY_REWARDS: ChestReward[] = [
-  { id: 'l_coins_25',    type: 'coins',   name: '25 Tokens',         description: 'Small start',          rarity: 'common',    value: 25,  icon: 'coins',  image: '/img/reward-coins-25.png',  dropRate: 0.18 },
-  { id: 'l_coins_50',    type: 'coins',   name: '50 Tokens',         description: 'Decent!',              rarity: 'uncommon',  value: 50,  icon: 'coins',  image: '/img/reward-coins-50.png',  dropRate: 0.18 },
-  { id: 'l_coins_100',   type: 'coins',   name: '100 Tokens',        description: 'Solid haul!',          rarity: 'uncommon',  value: 100, icon: 'coins',  image: '/img/reward-coins-150.png', dropRate: 0.14 },
-  { id: 'l_drink',       type: 'voucher', name: 'Free Drink',        description: 'On the house',         rarity: 'uncommon',  value: 30,  icon: 'cup',    image: '/img/reward-voucher-drink.png', dropRate: 0.06 },
+  { id: 'l_coins_25',    type: 'coins',   name: '25 Tokens',         description: 'Small start',          rarity: 'common',    value: 25,  icon: 'coins',  image: '/img/reward-coins-25.png',  dropRate: 0.28 },
+  { id: 'l_coins_50',    type: 'coins',   name: '50 Tokens',         description: 'Decent!',              rarity: 'uncommon',  value: 50,  icon: 'coins',  image: '/img/reward-coins-50.png',  dropRate: 0.22 },
+  { id: 'l_coins_100',   type: 'coins',   name: '100 Tokens',        description: 'Solid haul!',          rarity: 'uncommon',  value: 100, icon: 'coins',  image: '/img/reward-coins-150.png', dropRate: 0.15 },
+  { id: 'l_drink',       type: 'voucher', name: 'Free Drink',        description: 'On the house',         rarity: 'uncommon',  value: 30,  icon: 'cup',    image: '/img/reward-voucher-drink.png', dropRate: 0.10 },
   { id: 'l_coins_150',   type: 'coins',   name: '150 Tokens',        description: 'Great find!',          rarity: 'rare',      value: 150, icon: 'coins',  image: '/img/reward-coins-150.png', dropRate: 0.10 },
   { id: 'l_food',        type: 'voucher', name: 'Free Food',         description: 'Full meal on us',      rarity: 'rare',      value: 50,  icon: 'utensils', image: '/img/reward-voucher-food.png', dropRate: 0.05 },
-  { id: 'l_time_1h',     type: 'voucher', name: '1 Hour Free',       description: 'Full hour of play',    rarity: 'rare',      value: 200, icon: 'clock',  image: '/img/reward-time-1h.png', dropRate: 0.05 },
-  { id: 'l_coins_250',   type: 'coins',   name: '250 Tokens',        description: 'JACKPOT!',             rarity: 'legendary', value: 250, icon: 'coins',  image: '/img/reward-coins-150.png', dropRate: 0.06 },
-  { id: 'l_tournament',  type: 'voucher', name: 'Tournament Pass',   description: 'Free tournament entry', rarity: 'legendary', value: 500, icon: 'trophy', image: '/img/reward-tournament-pass.png', dropRate: 0.03 },
-  { id: 'l_skin_void',   type: 'skin',    name: 'Void Ninja',        description: 'Born from the void',   rarity: 'legendary', skinId: 'void',   icon: 'skin', image: '/ninjas/profiles/void-ninja-profile-photo.png',   dropRate: 0.04 },
-  { id: 'l_skin_dragon', type: 'skin',    name: 'Dragon Ninja',      description: 'Ancient fire warrior',  rarity: 'legendary', skinId: 'dragon', icon: 'skin', image: '/ninjas/profiles/dragon-ninja-profile-photo.png', dropRate: 0.04 },
-  { id: 'l_coins_500',   type: 'coins',   name: '500 Tokens',        description: 'MEGA JACKPOT!',        rarity: 'mythical',  value: 500, icon: 'coins',  image: '/img/reward-coins-500.png', dropRate: 0.04 },
-  { id: 'l_skin_eclipse', type: 'skin',   name: 'Eclipse Ninja',     description: 'Balance of all power', rarity: 'mythical',  skinId: 'eclipse', icon: 'skin', image: '/ninjas/profiles/eclipse-ninja-profile-photo.png', dropRate: 0.02 },
-  { id: 'l_coins_1000',  type: 'coins',   name: '1000 Tokens',       description: 'LEGENDARY JACKPOT!',   rarity: 'immortal',  value: 1000, icon: 'coins', image: '/img/reward-coins-500.png', dropRate: 0.01 },
+  { id: 'l_time_1h',     type: 'voucher', name: '1 Hour Free',       description: 'Full hour of play',    rarity: 'rare',      value: 200, icon: 'clock',  image: '/img/reward-time-1h.png', dropRate: 0.04 },
+  { id: 'l_coins_250',   type: 'coins',   name: '250 Tokens',        description: 'JACKPOT!',             rarity: 'legendary', value: 250, icon: 'coins',  image: '/img/reward-coins-150.png', dropRate: 0.03 },
+  { id: 'l_tournament',  type: 'voucher', name: 'Tournament Pass',   description: 'Free tournament entry', rarity: 'legendary', value: 500, icon: 'trophy', image: '/img/reward-tournament-pass.png', dropRate: 0.02 },
+  { id: 'l_skin_void',   type: 'skin',    name: 'Void Ninja',        description: 'Born from the void',   rarity: 'legendary', skinId: 'void',   icon: 'skin', image: '/ninjas/profiles/void-ninja-profile-photo.png',   dropRate: 0.010 },
+  { id: 'l_skin_dragon', type: 'skin',    name: 'Dragon Ninja',      description: 'Ancient fire warrior',  rarity: 'legendary', skinId: 'dragon', icon: 'skin', image: '/ninjas/profiles/dragon-ninja-profile-photo.png', dropRate: 0.010 },
+  { id: 'l_coins_500',   type: 'coins',   name: '500 Tokens',        description: 'MEGA JACKPOT!',        rarity: 'mythical',  value: 500, icon: 'coins',  image: '/img/reward-coins-500.png', dropRate: 0.015 },
+  { id: 'l_skin_eclipse', type: 'skin',   name: 'Eclipse Ninja',     description: 'Balance of all power', rarity: 'mythical',  skinId: 'eclipse', icon: 'skin', image: '/ninjas/profiles/eclipse-ninja-profile-photo.png', dropRate: 0.003 },
+  { id: 'l_coins_1000',  type: 'coins',   name: '1000 Tokens',       description: 'LEGENDARY JACKPOT!',   rarity: 'immortal',  value: 1000, icon: 'coins', image: '/img/reward-coins-500.png', dropRate: 0.002 },
 ];
 
 // --- MYTHICAL CHEST REWARDS (cost 400, EV ~268) ---

@@ -45,20 +45,20 @@ const CHESTS = [
     { id: 'r_coins_150', type: 'coins', name: '150 Tokens', rarity: 'legendary', value: 150, dropRate: 0.02 },
   ]},
   { id: 'legendary', tier: 'legendary', cost: 200, rewards: [
-    { id: 'l_coins_25',    type: 'coins', name: '25 Tokens', rarity: 'common', value: 25, dropRate: 0.18 },
-    { id: 'l_coins_50',    type: 'coins', name: '50 Tokens', rarity: 'uncommon', value: 50, dropRate: 0.18 },
-    { id: 'l_coins_100',   type: 'coins', name: '100 Tokens', rarity: 'uncommon', value: 100, dropRate: 0.14 },
-    { id: 'l_drink',       type: 'voucher', name: 'Free Drink', rarity: 'uncommon', value: 30, dropRate: 0.06 },
+    { id: 'l_coins_25',    type: 'coins', name: '25 Tokens', rarity: 'common', value: 25, dropRate: 0.28 },
+    { id: 'l_coins_50',    type: 'coins', name: '50 Tokens', rarity: 'uncommon', value: 50, dropRate: 0.22 },
+    { id: 'l_coins_100',   type: 'coins', name: '100 Tokens', rarity: 'uncommon', value: 100, dropRate: 0.15 },
+    { id: 'l_drink',       type: 'voucher', name: 'Free Drink', rarity: 'uncommon', value: 30, dropRate: 0.10 },
     { id: 'l_coins_150',   type: 'coins', name: '150 Tokens', rarity: 'rare', value: 150, dropRate: 0.10 },
     { id: 'l_food',        type: 'voucher', name: 'Free Food', rarity: 'rare', value: 50, dropRate: 0.05 },
-    { id: 'l_time_1h',     type: 'voucher', name: '1 Hour Free', rarity: 'rare', value: 200, dropRate: 0.05 },
-    { id: 'l_coins_250',   type: 'coins', name: '250 Tokens', rarity: 'legendary', value: 250, dropRate: 0.06 },
-    { id: 'l_tournament',  type: 'voucher', name: 'Tournament Pass', rarity: 'legendary', value: 500, dropRate: 0.03 },
-    { id: 'l_skin_void',   type: 'skin', name: 'Void Ninja', rarity: 'legendary', skinId: 'void', value: 2000, dropRate: 0.04 },
-    { id: 'l_skin_dragon', type: 'skin', name: 'Dragon Ninja', rarity: 'legendary', skinId: 'dragon', value: 2000, dropRate: 0.04 },
-    { id: 'l_coins_500',   type: 'coins', name: '500 Tokens', rarity: 'mythical', value: 500, dropRate: 0.04 },
-    { id: 'l_skin_eclipse', type: 'skin', name: 'Eclipse Ninja', rarity: 'mythical', skinId: 'eclipse', value: 5000, dropRate: 0.02 },
-    { id: 'l_coins_1000',  type: 'coins', name: '1000 Tokens', rarity: 'immortal', value: 1000, dropRate: 0.01 },
+    { id: 'l_time_1h',     type: 'voucher', name: '1 Hour Free', rarity: 'rare', value: 200, dropRate: 0.04 },
+    { id: 'l_coins_250',   type: 'coins', name: '250 Tokens', rarity: 'legendary', value: 250, dropRate: 0.03 },
+    { id: 'l_tournament',  type: 'voucher', name: 'Tournament Pass', rarity: 'legendary', value: 500, dropRate: 0.02 },
+    { id: 'l_skin_void',   type: 'skin', name: 'Void Ninja', rarity: 'legendary', skinId: 'void', value: 2000, dropRate: 0.010 },
+    { id: 'l_skin_dragon', type: 'skin', name: 'Dragon Ninja', rarity: 'legendary', skinId: 'dragon', value: 2000, dropRate: 0.010 },
+    { id: 'l_coins_500',   type: 'coins', name: '500 Tokens', rarity: 'mythical', value: 500, dropRate: 0.015 },
+    { id: 'l_skin_eclipse', type: 'skin', name: 'Eclipse Ninja', rarity: 'mythical', skinId: 'eclipse', value: 5000, dropRate: 0.003 },
+    { id: 'l_coins_1000',  type: 'coins', name: '1000 Tokens', rarity: 'immortal', value: 1000, dropRate: 0.002 },
   ]},
   { id: 'mythical', tier: 'mythical', cost: 400, rewards: [
     { id: 'm_coins_50',     type: 'coins', name: '50 Tokens', rarity: 'common', value: 50, dropRate: 0.14 },
@@ -160,8 +160,10 @@ const configs = {
 
 // ─── CLI ────────────────────────────────────────────────────────────
 const args = process.argv.slice(2);
-const opens = parseInt(args[args.indexOf('--opens') + 1]) || 100000;
-const chestArg = args[args.indexOf('--chest') + 1];
+const opensIdx = args.indexOf('--opens');
+const opens = opensIdx >= 0 && args[opensIdx + 1] ? parseInt(args[opensIdx + 1]) : 100000;
+const chestIdx = args.indexOf('--chest');
+const chestArg = chestIdx >= 0 ? args[chestIdx + 1] : null;
 const chestsToRun = chestArg ? [chestArg] : CHESTS.map(c => c.id);
 
 console.log(`\n═══════════════════════════════════════════════════════════`);
