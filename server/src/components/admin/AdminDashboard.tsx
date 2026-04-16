@@ -367,7 +367,7 @@ export function AdminDashboard({ admin }: Props) {
     setPinResetActioning(true);
     try {
       // Find the player by username (lowercase) and apply the legacy reset
-      const { getDocs, query, where, deleteDoc } = await import('firebase/firestore');
+      const { getDocs, query, where } = await import('firebase/firestore');
       const q = query(collection(db, 'players'), where('username', '==', pinResetNotification.username));
       const playerSnap = await getDocs(q);
       if (!playerSnap.empty) {
@@ -377,7 +377,12 @@ export function AdminDashboard({ admin }: Props) {
           legacyPassword: '000000',
         });
       }
-      await deleteDoc(doc(db, 'pin-reset-requests', pinResetNotification.id));
+      // Mark the request as approved so the player's kiosk can flip to the
+      // PIN-picker popup. DO NOT delete — the kiosk listens to this doc.
+      await updateDoc(doc(db, 'pin-reset-requests', pinResetNotification.id), {
+        status: 'approved',
+        approvedAt: Date.now(),
+      });
     } catch (err) {
       console.error('PIN reset failed:', err);
     }
@@ -390,8 +395,11 @@ export function AdminDashboard({ admin }: Props) {
     if (!pinResetNotification) return;
     pinResetSeenIds.current.add(pinResetNotification.id);
     try {
-      const { deleteDoc } = await import('firebase/firestore');
-      await deleteDoc(doc(db, 'pin-reset-requests', pinResetNotification.id));
+      // Mark as rejected so the player's kiosk can show the rejected state.
+      await updateDoc(doc(db, 'pin-reset-requests', pinResetNotification.id), {
+        status: 'rejected',
+        rejectedAt: Date.now(),
+      });
     } catch {}
     setPinResetNotification(null);
   };

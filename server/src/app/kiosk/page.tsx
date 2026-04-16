@@ -285,7 +285,12 @@ export default function KioskPage() {
   useEffect(() => {
     if (!forgotPinRequestId || !forgotPinSent) return;
     const unsub = onSnapshot(doc(db, 'pin-reset-requests', forgotPinRequestId), (snap) => {
-      if (!snap.exists()) return;
+      if (!snap.exists()) {
+        // Doc was deleted by admin (legacy approval path) — treat as approved
+        // so the player isn't stuck on "WAITING FOR APPROVAL" forever.
+        setForgotPinApproved(true);
+        return;
+      }
       const data = snap.data() as any;
       if (data.status === 'approved') {
         setForgotPinApproved(true);
