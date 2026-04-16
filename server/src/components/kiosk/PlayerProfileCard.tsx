@@ -455,33 +455,65 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
             {!isSelf && (
               <div className="px-6 pb-4">
                 {isFriend ? (
-                  <div className="flex gap-2">
-                    <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }} onClick={handleMessage}
-                      className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(0,191,255,0.15), rgba(0,191,255,0.05))',
-                        border: '1px solid rgba(0,191,255,0.5)',
-                        color: '#00BFFF',
-                        boxShadow: '0 0 12px rgba(0,191,255,0.2)',
-                        textShadow: '0 0 6px rgba(0,191,255,0.5)',
-                      }}>
-                      <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #00BFFF', borderLeft: '1.5px solid #00BFFF' }} />
-                      <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #00BFFF', borderRight: '1.5px solid #00BFFF' }} />
-                      <MessageSquare size={14} /> MESSAGE
-                    </motion.button>
-                    <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }} onClick={handleCall}
-                      className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
-                      style={{
-                        background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(57,255,20,0.05))',
-                        border: '1px solid rgba(57,255,20,0.5)',
-                        color: '#39FF14',
-                        boxShadow: '0 0 12px rgba(57,255,20,0.2)',
-                        textShadow: '0 0 6px rgba(57,255,20,0.5)',
-                      }}>
-                      <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #39FF14', borderLeft: '1.5px solid #39FF14' }} />
-                      <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #39FF14', borderRight: '1.5px solid #39FF14' }} />
-                      <Phone size={14} /> CALL
-                    </motion.button>
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }} onClick={handleMessage}
+                        className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(0,191,255,0.15), rgba(0,191,255,0.05))',
+                          border: '1px solid rgba(0,191,255,0.5)',
+                          color: '#00BFFF',
+                          boxShadow: '0 0 12px rgba(0,191,255,0.2)',
+                          textShadow: '0 0 6px rgba(0,191,255,0.5)',
+                        }}>
+                        <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #00BFFF', borderLeft: '1.5px solid #00BFFF' }} />
+                        <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #00BFFF', borderRight: '1.5px solid #00BFFF' }} />
+                        <MessageSquare size={14} /> MESSAGE
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }} onClick={handleCall}
+                        className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(57,255,20,0.05))',
+                          border: '1px solid rgba(57,255,20,0.5)',
+                          color: '#39FF14',
+                          boxShadow: '0 0 12px rgba(57,255,20,0.2)',
+                          textShadow: '0 0 6px rgba(57,255,20,0.5)',
+                        }}>
+                        <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #39FF14', borderLeft: '1.5px solid #39FF14' }} />
+                        <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #39FF14', borderRight: '1.5px solid #39FF14' }} />
+                        <Phone size={14} /> CALL
+                      </motion.button>
+                    </div>
+                    <div className="flex gap-2">
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}
+                        onClick={() => { setSendResult(null); setSendCoinsOpen(true); }}
+                        className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(251,191,36,0.15), rgba(251,191,36,0.05))',
+                          border: '1px solid rgba(251,191,36,0.5)',
+                          color: '#FBBF24',
+                          boxShadow: '0 0 12px rgba(251,191,36,0.2)',
+                          textShadow: '0 0 6px rgba(251,191,36,0.5)',
+                        }}>
+                        <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #FBBF24', borderLeft: '1.5px solid #FBBF24' }} />
+                        <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #FBBF24', borderRight: '1.5px solid #FBBF24' }} />
+                        <Coins size={14} /> SEND COINS
+                      </motion.button>
+                      <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}
+                        onClick={() => setConfirmRemove(true)}
+                        className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(239,68,68,0.05))',
+                          border: '1px solid rgba(239,68,68,0.5)',
+                          color: '#EF4444',
+                          boxShadow: '0 0 12px rgba(239,68,68,0.2)',
+                          textShadow: '0 0 6px rgba(239,68,68,0.5)',
+                        }}>
+                        <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #EF4444', borderLeft: '1.5px solid #EF4444' }} />
+                        <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #EF4444', borderRight: '1.5px solid #EF4444' }} />
+                        <UserMinus size={14} /> REMOVE
+                      </motion.button>
+                    </div>
                   </div>
                 ) : (
                   <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }} onClick={handleAddFriend}
@@ -576,9 +608,135 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
               )}
             </div>
 
-            {/* Send Coins + Remove Friend buttons removed — clean profile-only view */}
           </>
         )}
+
+        {/* ═══ Send Coins Modal ═══ */}
+        <AnimatePresence>
+          {sendCoinsOpen && targetPlayer && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[210] flex items-center justify-center"
+              onClick={() => { if (!sendLoading) { setSendCoinsOpen(false); setSendPin(''); setSendPinVerified(false); setSendAmount(''); setSendResult(null); } }}>
+              <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} />
+              <motion.div initial={{ scale: 0.9, y: 20, opacity: 0 }} animate={{ scale: 1, y: 0, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-[360px] max-w-[92vw] rounded-2xl p-5"
+                style={{
+                  background: 'linear-gradient(180deg, #050a14 0%, #030508 100%)',
+                  border: '1.5px solid rgba(251,191,36,0.4)',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 35px rgba(251,191,36,0.2)',
+                }}>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <Coins size={18} className="text-yellow-400" />
+                    <h3 className="font-ninja text-base text-white tracking-wider">SEND COINS</h3>
+                  </div>
+                  <button onClick={() => { setSendCoinsOpen(false); setSendPin(''); setSendPinVerified(false); setSendAmount(''); setSendResult(null); }}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <X size={14} />
+                  </button>
+                </div>
+                <p className="font-body text-xs text-gray-400 mb-1">To</p>
+                <p className="font-ninja text-sm text-white mb-4">{targetPlayer.username?.toUpperCase()}</p>
+
+                {!sendPinVerified ? (
+                  <>
+                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">VERIFY YOUR 6-DIGIT PIN</p>
+                    <input type="password" inputMode="numeric" value={sendPin}
+                      onChange={(e) => setSendPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="••••••"
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendCoins()}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-3 text-center font-ninja text-lg tracking-[0.5em] text-white focus:outline-none focus:border-yellow-400/50" />
+                  </>
+                ) : (
+                  <>
+                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">AMOUNT (COINS)</p>
+                    <input type="number" value={sendAmount}
+                      onChange={(e) => setSendAmount(e.target.value.replace(/\D/g, '').slice(0, 7))}
+                      placeholder="0"
+                      onKeyDown={(e) => e.key === 'Enter' && handleSendCoins()}
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-3 font-ninja text-lg text-white focus:outline-none focus:border-yellow-400/50" />
+                    {sendAmount && parseInt(sendAmount) > 0 && (
+                      <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                        <div className="flex justify-between text-[11px] text-gray-400 font-body mb-1">
+                          <span>Amount</span><span className="text-white">{parseInt(sendAmount)}</span>
+                        </div>
+                        <div className="flex justify-between text-[11px] text-gray-400 font-body mb-1">
+                          <span>Fee (10%)</span><span className="text-orange-400">{Math.ceil(parseInt(sendAmount) * 0.1)}</span>
+                        </div>
+                        <div className="flex justify-between text-[12px] font-ninja pt-1 border-t border-white/5 mt-1">
+                          <span className="text-gray-300">Total</span>
+                          <span className="text-yellow-400">{parseInt(sendAmount) + Math.ceil(parseInt(sendAmount) * 0.1)}</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {sendResult && (
+                  <p className={`mt-3 text-center font-body text-xs ${sendResult.includes('Sent') ? 'text-green-400' : 'text-red-400'}`}>{sendResult}</p>
+                )}
+
+                <button onClick={handleSendCoins} disabled={sendLoading}
+                  className="w-full mt-4 py-3 rounded-lg font-ninja text-sm tracking-wider disabled:opacity-50 flex items-center justify-center gap-2"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.08))',
+                    border: '1.5px solid rgba(251,191,36,0.6)',
+                    color: '#FBBF24',
+                    boxShadow: '0 0 14px rgba(251,191,36,0.25)',
+                  }}>
+                  {sendLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+                  {sendPinVerified ? 'SEND' : 'VERIFY PIN'}
+                </button>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* ═══ Confirm Remove Friend Modal ═══ */}
+        <AnimatePresence>
+          {confirmRemove && targetPlayer && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="absolute inset-0 z-[210] flex items-center justify-center"
+              onClick={() => !actionLoading && setConfirmRemove(false)}>
+              <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }} />
+              <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="relative w-[340px] max-w-[92vw] rounded-2xl p-5 text-center"
+                style={{
+                  background: 'linear-gradient(180deg, #0a0406 0%, #050203 100%)',
+                  border: '1.5px solid rgba(239,68,68,0.4)',
+                  boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 35px rgba(239,68,68,0.2)',
+                }}>
+                <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center"
+                  style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)' }}>
+                  <UserMinus size={22} className="text-red-400" />
+                </div>
+                <h3 className="font-ninja text-base text-white mb-1 tracking-wider">REMOVE FRIEND?</h3>
+                <p className="font-body text-xs text-gray-400 mb-5">
+                  {targetPlayer.username?.toUpperCase()} will be removed from your friends list.
+                </p>
+                <div className="flex gap-2">
+                  <button onClick={() => setConfirmRemove(false)} disabled={actionLoading}
+                    className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider text-gray-300"
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                    CANCEL
+                  </button>
+                  <button onClick={handleRemoveFriend} disabled={actionLoading}
+                    className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-50"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(239,68,68,0.25), rgba(239,68,68,0.08))',
+                      border: '1px solid rgba(239,68,68,0.6)',
+                      color: '#EF4444',
+                    }}>
+                    {actionLoading ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={12} />}
+                    REMOVE
+                  </button>
+                </div>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* ═══ Profile Comments ═══ */}
         {targetPlayer && (
           <div className="mt-4 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
