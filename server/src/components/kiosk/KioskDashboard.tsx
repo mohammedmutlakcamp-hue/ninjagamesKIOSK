@@ -788,10 +788,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
           background: isPlayerVIP
             ? 'linear-gradient(180deg, rgba(20,16,8,0.98) 0%, rgba(12,10,6,0.98) 40%, rgba(10,10,12,0.98) 100%)'
             : 'linear-gradient(180deg, #030508 0%, #04070e 20%, #050a14 50%, #04070e 80%, #030508 100%)',
-          borderRight: isPlayerVIP ? '2px solid rgba(255, 215, 0, 0.25)' : '2px solid rgba(57, 255, 20, 0.25)',
+          borderRight: 'none',
           boxShadow: isPlayerVIP
-            ? '4px 0 30px rgba(0,0,0,0.4), 0 0 40px rgba(255,215,0,0.05)'
-            : '4px 0 50px rgba(0,0,0,0.7), 0 0 80px rgba(57,255,20,0.06), 8px 0 60px rgba(57,255,20,0.04)',
+            ? '0 0 20px rgba(0,0,0,0.3)'
+            : '0 0 20px rgba(0,0,0,0.5)',
         }}
       >
         {/* VIP gold accent line at top */}
