@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyCopyrightAttribute("© 2026 Ninja Games")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f990c8461ab3f95482990a8bbd660277b308c38e")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+00561bdeab2b0f33f64a4ce49ee357e416fda560")]
 [assembly: System.Reflection.AssemblyProductAttribute("Ninja Games Kiosk")]
 [assembly: System.Reflection.AssemblyTitleAttribute("NinjaKiosk")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
