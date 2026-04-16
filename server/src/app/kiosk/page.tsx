@@ -73,6 +73,14 @@ export default function KioskPage() {
   const [forgotPinOpen, setForgotPinOpen] = useState(false);
   const [forgotPinSent, setForgotPinSent] = useState(false);
   const [forgotPinSending, setForgotPinSending] = useState(false);
+  const [forgotPinRequestId, setForgotPinRequestId] = useState<string | null>(null);
+  const [forgotPinApproved, setForgotPinApproved] = useState(false);
+  const [forgotPinRejected, setForgotPinRejected] = useState(false);
+  // New PIN picker shown to the player after admin approves their forgot-pin request
+  const [newPinAfterForgot, setNewPinAfterForgot] = useState('');
+  const [newPinConfirmAfterForgot, setNewPinConfirmAfterForgot] = useState('');
+  const [newPinSaving, setNewPinSaving] = useState(false);
+  const [newPinError, setNewPinError] = useState('');
   // Guest request state
   const [guestRequestPending, setGuestRequestPending] = useState(false);
   const [guestRequestId, setGuestRequestId] = useState<string | null>(null);
@@ -248,7 +256,8 @@ export default function KioskPage() {
     setForgotPinSending(true);
     try {
       const u = (username || '').trim().toLowerCase();
-      const reqRef = doc(db, 'pin-reset-requests', `${u || 'unknown'}_${Date.now()}`);
+      const reqId = `${u || 'unknown'}_${Date.now()}`;
+      const reqRef = doc(db, 'pin-reset-requests', reqId);
       await setDoc(reqRef, {
         username: u,
         pcId: pcDocId || null,
@@ -256,11 +265,69 @@ export default function KioskPage() {
         status: 'pending',
         createdAt: Date.now(),
       });
+      setForgotPinRequestId(reqId);
       setForgotPinSent(true);
     } catch (err) {
       console.error('Forgot-PIN request failed', err);
     }
     setForgotPinSending(false);
+  };
+
+  // Listen for admin approval/rejection of our pending forgot-pin request.
+  // When approved, auto-open the "Pick a new PIN" popup so the player
+  // doesn't have to re-type username + temp password.
+  useEffect(() => {
+    if (!forgotPinRequestId || !forgotPinSent) return;
+    const unsub = onSnapshot(doc(db, 'pin-reset-requests', forgotPinRequestId), (snap) => {
+      if (!snap.exists()) return;
+      const data = snap.data() as any;
+      if (data.status === 'approved') {
+        setForgotPinApproved(true);
+      } else if (data.status === 'rejected') {
+        setForgotPinRejected(true);
+      }
+    });
+    return () => unsub();
+  }, [forgotPinRequestId, forgotPinSent]);
+
+  // Player submits their new PIN in the post-approval popup
+  const saveNewPinAfterForgot = async () => {
+    if (newPinSaving) return;
+    if (newPinAfterForgot.length !== 6) { setNewPinError(lang === 'ar' ? 'يجب أن يكون رمز PIN من 6 أرقام' : 'PIN must be 6 digits'); return; }
+    if (newPinAfterForgot !== newPinConfirmAfterForgot) { setNewPinError(lang === 'ar' ? 'رمز PIN غير متطابق' : 'PINs do not match'); return; }
+    setNewPinSaving(true); setNewPinError('');
+    try {
+      const u = (username || '').trim().toLowerCase();
+      const playerSnap = await getDocs(query(collection(db, 'players'), where('username', '==', u)));
+      if (playerSnap.empty) {
+        setNewPinError(lang === 'ar' ? 'تعذر العثور على الحساب' : 'Could not find account');
+        setNewPinSaving(false);
+        return;
+      }
+      await updateDoc(doc(db, 'players', playerSnap.docs[0].id), {
+        pin: newPinAfterForgot,
+        isLegacyUser: false,
+        legacyPassword: '',
+      });
+      // Clean up the request doc so it doesn't linger
+      if (forgotPinRequestId) {
+        try { await updateDoc(doc(db, 'pin-reset-requests', forgotPinRequestId), { status: 'completed', completedAt: Date.now() }); } catch {}
+      }
+      // Reset every bit of forgot-pin state and send the player back to login
+      setForgotPinOpen(false);
+      setForgotPinSent(false);
+      setForgotPinApproved(false);
+      setForgotPinRejected(false);
+      setForgotPinRequestId(null);
+      setNewPinAfterForgot('');
+      setNewPinConfirmAfterForgot('');
+      setPin(newPinAfterForgot); // pre-fill so they can just tap Login
+      setError(lang === 'ar' ? '✓ تم تحديث رمز PIN — اضغط دخول' : '✓ PIN updated — tap Login');
+    } catch (err) {
+      console.error('Save new PIN after forgot failed:', err);
+      setNewPinError(lang === 'ar' ? 'فشل في حفظ رمز PIN' : 'Failed to save PIN');
+    }
+    setNewPinSaving(false);
   };
 
   // Step 1 of legacy flow: validate the old EasyCafe password
@@ -295,7 +362,7 @@ export default function KioskPage() {
       // First check if username exists at all
       const usernameQ = query(
         collection(db, 'players'),
-        where('username', '==', username.toLowerCase())
+        where('username', '==', username.trim().toLowerCase())
       );
       const usernameSnap = await getDocs(usernameQ);
 
@@ -305,10 +372,36 @@ export default function KioskPage() {
         return;
       }
 
+      // Submit-time legacy check: if this user is flagged legacy (e.g. admin
+      // just reset their PIN), flip into the legacy-password flow RIGHT NOW —
+      // don't wait for the 350ms debounce. This was the "no password works"
+      // bug: if the player typed fast, they'd hit the normal PIN check with
+      // pin='' and get "Incorrect PIN" forever.
+      const userDoc = { uid: usernameSnap.docs[0].id, ...usernameSnap.docs[0].data() } as any;
+      if (userDoc.isLegacyUser === true) {
+        setLegacyPlayer(userDoc);
+        setLegacyPassword(pin);   // they typed the temp password in the PIN box — seed it
+        setPin('');
+        setLoading(false);
+        // Run the legacy-password validation immediately with the value they typed
+        setTimeout(() => {
+          const stored = (userDoc.legacyPassword || '').trim();
+          const entered = (pin || '').trim();
+          if (entered && entered.toLowerCase() === stored.toLowerCase()) {
+            setError('');
+            setPin(''); setPinConfirm('');
+            setPinSetupMode(true);
+          } else {
+            setError(lang === 'ar' ? '⚡ حساب قديم — أدخل كلمة المرور المؤقتة' : '⚡ LEGACY ACCOUNT — enter your temp password');
+          }
+        }, 0);
+        return;
+      }
+
       // Username exists, now check PIN
       const q = query(
         collection(db, 'players'),
-        where('username', '==', username.toLowerCase()),
+        where('username', '==', username.trim().toLowerCase()),
         where('pin', '==', pin)
       );
       const snap = await getDocs(q);
@@ -1427,8 +1520,8 @@ export default function KioskPage() {
                 {activeTournaments.length === 0 ? (
                   <div className="flex flex-col items-center justify-center h-full text-center py-8">
                     <Swords size={36} className="text-gray-700 mb-3" />
-                    <p className="font-ninja text-sm text-gray-500 tracking-wider">NO TOURNAMENTS</p>
-                    <p className="font-body text-[11px] text-gray-600 mt-1">Check back soon</p>
+                    <p className="font-ninja text-sm text-gray-500 tracking-wider">{lang === 'ar' ? 'لا توجد بطولات' : 'NO TOURNAMENTS'}</p>
+                    <p className="font-body text-[11px] text-gray-600 mt-1">{lang === 'ar' ? 'عد قريباً' : 'Check back soon'}</p>
                   </div>
                 ) : (
                   activeTournaments.map((t: any) => {
@@ -1567,9 +1660,9 @@ export default function KioskPage() {
             ))}
             <Trophy size={20} className="text-yellow-400 flex-shrink-0" style={{ filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.8))' }} />
             <span className="font-ninja text-base tracking-[0.15em] flex-1 text-left" style={{ color: '#FFD700', textShadow: '0 0 10px rgba(255,215,0,0.5)' }}>
-              LEADERBOARD
+              {lang === 'ar' ? 'لوحة المتصدرين' : 'LEADERBOARD'}
             </span>
-            <span className="font-ninja text-[10px] text-yellow-300/80 tracking-wider">TOP 20</span>
+            <span className="font-ninja text-[10px] text-yellow-300/80 tracking-wider">{lang === 'ar' ? 'أفضل 20' : 'TOP 20'}</span>
             <motion.div
               animate={{ rotate: leaderboardOpen ? 180 : 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 20 }}
@@ -1709,7 +1802,7 @@ export default function KioskPage() {
                 );
               })}
               {sorted.length === 0 && (
-                <p className="font-body text-xs text-gray-600 text-center py-4">No players yet</p>
+                <p className="font-body text-xs text-gray-600 text-center py-4">{lang === 'ar' ? 'لا يوجد لاعبون بعد' : 'No players yet'}</p>
               )}
             </div>
           </div>
@@ -1746,22 +1839,18 @@ export default function KioskPage() {
               ✕
             </button>
 
-            <div className="text-center">
-              <div className="text-5xl mb-3">🔑</div>
-              <p className="font-ninja text-2xl text-amber-400 tracking-wider mb-2" style={{ textShadow: '0 0 12px rgba(251,191,36,0.4)' }}>
-                {lang === 'ar' ? 'نسيت رمز PIN؟' : 'Forgot Your PIN?'}
-              </p>
-              <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">
-                {forgotPinSent
-                  ? (lang === 'ar'
-                      ? '✓ تم إرسال طلبك. اذهب إلى الموظف ليقوم بإعادة تعيين الرمز لك. ستحصل على كلمة مرور مؤقتة لتسجيل الدخول واختيار رمز PIN جديد.'
-                      : '✓ Request sent! Visit the staff desk — they\'ll reset your PIN. You\'ll get a temporary password to log in and pick a new PIN.')
-                  : (lang === 'ar'
-                      ? 'لا توجد مشكلة! اضغط على الزر أدناه لإرسال طلب إلى الموظف. ثم اذهب إلى المكتب لإعادة تعيين الرمز.'
-                      : 'No worries! Tap below to ping the staff. Then go to the desk — they\'ll reset your PIN to a temporary password so you can log in.')}
-              </p>
-
-              {!forgotPinSent ? (
+            {/* ─── MODE A: Pre-submit — tap to notify staff ─── */}
+            {!forgotPinSent && !forgotPinApproved && (
+              <div className="text-center">
+                <div className="text-5xl mb-3">🔑</div>
+                <p className="font-ninja text-2xl text-amber-400 tracking-wider mb-2" style={{ textShadow: '0 0 12px rgba(251,191,36,0.4)' }}>
+                  {lang === 'ar' ? 'نسيت رمز PIN؟' : 'Forgot Your PIN?'}
+                </p>
+                <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">
+                  {lang === 'ar'
+                    ? 'لا توجد مشكلة! اضغط على الزر أدناه لإرسال طلب إلى الموظف. ستختار رمز PIN جديد هنا بعد الموافقة.'
+                    : 'No worries! Tap below to ping the staff. Once they approve, you\'ll pick a new PIN right here.'}
+                </p>
                 <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }}
                   onClick={submitForgotPin} disabled={forgotPinSending}
                   className="w-full h-12 rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-60"
@@ -1776,15 +1865,117 @@ export default function KioskPage() {
                     ? (lang === 'ar' ? 'جاري الإرسال...' : 'Sending...')
                     : (lang === 'ar' ? '🔔 أرسل طلب إلى الموظف' : '🔔 Notify Staff')}
                 </motion.button>
-              ) : (
-                <div className="rounded-lg py-3 px-4"
-                  style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.4)' }}>
-                  <p className="font-ninja text-sm tracking-wider text-ninja-green" style={{ textShadow: '0 0 8px rgba(57,255,20,0.4)' }}>
-                    ✓ {lang === 'ar' ? 'تم — اذهب إلى الموظف' : 'SENT — GO TO STAFF'}
+              </div>
+            )}
+
+            {/* ─── MODE B: Sent, waiting for admin approval ─── */}
+            {forgotPinSent && !forgotPinApproved && !forgotPinRejected && (
+              <div className="text-center">
+                <motion.div
+                  animate={{ rotate: [0, 8, -8, 0] }}
+                  transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
+                  className="text-5xl mb-3">⏳</motion.div>
+                <p className="font-ninja text-2xl text-amber-400 tracking-wider mb-2" style={{ textShadow: '0 0 12px rgba(251,191,36,0.4)' }}>
+                  {lang === 'ar' ? 'تم إرسال الطلب' : 'ADMIN NOTIFIED'}
+                </p>
+                <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">
+                  {lang === 'ar'
+                    ? 'جاري انتظار موافقة الموظف... اذهب إلى المكتب لتأكيد هويتك. سيظهر مربع جديد هنا فور الموافقة.'
+                    : 'Waiting for staff approval… visit the desk to verify your identity. A new box will appear here as soon as they approve.'}
+                </p>
+                <div className="rounded-lg py-3 px-4 flex items-center justify-center gap-2"
+                  style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.4)' }}>
+                  <Loader2 size={14} className="animate-spin text-amber-400" />
+                  <p className="font-ninja text-sm tracking-wider text-amber-400" style={{ textShadow: '0 0 8px rgba(251,191,36,0.4)' }}>
+                    {lang === 'ar' ? 'بانتظار الموافقة...' : 'WAITING FOR APPROVAL…'}
                   </p>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* ─── MODE C: Rejected — go back to Mode A ─── */}
+            {forgotPinRejected && (
+              <div className="text-center">
+                <div className="text-5xl mb-3">❌</div>
+                <p className="font-ninja text-2xl text-red-400 tracking-wider mb-2">
+                  {lang === 'ar' ? 'رُفض الطلب' : 'REQUEST REJECTED'}
+                </p>
+                <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">
+                  {lang === 'ar'
+                    ? 'تحدث مع الموظف عند المكتب.'
+                    : 'Please speak with a staff member at the desk.'}
+                </p>
+                <button
+                  onClick={() => { setForgotPinOpen(false); setForgotPinSent(false); setForgotPinRejected(false); setForgotPinRequestId(null); }}
+                  className="w-full h-12 rounded-lg font-ninja text-sm tracking-wider"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)', color: '#ccc' }}>
+                  {lang === 'ar' ? 'إغلاق' : 'CLOSE'}
+                </button>
+              </div>
+            )}
+
+            {/* ─── MODE D: Approved — player picks a new PIN right here ─── */}
+            {forgotPinApproved && (
+              <div>
+                <div className="text-center mb-5">
+                  <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring' }}
+                    className="w-14 h-14 mx-auto mb-3 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(57,255,20,0.1)', border: '1.5px solid rgba(57,255,20,0.4)', boxShadow: '0 0 18px rgba(57,255,20,0.2)' }}>
+                    <span className="text-2xl">✅</span>
+                  </motion.div>
+                  <p className="font-ninja text-2xl tracking-wider text-ninja-green mb-2" style={{ textShadow: '0 0 12px rgba(57,255,20,0.4)' }}>
+                    {lang === 'ar' ? 'تمت الموافقة!' : 'APPROVED!'}
+                  </p>
+                  <p className="font-body text-sm text-gray-400">
+                    {lang === 'ar' ? 'اختر رمز PIN جديد (6 أرقام)' : 'Pick your new 6-digit PIN'}
+                  </p>
+                </div>
+
+                <div className="space-y-3 mb-4">
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={newPinAfterForgot}
+                    onChange={(e) => { setNewPinAfterForgot(e.target.value.replace(/\D/g, '').slice(0, 6)); setNewPinError(''); }}
+                    placeholder={lang === 'ar' ? 'رمز PIN الجديد' : 'New PIN'}
+                    maxLength={6}
+                    autoFocus
+                    className="w-full bg-black/50 border border-ninja-green/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-ninja-green"
+                    style={{ direction: 'ltr' }}
+                  />
+                  <input
+                    type="password"
+                    inputMode="numeric"
+                    value={newPinConfirmAfterForgot}
+                    onChange={(e) => { setNewPinConfirmAfterForgot(e.target.value.replace(/\D/g, '').slice(0, 6)); setNewPinError(''); }}
+                    onKeyDown={(e) => e.key === 'Enter' && saveNewPinAfterForgot()}
+                    placeholder={lang === 'ar' ? 'تأكيد رمز PIN' : 'Confirm PIN'}
+                    maxLength={6}
+                    className="w-full bg-black/50 border border-ninja-green/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-ninja-green"
+                    style={{ direction: 'ltr' }}
+                  />
+                </div>
+
+                {newPinError && <p className="text-red-400 text-sm text-center font-body mb-3">{newPinError}</p>}
+
+                <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }}
+                  onClick={saveNewPinAfterForgot}
+                  disabled={newPinSaving || newPinAfterForgot.length !== 6}
+                  className="w-full h-12 rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(57,255,20,0.25), rgba(57,255,20,0.08))',
+                    border: '1.5px solid rgba(57,255,20,0.6)',
+                    color: '#39FF14',
+                    boxShadow: '0 0 16px rgba(57,255,20,0.3)',
+                    textShadow: '0 0 6px rgba(57,255,20,0.5)',
+                  }}>
+                  {newPinSaving ? <Loader2 size={14} className="animate-spin" /> : '✓'}
+                  {newPinSaving
+                    ? (lang === 'ar' ? 'جاري الحفظ...' : 'SAVING...')
+                    : (lang === 'ar' ? 'حفظ رمز PIN' : 'SAVE NEW PIN')}
+                </motion.button>
+              </div>
+            )}
           </motion.div>
         </div>
       )}

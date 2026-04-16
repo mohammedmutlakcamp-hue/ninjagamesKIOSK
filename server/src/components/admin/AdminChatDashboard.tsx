@@ -12,7 +12,7 @@ import {
   Send, X, Check, Clock, ChefHat, CheckCircle2, Package, XCircle,
   LogOut, Bell, ArrowLeft, User, Monitor, Headphones, Wind,
   AlertTriangle, Loader2, Timer, Shield, TrendingUp,
-  History, DollarSign, ChevronRight, BarChart3, Receipt
+  History, DollarSign, ChevronRight, BarChart3, Receipt, KeyRound
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -104,6 +104,15 @@ interface PendingRegistration {
   phone: string;
   ninjaType: string;
   approvalCode: string;
+  status: string;
+  createdAt: number;
+}
+
+interface PinResetRequest {
+  id: string;
+  username: string;
+  pcName?: string | null;
+  pcId?: string | null;
   status: string;
   createdAt: number;
 }
@@ -237,7 +246,15 @@ export function AdminChatDashboard({ admin }: Props) {
   const [vipRequests, setVipRequests] = useState<VIPRequest[]>([]);
   const [guestRequests, setGuestRequests] = useState<GuestRequest[]>([]);
   const [registrations, setRegistrations] = useState<PendingRegistration[]>([]);
-  const [requestFilter, setRequestFilter] = useState<'topups' | 'vip' | 'guests' | 'regs'>('topups');
+  const [pinResetRequests, setPinResetRequests] = useState<PinResetRequest[]>([]);
+  const [pinResetToast, setPinResetToast] = useState<PinResetRequest | null>(null);
+  const [pinResetActioning, setPinResetActioning] = useState<string | null>(null);
+  // Manual PIN reset (admin searches any player by username, resets immediately)
+  const [manualResetUsername, setManualResetUsername] = useState('');
+  const [manualResetLoading, setManualResetLoading] = useState(false);
+  const [manualResetMsg, setManualResetMsg] = useState<{ text: string; ok: boolean } | null>(null);
+  const pinResetSeenIds = useRef<Set<string>>(new Set());
+  const [requestFilter, setRequestFilter] = useState<'topups' | 'vip' | 'guests' | 'regs' | 'pins'>('topups');
 
   // Guest time
   const [guestTimeSelection, setGuestTimeSelection] = useState<Record<string, number>>({});
@@ -356,6 +373,84 @@ export function AdminChatDashboard({ admin }: Props) {
     });
     return () => unsub();
   }, []);
+
+  // ── PIN reset requests (player tapped "Forgot PIN" on the kiosk login) ──
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'pin-reset-requests'), (snap) => {
+      const all = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as PinResetRequest))
+        .sort((a, b) => b.createdAt - a.createdAt);
+      setPinResetRequests(all);
+      // Pop the toast for the newest unseen pending request
+      const pending = all.filter(r => r.status === 'pending');
+      const unseen = pending.find(r => !pinResetSeenIds.current.has(r.id));
+      if (unseen) {
+        setPinResetToast(unseen);
+        playNotificationSound();
+        showAlert(`Forgot PIN request from ${(unseen.username || '').toUpperCase()}`);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const approvePinResetRequest = async (req: PinResetRequest) => {
+    if (pinResetActioning) return;
+    setPinResetActioning(req.id);
+    try {
+      const qRef = query(collection(db, 'players'), where('username', '==', (req.username || '').toLowerCase()));
+      const playerSnap = await getDocs(qRef);
+      if (!playerSnap.empty) {
+        await updateDoc(doc(db, 'players', playerSnap.docs[0].id), {
+          pin: '',
+          isLegacyUser: true,
+          legacyPassword: '0000',
+        });
+      }
+      await updateDoc(doc(db, 'pin-reset-requests', req.id), { status: 'approved', approvedAt: Date.now() });
+    } catch (err) {
+      console.error('PIN reset approve failed', err);
+    }
+    pinResetSeenIds.current.add(req.id);
+    setPinResetToast(t => (t?.id === req.id ? null : t));
+    setPinResetActioning(null);
+  };
+
+  const rejectPinResetRequest = async (req: PinResetRequest) => {
+    if (pinResetActioning) return;
+    setPinResetActioning(req.id);
+    try {
+      await updateDoc(doc(db, 'pin-reset-requests', req.id), { status: 'rejected', rejectedAt: Date.now() });
+    } catch {}
+    pinResetSeenIds.current.add(req.id);
+    setPinResetToast(t => (t?.id === req.id ? null : t));
+    setPinResetActioning(null);
+  };
+
+  // Admin-initiated PIN reset — staff types a username and hits Reset. No player request needed.
+  const manualPinReset = async () => {
+    const u = manualResetUsername.trim().toLowerCase();
+    if (!u) { setManualResetMsg({ text: 'Enter a username', ok: false }); return; }
+    setManualResetLoading(true);
+    setManualResetMsg(null);
+    try {
+      const qRef = query(collection(db, 'players'), where('username', '==', u));
+      const playerSnap = await getDocs(qRef);
+      if (playerSnap.empty) {
+        setManualResetMsg({ text: `No player named "${u}"`, ok: false });
+      } else {
+        await updateDoc(doc(db, 'players', playerSnap.docs[0].id), {
+          pin: '',
+          isLegacyUser: true,
+          legacyPassword: '0000',
+        });
+        setManualResetMsg({ text: `PIN reset → tell ${u} to log in with temp password 0000`, ok: true });
+        setManualResetUsername('');
+      }
+    } catch (err: any) {
+      setManualResetMsg({ text: 'Failed: ' + (err?.message || 'Unknown'), ok: false });
+    }
+    setManualResetLoading(false);
+  };
 
   // ─── Alert ────────────────────────────────────────────────────────────────
 
@@ -513,8 +608,9 @@ export function AdminChatDashboard({ admin }: Props) {
   const pendingVIP = vipRequests.filter(r => r.status === 'pending').length;
   const pendingGuests = guestRequests.filter(r => r.status === 'pending').length;
   const pendingRegs = registrations.filter(r => r.status === 'pending').length;
+  const pendingPins = pinResetRequests.filter(r => r.status === 'pending').length;
   const totalOrders = activeFood.length + activeShisha.length;
-  const totalRequests = pendingTopUps + pendingVIP + pendingGuests + pendingRegs;
+  const totalRequests = pendingTopUps + pendingVIP + pendingGuests + pendingRegs + pendingPins;
 
   // Profit calculations
   const today = new Date(); today.setHours(0, 0, 0, 0);
@@ -782,6 +878,7 @@ export function AdminChatDashboard({ admin }: Props) {
                 { id: 'vip' as const, label: 'VIP', count: pendingVIP, color: 'amber' },
                 { id: 'guests' as const, label: 'Guests', count: pendingGuests, color: 'blue' },
                 { id: 'regs' as const, label: 'Register', count: pendingRegs, color: 'green' },
+                { id: 'pins' as const, label: 'Reset PIN', count: pendingPins, color: 'red' },
               ]).map((f) => (
                 <button key={f.id} onClick={() => setRequestFilter(f.id)}
                   className={`shrink-0 px-3 py-1.5 rounded-full text-[11px] font-ninja transition-all flex items-center gap-1.5 ${
@@ -967,9 +1064,105 @@ export function AdminChatDashboard({ admin }: Props) {
                   </div>
                 ))
               )}
+
+              {/* PIN RESET */}
+              {requestFilter === 'pins' && (
+                <>
+                  {/* Manual reset card — admin resets any player's PIN directly */}
+                  <div className="rounded-xl border border-red-500/15 p-3.5 mb-3" style={{ background: 'rgba(239,68,68,0.03)' }}>
+                    <p className="font-ninja text-xs text-red-400 mb-2.5 flex items-center gap-1.5">
+                      <KeyRound size={14} /> MANUAL PIN RESET
+                    </p>
+                    <p className="font-body text-[10px] text-gray-500 mb-2">
+                      Type a username to reset their PIN — player logs in with temp password <span className="font-mono text-gray-300">0000</span> and is forced to pick a new 6-digit PIN.
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={manualResetUsername}
+                        onChange={(e) => setManualResetUsername(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && manualPinReset()}
+                        placeholder="username"
+                        className="flex-1 bg-black/30 border border-red-500/15 rounded-lg px-3 py-2 text-sm text-white font-body focus:border-red-500/40 outline-none"
+                      />
+                      <button
+                        onClick={manualPinReset}
+                        disabled={manualResetLoading || !manualResetUsername.trim()}
+                        className="px-4 py-2 rounded-lg text-xs font-ninja bg-red-500/15 text-red-400 border border-red-500/30 active:bg-red-500/30 disabled:opacity-50 flex items-center gap-1.5"
+                      >
+                        {manualResetLoading ? <Loader2 size={12} className="animate-spin" /> : <KeyRound size={12} />}
+                        RESET
+                      </button>
+                    </div>
+                    {manualResetMsg && (
+                      <p className={`mt-2 font-body text-[11px] ${manualResetMsg.ok ? 'text-green-400' : 'text-red-400'}`}>{manualResetMsg.text}</p>
+                    )}
+                  </div>
+
+                  {/* Incoming reset-pin requests from players */}
+                  {pinResetRequests.length === 0 ? (
+                    <EmptyState icon={<KeyRound size={32} />} text="No reset-PIN requests" />
+                  ) : pinResetRequests.map((req) => (
+                    <div key={req.id} className="rounded-xl bg-white/[0.02] border border-white/5 p-3.5">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="font-ninja text-sm text-white">{(req.username || '').toUpperCase()}</p>
+                        <span className="text-[10px] font-body text-gray-600">{timeAgo(req.createdAt)}</span>
+                      </div>
+                      {req.pcName && <p className="font-body text-[11px] text-gray-500">From PC: <span className="text-gray-300">{req.pcName}</span></p>}
+                      <StatusBadge status={req.status} />
+                      {req.status === 'pending' && (
+                        <div className="flex gap-2 mt-2.5">
+                          <button onClick={() => approvePinResetRequest(req)} disabled={pinResetActioning === req.id}
+                            className="flex-1 py-2 rounded-xl text-xs font-ninja bg-red-500/10 text-red-400 border border-red-500/20 active:bg-red-500/30 transition-all flex items-center justify-center gap-1">
+                            {pinResetActioning === req.id ? <Loader2 size={12} className="animate-spin" /> : <KeyRound size={12} />} RESET PIN
+                          </button>
+                          <button onClick={() => rejectPinResetRequest(req)} disabled={pinResetActioning === req.id}
+                            className="py-2 px-4 rounded-xl text-xs font-ninja bg-white/5 text-gray-400 border border-white/10 active:bg-white/10 transition-all">
+                            <X size={12} />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </>
+              )}
             </div>
           </div>
         )}
+
+        {/* ─── PIN-RESET TOAST (fires on new player request) ─── */}
+        <AnimatePresence>
+          {pinResetToast && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}
+              className="fixed top-4 left-1/2 -translate-x-1/2 z-[300] w-[92vw] max-w-[420px] rounded-2xl p-4 shadow-2xl"
+              style={{ background: 'linear-gradient(180deg, #120509, #0a0306)', border: '1.5px solid rgba(239,68,68,0.45)', boxShadow: '0 0 30px rgba(239,68,68,0.2)' }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-9 h-9 rounded-full bg-red-500/15 flex items-center justify-center"><KeyRound size={16} className="text-red-400" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-ninja text-sm text-white">FORGOT PIN</p>
+                  <p className="font-body text-[11px] text-gray-400 truncate">{(pinResetToast.username || '').toUpperCase()}{pinResetToast.pcName ? ` · ${pinResetToast.pcName}` : ''}</p>
+                </div>
+                <button onClick={() => { if (pinResetToast) pinResetSeenIds.current.add(pinResetToast.id); setPinResetToast(null); }} className="w-7 h-7 rounded-full bg-white/5 text-gray-400 flex items-center justify-center"><X size={14} /></button>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => pinResetToast && rejectPinResetRequest(pinResetToast)}
+                  disabled={!!pinResetActioning}
+                  className="flex-1 py-2.5 rounded-xl text-xs font-ninja bg-white/5 text-gray-300 border border-white/10 active:bg-white/10"
+                >Dismiss</button>
+                <button
+                  onClick={() => pinResetToast && approvePinResetRequest(pinResetToast)}
+                  disabled={!!pinResetActioning}
+                  className="flex-[2] py-2.5 rounded-xl text-xs font-ninja bg-red-500/20 text-red-400 border border-red-500/40 active:bg-red-500/30 flex items-center justify-center gap-1.5"
+                >
+                  {pinResetActioning ? <Loader2 size={12} className="animate-spin" /> : <KeyRound size={12} />} RESET PIN
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* ─── PROFIT TAB ──── */}
         {mainTab === 'profit' && (

@@ -1480,7 +1480,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       <div
         onClick={() => { if (openDropdown) setOpenDropdown(null); }}
         className="flex-1 min-h-screen overflow-x-hidden overflow-y-auto transition-all duration-300 ease-in-out"
-        style={{ marginLeft: showMainSidebar ? sidebarW : '0', paddingLeft: showMainSidebar ? '16px' : '0' }}
+        style={{ marginLeft: showMainSidebar ? sidebarW : '0', paddingLeft: 0 }}
       >
         {/* Free play announcement bar removed — timer is now shown in sidebar */}
 

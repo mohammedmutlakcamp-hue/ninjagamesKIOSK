@@ -520,7 +520,7 @@ export function VIPTab({ player }: Props) {
             {vipPlayers.length === 0 ? (
               <div className="py-10 text-center">
                 <Crown size={28} className="mx-auto mb-3" style={{ color: `${GOLD}20` }} />
-                <p className="font-body text-sm text-gray-500">No VIP members yet. Be the first!</p>
+                <p className="font-body text-sm text-gray-500">{ar ? 'لا يوجد أعضاء VIP بعد. كن الأول!' : 'No VIP members yet. Be the first!'}</p>
               </div>
             ) : (
               <div>
@@ -635,7 +635,7 @@ export function VIPTab({ player }: Props) {
               </div>
 
               <input type="text" value={inviteUsername} onChange={e => setInviteUsername(e.target.value)}
-                placeholder="Friend's username" onKeyDown={e => e.key === 'Enter' && handleDailyInvite()}
+                placeholder={ar ? 'اسم الصديق' : "Friend's username"} onKeyDown={e => e.key === 'Enter' && handleDailyInvite()}
                 className="w-full rounded-lg px-4 py-3 text-sm text-white font-body mb-3 focus:outline-none"
                 style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${GOLD}12`, colorScheme: 'dark' }} />
 
