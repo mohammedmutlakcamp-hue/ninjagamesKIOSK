@@ -107,6 +107,21 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const highlightRef = useRef<HTMLDivElement | null>(null);
   const pendingHighlightRef = useRef<string | null>(null);
 
+  // Listen for "open-daily-chest" — fired from Daily Tasks after All Complete.
+  // Auto-opens the most recent unused daily chest in the player's inventory.
+  useEffect(() => {
+    const handler = () => {
+      const inv = (player.inventory || []) as InventoryItem[];
+      const dailyChests = inv
+        .filter(i => !i.used && (i.type === 'chest' || (i.name || '').toLowerCase().includes('daily')))
+        .sort((a, b) => (b.obtainedAt || 0) - (a.obtainedAt || 0));
+      if (dailyChests.length === 0) return;
+      setUseModal(dailyChests[0]);
+    };
+    window.addEventListener('open-daily-chest', handler);
+    return () => window.removeEventListener('open-daily-chest', handler);
+  }, [player.inventory]);
+
   // When highlightItemId prop changes, queue it up
   useEffect(() => {
     if (!highlightItemId) return;

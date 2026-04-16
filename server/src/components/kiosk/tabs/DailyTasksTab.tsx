@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
 import { VIP_CONFIG } from '@/lib/constants';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { trackDailyTask } from '@/lib/daily-tasks';
 import {
   Coins, CheckCircle2, Sparkles, Calendar, Flame,
   LogIn, Package, Send, UtensilsCrossed, Gamepad2, Target, UserPlus,
@@ -902,7 +903,10 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                         <motion.button
                           whileHover={{ scale: 1.06, boxShadow: `0 0 18px rgba(${task.glowColor},0.4)` }}
                           whileTap={{ scale: 0.94 }}
-                          onClick={() => setSocialOpen(SOCIAL_BONUS_TASKS[0])}
+                          onClick={() => {
+                            if (player?.uid) trackDailyTask(player.uid, 'check_socials').catch(() => {});
+                            setSocialOpen(SOCIAL_BONUS_TASKS[0]);
+                          }}
                           className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-1.5 transition-all flex-shrink-0"
                           style={{
                             background: `linear-gradient(135deg, rgba(${task.glowColor},0.2), rgba(${task.glowColor},0.06))`,
@@ -1069,7 +1073,9 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   ALL TASKS COMPLETE!
                 </p>
                 <p className="font-body text-xs text-gray-400 mt-0.5">
-                  {fullBonusClaimed ? 'Chest added to your inventory — come back tomorrow!' : 'Claim your bonus coins + FREE DAILY CHEST'}
+                  {fullBonusClaimed
+                    ? (ar ? 'هل تريد فتح صندوقك الآن؟' : 'Ready to open your chest?')
+                    : (ar ? 'استلم عملات المكافأة + صندوقاً يومياً مجاناً' : 'Claim your bonus coins + FREE DAILY CHEST')}
                 </p>
               </div>
               <div className="flex items-center gap-1 flex-shrink-0">
@@ -1079,14 +1085,22 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                 </span>
               </div>
               {fullBonusClaimed ? (
-                <div className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-1.5 flex-shrink-0"
+                <motion.button
+                  whileHover={{ scale: 1.05, boxShadow: '0 0 22px rgba(255,215,0,0.55)' }}
+                  whileTap={{ scale: 0.92 }}
+                  onClick={() => {
+                    // Jump straight to Inventory and trigger the daily-chest opener.
+                    window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'inventory' }));
+                    setTimeout(() => window.dispatchEvent(new CustomEvent('open-daily-chest')), 150);
+                    if (onClose) onClose();
+                  }}
+                  className="h-[42px] px-4 rounded-lg font-ninja text-sm tracking-wider text-black flex items-center justify-center gap-1.5 flex-shrink-0"
                   style={{
-                    background: 'rgba(57,255,20,0.08)',
-                    border: '1px solid rgba(57,255,20,0.25)',
-                    color: '#39FF14',
+                    background: 'linear-gradient(135deg, #FFD700, #FFA500)',
+                    boxShadow: '0 0 14px rgba(255,215,0,0.4)',
                   }}>
-                  <CheckCircle2 size={14} /> CLAIMED
-                </div>
+                  <Gift size={14} /> {ar ? 'افتح الآن' : 'OPEN NOW'}
+                </motion.button>
               ) : (
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 0 22px rgba(255,215,0,0.55)' }}
