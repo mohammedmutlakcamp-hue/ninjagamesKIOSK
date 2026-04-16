@@ -273,11 +273,31 @@ export default function KioskPage() {
       });
       setForgotPinRequestId(reqId);
       setForgotPinSent(true);
+      // Persist across kiosk refreshes so the player doesn't lose their place
+      try { localStorage.setItem('ninja-pending-pin-reset', JSON.stringify({ reqId, username: u, ts: Date.now() })); } catch {}
     } catch (err) {
       console.error('Forgot-PIN request failed', err);
     }
     setForgotPinSending(false);
   };
+
+  // On mount, if there's a pending pin-reset from before a reload, restore it
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('ninja-pending-pin-reset');
+      if (!raw) return;
+      const saved = JSON.parse(raw);
+      // Expire after 1 hour so a forgotten request doesn't haunt the player forever
+      if (!saved?.reqId || Date.now() - (saved.ts || 0) > 60 * 60 * 1000) {
+        localStorage.removeItem('ninja-pending-pin-reset');
+        return;
+      }
+      setUsername(saved.username || '');
+      setForgotPinRequestId(saved.reqId);
+      setForgotPinSent(true);
+      setForgotPinOpen(true);
+    } catch {}
+  }, []);
 
   // Listen for admin approval/rejection of our pending forgot-pin request.
   // When approved, auto-open the "Pick a new PIN" popup so the player
@@ -325,6 +345,7 @@ export default function KioskPage() {
         try { await updateDoc(doc(db, 'pin-reset-requests', forgotPinRequestId), { status: 'completed', completedAt: Date.now() }); } catch {}
       }
       // Reset every bit of forgot-pin state and send the player back to login
+      try { localStorage.removeItem('ninja-pending-pin-reset'); } catch {}
       setForgotPinOpen(false);
       setForgotPinSent(false);
       setForgotPinApproved(false);
@@ -1844,7 +1865,12 @@ export default function KioskPage() {
             ))}
 
             {/* Close — only way out (no backdrop close per project rule) */}
-            <button onClick={() => { setForgotPinOpen(false); setForgotPinSent(false); }}
+            <button onClick={() => {
+              try { localStorage.removeItem('ninja-pending-pin-reset'); } catch {}
+              setForgotPinOpen(false); setForgotPinSent(false);
+              setForgotPinApproved(false); setForgotPinRejected(false);
+              setForgotPinRequestId(null);
+            }}
               className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-white transition-all"
               style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
               ✕
