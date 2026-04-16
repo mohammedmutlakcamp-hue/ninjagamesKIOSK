@@ -71,28 +71,30 @@ export function getLedgerProfit(): number {
 }
 
 // ─── Core: roll a reward from a chest, applying bias + dedup rules ──
-// `ownedSkinIds` is player.ownedNinjas — rolled skins NOT in this set
-// are kept; duplicates are converted to the coin reward of equivalent value.
+// `ownedSkinIds` is player.ownedNinjas — if a rolled skin is owned,
+// we re-roll up to MAX_REROLL times until we land a non-duplicate.
+// Only if the player literally owns every skin in the pool do we fall
+// back to converting to a coin reward.
+const MAX_REROLL = 12;
+
 export function rollChestReward(
   chest: Chest,
   ownedSkinIds: string[] = [],
-): { reward: ChestReward; wasDuplicateSkin: boolean; originalSkinId?: string } {
+): { reward: ChestReward; wasDuplicateSkin: boolean; originalSkinId?: string; rerolls: number } {
   const pool = chest.rewards;
   const ownedSet = new Set(ownedSkinIds);
   const profit = getLedgerProfit();
   const cfg = cachedEconomy;
 
-  // Compute biased weight per reward
+  // Compute biased weight per reward (shared across attempts)
   const weighted: { r: ChestReward; w: number }[] = pool.map(r => {
     let w = r.dropRate;
     if (cfg.biasEnabled) {
       const isHighValue = r.type === 'skin' || (r.value || 0) >= cfg.highValueThreshold;
       if (isHighValue) {
-        if (profit >= cfg.profitThreshold) w *= cfg.boostFactor;    // give players luck
-        else if (profit <= -cfg.lossThreshold) w *= cfg.dampenFactor; // protect margin
+        if (profit >= cfg.profitThreshold) w *= cfg.boostFactor;
+        else if (profit <= -cfg.lossThreshold) w *= cfg.dampenFactor;
       } else {
-        // Inverse — low-value rewards get the opposite bias (milder)
-        const inv = 1 + (1 - (isHighValue ? 1 : 0));
         if (profit >= cfg.profitThreshold) w *= (1 / Math.sqrt(cfg.boostFactor));
         else if (profit <= -cfg.lossThreshold) w *= Math.sqrt(1 / cfg.dampenFactor);
       }
@@ -101,31 +103,41 @@ export function rollChestReward(
   });
 
   const total = weighted.reduce((s, x) => s + x.w, 0);
-  let roll = Math.random() * total;
   let chosen: ChestReward = pool[pool.length - 1];
-  for (const { r, w } of weighted) {
-    roll -= w;
-    if (roll <= 0) { chosen = r; break; }
+  let lastDupSkinId: string | undefined;
+  let rerolls = 0;
+
+  // Spin up to MAX_REROLL times; accept the first non-duplicate reward.
+  for (let attempt = 0; attempt <= MAX_REROLL; attempt++) {
+    let roll = Math.random() * total;
+    for (const { r, w } of weighted) {
+      roll -= w;
+      if (roll <= 0) { chosen = r; break; }
+    }
+    // Not a skin, or it's a skin the player doesn't own yet → keep it.
+    if (chosen.type !== 'skin' || !chosen.skinId || !ownedSet.has(chosen.skinId)) {
+      return { reward: chosen, wasDuplicateSkin: false, rerolls };
+    }
+    // Duplicate — remember it, try again.
+    lastDupSkinId = chosen.skinId;
+    rerolls++;
   }
 
-  // Dedup skin: if player already owns it, convert to coins.
-  if (chosen.type === 'skin' && chosen.skinId && ownedSet.has(chosen.skinId)) {
-    const coinValue = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
-    const replacement: ChestReward = {
-      id: `${chosen.id}_dup_coins`,
-      type: 'coins',
-      name: `${coinValue} Tokens`,
-      description: `Duplicate ${chosen.name} converted to tokens`,
-      rarity: chosen.rarity,
-      value: coinValue,
-      icon: 'coins',
-      image: '/img/reward-coins-150.png',
-      dropRate: 0,
-    } as ChestReward;
-    return { reward: replacement, wasDuplicateSkin: true, originalSkinId: chosen.skinId };
-  }
-
-  return { reward: chosen, wasDuplicateSkin: false };
+  // Player owns every skin that keeps dropping (or MAX_REROLL exhausted).
+  // Fall back to a coin conversion so the chest still gives something useful.
+  const coinValue = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
+  const replacement: ChestReward = {
+    id: `${chosen.id}_dup_coins`,
+    type: 'coins',
+    name: `${coinValue} Tokens`,
+    description: `All ${chosen.rarity} skins owned — converted to tokens`,
+    rarity: chosen.rarity,
+    value: coinValue,
+    icon: 'coins',
+    image: '/img/reward-coins-150.png',
+    dropRate: 0,
+  } as ChestReward;
+  return { reward: replacement, wasDuplicateSkin: true, originalSkinId: lastDupSkinId, rerolls };
 }
 
 // ─── Ledger updates ─────────────────────────────────────────────────

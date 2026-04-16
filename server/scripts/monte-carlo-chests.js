@@ -85,6 +85,7 @@ const SKIN_DUP_COIN_VALUE = {
 };
 
 // ─── Biased roll (mirrors lib/chest-economy.ts) ─────────────────────
+const MAX_REROLL = 12;
 function rollReward(chest, ownedSkins, cfg, ledger) {
   const profit = ledger.paid - ledger.awarded;
   const ownedSet = new Set(ownedSkins);
@@ -105,18 +106,19 @@ function rollReward(chest, ownedSkins, cfg, ledger) {
   });
 
   const total = weighted.reduce((s, x) => s + x.w, 0);
-  let roll = Math.random() * total;
   let chosen = chest.rewards[chest.rewards.length - 1];
-  for (const { r, w } of weighted) {
-    roll -= w;
-    if (roll <= 0) { chosen = r; break; }
+  let rerolls = 0;
+  for (let attempt = 0; attempt <= MAX_REROLL; attempt++) {
+    let roll = Math.random() * total;
+    for (const { r, w } of weighted) { roll -= w; if (roll <= 0) { chosen = r; break; } }
+    if (chosen.type !== 'skin' || !chosen.skinId || !ownedSet.has(chosen.skinId)) {
+      return { reward: chosen, wasDup: false, rerolls };
+    }
+    rerolls++;
   }
-
-  if (chosen.type === 'skin' && chosen.skinId && ownedSet.has(chosen.skinId)) {
-    const coinValue = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
-    return { reward: { ...chosen, type: 'coins', value: coinValue, name: `${coinValue} Tokens (dup)`, skinId: undefined }, wasDup: true };
-  }
-  return { reward: chosen, wasDup: false };
+  // All-owned fallback → convert to coins
+  const coinValue = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
+  return { reward: { ...chosen, type: 'coins', value: coinValue, name: `${coinValue} Tokens (dup)`, skinId: undefined }, wasDup: true, rerolls };
 }
 
 // ─── Run one simulation ─────────────────────────────────────────────

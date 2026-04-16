@@ -18,11 +18,23 @@
  * Usage:  node scripts/monte-carlo-daily.js
  */
 
-// ─── Customer behavior assumptions ────────────────────────────────
-const DAILY_CUSTOMERS        = 30;
-const DAYS_TO_SIMULATE       = 1000;
-const TOPUP_JOD_MIN          = 1;
-const TOPUP_JOD_MAX          = 5;
+// ─── Customer behavior assumptions (can override via CLI args) ────
+// Usage: node monte-carlo-daily.js --customers 50 --min 1 --max 7 --days 1000
+const args = process.argv.slice(2);
+function arg(name, def) {
+  const i = args.indexOf('--' + name);
+  return i >= 0 && args[i + 1] ? parseFloat(args[i + 1]) : def;
+}
+const DAILY_CUSTOMERS  = arg('customers', 30);
+const DAYS_TO_SIMULATE = arg('days', 1000);
+const TOPUP_JOD_MIN    = arg('min', 1);
+const TOPUP_JOD_MAX    = arg('max', 5);
+// Promo: fraction off chest costs (0 = none, 0.25 = 25% off). Players open MORE when discounted.
+const CHEST_DISCOUNT   = arg('discount', 0);
+// VIP: how many of the daily customers are VIP. Each VIP costs extra due to:
+//  - daily free-play gift (30 min = 0.50 JOD opportunity cost)
+//  - 20% cafe discount on voucher redemption (we add 20% to their voucher cost)
+const VIP_CUSTOMERS    = arg('vip', 0);
 
 // Token (coin) exchange rates from constants.ts
 // Player picks the best package that fits their budget.
@@ -142,39 +154,53 @@ function simulateOneDay() {
   let voucherCostJod = 0;
   let vouchersOut = 0;
   let chestsOpened = 0;
-  let playerTokens = 0; // sum across all customers — used as pool since coins loop
+  let playerTokens = 0;
+  let vipFreePlayCost = 0;
 
   for (let c = 0; c < DAILY_CUSTOMERS; c++) {
+    const isVip = c < VIP_CUSTOMERS;
     const jodBudget = TOPUP_JOD_MIN + Math.random() * (TOPUP_JOD_MAX - TOPUP_JOD_MIN);
     const pack = pickCoinPackage(jodBudget);
     jodIn += pack.jod;
     let tokens = pack.coins;
 
-    // Player opens chests until they run out of tokens
-    // (in reality they also buy time/food, but we model chest engagement here)
-    const chestEngagement = 0.6; // 60% of tokens go to chests on avg
+    // VIP perk: 30min free play daily = ~0.50 JOD opportunity cost
+    if (isVip) vipFreePlayCost += 0.50;
+
+    const chestEngagement = 0.6;
     let chestBudget = tokens * chestEngagement;
     let loops = 0;
-    while (chestBudget > 25 && loops < 50) {
-      const chest = pickChestTier();
-      if (chestBudget < chest.cost) { chest.cost = 25; /* fallback to common */ }
-      chestBudget -= chest.cost;
+    const minCost = Math.max(5, Math.floor(25 * (1 - CHEST_DISCOUNT))); // cheapest chest (common) after discount
+    while (chestBudget >= minCost && loops < 200) {
+      let chest = pickChestTier();
+      let effectiveCost = Math.max(5, Math.floor(chest.cost * (1 - CHEST_DISCOUNT)));
+      // If they can't afford this tier, fall back to common (which they always can at this budget)
+      if (chestBudget < effectiveCost) {
+        chest = CHEST_MIX[0];
+        effectiveCost = minCost;
+      }
+      chestBudget -= effectiveCost;
       chestsOpened++;
       const reward = rollReward(CHESTS[chest.tier] || CHESTS.common);
       if (reward.type === 'voucher') {
         vouchersOut++;
-        voucherCostJod += VOUCHER_COST_JOD[reward.name] || 0.5;
+        let cost = VOUCHER_COST_JOD[reward.name] || 0.5;
+        // VIP perk: 20% extra discount on cafe items (so the house eats more)
+        if (isVip && (reward.name === 'Free Drink' || reward.name === 'Free Snack' || reward.name === 'Free Food')) {
+          cost *= 1.20;
+        }
+        voucherCostJod += cost;
       } else if (reward.type === 'coins') {
-        chestBudget += reward.value; // coins loop back into more chest buys
+        chestBudget += reward.value;
       }
-      // skins: no cash cost, virtual
       loops++;
     }
     playerTokens += tokens;
   }
 
-  const netJod = jodIn - voucherCostJod;
-  return { jodIn, voucherCostJod, netJod, chestsOpened, vouchersOut, playerTokens };
+  const totalCost = voucherCostJod + vipFreePlayCost;
+  const netJod = jodIn - totalCost;
+  return { jodIn, voucherCostJod: totalCost, netJod, chestsOpened, vouchersOut, playerTokens };
 }
 
 // ─── Run N days ──────────────────────────────────────────────────
