@@ -401,28 +401,27 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
         setRemainingPlaytime(rp);
         setMinutesLeft(rp);
 
-        // Level-up detection
+        // Level-up detection — grant a Common Chest
         const newLevel = levelInfo.level;
         if (newLevel > prevLevelRef.current) {
           setLevelUpNewLevel(newLevel);
           setShowLevelUpModal(true);
-          // Grant 1 bronze chest for leveling up
           const inv = [...(data.inventory || [])];
-          inv.push({ id: `chest_bronze_lvlup_${Date.now()}`, type: 'chest', tier: 'bronze', name: 'Bronze Chest', rarity: 'common', used: false, earnedAt: Date.now(), reason: 'level_up' });
+          inv.push({ id: `chest_common_lvlup_${Date.now()}`, type: 'chest', tier: 'common', name: 'Common Chest', rarity: 'common', used: false, earnedAt: Date.now(), reason: 'level_up' });
           updateDoc(doc(db, 'players', snap.id), { inventory: inv }).catch(() => {});
         }
         prevLevelRef.current = newLevel;
 
-        // Playtime chest: every 3 hours (180 minutes) of total playtime
+        // Playtime chest: every 3 hours (180 minutes) → Common chest
         const currentPlaytime = data.totalPlaytime || 0;
         const prevPlaytime = prevPlaytimeRef.current;
         const prevMilestone = Math.floor(prevPlaytime / 180);
         const currentMilestone = Math.floor(currentPlaytime / 180);
         if (currentMilestone > prevMilestone && prevPlaytime > 0) {
           const inv = [...(data.inventory || [])];
-          inv.push({ id: `chest_bronze_playtime_${Date.now()}`, type: 'chest', tier: 'bronze', name: 'Bronze Chest', rarity: 'common', used: false, earnedAt: Date.now(), reason: 'playtime_reward' });
+          inv.push({ id: `chest_common_playtime_${Date.now()}`, type: 'chest', tier: 'common', name: 'Common Chest', rarity: 'common', used: false, earnedAt: Date.now(), reason: 'playtime_reward' });
           updateDoc(doc(db, 'players', snap.id), { inventory: inv }).catch(() => {});
-          setCenterNotification({ id: `playtime-chest-${Date.now()}`, title: '3-HOUR BONUS!', message: 'You earned a Bronze Chest for 3h of play!', color: '#CD7F32' });
+          setCenterNotification({ id: `playtime-chest-${Date.now()}`, title: lang === 'ar' ? 'مكافأة 3 ساعات!' : '3-HOUR BONUS!', message: lang === 'ar' ? 'حصلت على صندوق عادي مقابل 3 ساعات لعب!' : 'You earned a Common Chest for 3h of play!', color: '#43d9be' });
           setTimeout(() => setCenterNotification(null), 4000);
         }
         prevPlaytimeRef.current = currentPlaytime;
@@ -2776,10 +2775,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 {lang === 'ar' ? 'ارتقاء مستوى!' : 'LEVEL UP!'}
               </h2>
               <p className="font-ninja text-6xl text-white mb-2">{lang === 'ar' ? 'المستوى' : 'LVL'} {levelUpNewLevel}</p>
-              <p className="font-body text-gray-400 text-sm mb-2">{lang === 'ar' ? 'لقد ربحت صندوقًا برونزيًا!' : 'You earned a Bronze Chest!'}</p>
+              <p className="font-body text-gray-400 text-sm mb-2">{lang === 'ar' ? 'لقد ربحت صندوقًا عاديًا!' : 'You earned a Common Chest!'}</p>
               <div className="flex items-center justify-center gap-2 mb-6">
                 <span className="text-2xl">🎁</span>
-                <span className="font-ninja text-yellow-400 text-sm">{lang === 'ar' ? 'تمت إضافة الصندوق البرونزي إلى الحقيبة' : 'Bronze Chest Added to Inventory'}</span>
+                <span className="font-ninja text-yellow-400 text-sm">{lang === 'ar' ? 'تمت إضافة الصندوق العادي إلى الحقيبة' : 'Common Chest Added to Inventory'}</span>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}

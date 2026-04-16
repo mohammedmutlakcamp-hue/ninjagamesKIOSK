@@ -10,6 +10,7 @@ import { Coins, Sparkles, Star, Zap, Gift, Coffee, Cookie, UtensilsCrossed, Trop
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { useEscapeKey } from '@/lib/useEscapeKey';
+import { rollChestReward, loadEconomyOnce, recordChestPaid, recordChestAwarded } from '@/lib/chest-economy';
 
 interface Props { player: any; }
 
@@ -101,12 +102,13 @@ export function ChestsTab({ player }: Props) {
     return () => unsub();
   }, []);
 
+  // Pull the admin-controlled economy config + ledger once when tab mounts.
+  useEffect(() => { loadEconomyOnce(); }, []);
+
   const rollReward = (chest: Chest): ChestReward => {
-    const pool = chest.rewards;
-    const totalWeight = pool.reduce((sum, r) => sum + r.dropRate, 0);
-    let roll = Math.random() * totalWeight;
-    for (const r of pool) { roll -= r.dropRate; if (roll <= 0) return r; }
-    return pool[pool.length - 1];
+    const owned = (player?.ownedNinjas || []) as string[];
+    const { reward } = rollChestReward(chest, owned);
+    return reward;
   };
 
   const saveReward = async (won: ChestReward, chest: Chest) => {
@@ -131,6 +133,8 @@ export function ChestsTab({ player }: Props) {
         rewardValue: won.value || 0,
         chestTier: chest.tier, timestamp: Date.now(),
       }).catch(() => {});
+      // House ledger — track coin value awarded for profit analysis
+      await recordChestAwarded(won.value || 0);
     } catch (err) { console.error('Save reward failed:', err); }
   };
 
@@ -142,6 +146,7 @@ export function ChestsTab({ player }: Props) {
     try {
       await updateDoc(doc(db, 'players', player.uid), { coins: increment(-cost), totalCoinsSpent: increment(cost), 'stats.chestsOpened': increment(1) });
       trackDailyTask(player.uid, 'open_chest');
+      await recordChestPaid(cost);
     } catch { setProcessing(false); return; }
     const won = rollReward(chest);
     setReward(won);
@@ -165,6 +170,7 @@ export function ChestsTab({ player }: Props) {
     try {
       await updateDoc(doc(db, 'players', player.uid), { coins: increment(-cost), totalCoinsSpent: increment(cost), 'stats.chestsOpened': increment(count) });
       for (let i = 0; i < count; i++) trackDailyTask(player.uid, 'open_chest');
+      await recordChestPaid(cost);
     } catch { setProcessing(false); return; }
     const results: ChestReward[] = [];
     for (let i = 0; i < count; i++) {
