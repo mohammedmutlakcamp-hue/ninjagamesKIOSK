@@ -230,17 +230,47 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
-            className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} ${bubbleSize} z-[90] rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible`}
+            className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} ${bubbleSize} z-[90] rounded-full cursor-grab active:cursor-grabbing overflow-visible`}
             style={{
               filter: 'drop-shadow(0 0 14px rgba(57,255,20,0.45)) drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
               touchAction: 'none',
             }}
           >
+            {/* Always-visible "need help?" speech bubble — points to the avatar */}
+            <motion.div
+              initial={{ opacity: 0, x: 20, scale: 0.85 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              transition={{ delay: 0.4, type: 'spring', stiffness: 220, damping: 18 }}
+              className="absolute right-[calc(100%+10px)] top-1/2 -translate-y-1/2 px-3 py-2 rounded-xl pointer-events-none whitespace-nowrap"
+              style={{
+                background: 'linear-gradient(135deg, rgba(8,12,18,0.95), rgba(4,6,10,0.95))',
+                border: '1px solid rgba(57,255,20,0.45)',
+                boxShadow: '0 0 18px rgba(57,255,20,0.25), 0 4px 14px rgba(0,0,0,0.5)',
+                backdropFilter: 'blur(8px)',
+              }}>
+              <motion.span
+                animate={{ opacity: [1, 0.7, 1] }}
+                transition={{ duration: 2.2, repeat: Infinity }}
+                className="font-ninja text-[12px] tracking-wider text-ninja-green flex items-center gap-1.5"
+                style={{ textShadow: '0 0 8px rgba(57,255,20,0.5)' }}>
+                <span>👋</span> Need help? I'm here!
+              </motion.span>
+              {/* Tail pointing right toward the bubble */}
+              <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0"
+                style={{
+                  borderTop: '6px solid transparent',
+                  borderBottom: '6px solid transparent',
+                  borderLeft: '7px solid rgba(57,255,20,0.45)',
+                  filter: 'drop-shadow(2px 0 4px rgba(57,255,20,0.2))',
+                }} />
+            </motion.div>
+
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src="/img/admin-chat-bubble.png"
               alt="Support"
-              className="w-full h-full object-contain pointer-events-none rounded-full"
+              className="absolute inset-0 w-full h-full object-cover rounded-full pointer-events-none"
+              style={{ transform: 'scale(1.18)', transformOrigin: 'center' }}
               draggable={false}
             />
             {/* Unread badge */}
@@ -248,7 +278,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center pointer-events-none"
+                className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 flex items-center justify-center pointer-events-none z-[2]"
               >
                 <span className="text-white text-[10px] font-bold">{unread}</span>
               </motion.div>
