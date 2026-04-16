@@ -398,9 +398,9 @@ export function PlayerManagement() {
       await updateDoc(doc(db, 'players', selected.uid), {
         pin: '',
         isLegacyUser: true,
-        legacyPassword: '0000',
+        legacyPassword: '000000',
       });
-      setActionMsg('PIN reset → tell player to log in with temp password 0000 (they\'ll set a new PIN)');
+      setActionMsg('PIN reset → tell player to log in with temp password 000000 (they\'ll set a new PIN)');
       setResetPinConfirm(false);
     } catch (err: any) {
       setActionMsg('Failed: ' + (err.message || 'Unknown'));

@@ -403,7 +403,7 @@ export function AdminChatDashboard({ admin }: Props) {
         await updateDoc(doc(db, 'players', playerSnap.docs[0].id), {
           pin: '',
           isLegacyUser: true,
-          legacyPassword: '0000',
+          legacyPassword: '000000',
         });
       }
       await updateDoc(doc(db, 'pin-reset-requests', req.id), { status: 'approved', approvedAt: Date.now() });
@@ -441,9 +441,9 @@ export function AdminChatDashboard({ admin }: Props) {
         await updateDoc(doc(db, 'players', playerSnap.docs[0].id), {
           pin: '',
           isLegacyUser: true,
-          legacyPassword: '0000',
+          legacyPassword: '000000',
         });
-        setManualResetMsg({ text: `PIN reset → tell ${u} to log in with temp password 0000`, ok: true });
+        setManualResetMsg({ text: `PIN reset → tell ${u} to log in with temp password 000000`, ok: true });
         setManualResetUsername('');
       }
     } catch (err: any) {
@@ -1074,7 +1074,7 @@ export function AdminChatDashboard({ admin }: Props) {
                       <KeyRound size={14} /> MANUAL PIN RESET
                     </p>
                     <p className="font-body text-[10px] text-gray-500 mb-2">
-                      Type a username to reset their PIN — player logs in with temp password <span className="font-mono text-gray-300">0000</span> and is forced to pick a new 6-digit PIN.
+                      Type a username to reset their PIN — player logs in with temp password <span className="font-mono text-gray-300">000000</span> and is forced to pick a new 6-digit PIN.
                     </p>
                     <div className="flex gap-2">
                       <input
