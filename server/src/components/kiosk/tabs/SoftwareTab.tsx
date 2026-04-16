@@ -31,6 +31,8 @@ const SOFTWARE_LIST: Software[] = [
 const CATEGORIES = ['All', ...Array.from(new Set(SOFTWARE_LIST.map(s => s.category)))];
 
 export function SoftwareTab() {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('All');
   const [softwareList, setSoftwareList] = useState<Software[]>(SOFTWARE_LIST);
@@ -69,13 +71,13 @@ export function SoftwareTab() {
     <div className="py-6 pr-4">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="font-ninja text-3xl text-white tracking-wider">SOFTWARE</h1>
-          <p className="font-body text-gray-500 text-sm mt-1">Apps & utilities installed on this PC</p>
+          <h1 className="font-ninja text-3xl text-white tracking-wider">{ar ? 'البرامج' : 'SOFTWARE'}</h1>
+          <p className="font-body text-gray-500 text-sm mt-1">{ar ? 'التطبيقات والأدوات المثبتة على هذا الجهاز' : 'Apps & utilities installed on this PC'}</p>
         </div>
         <NinjaInput
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search software..."
+          placeholder={ar ? 'ابحث عن برنامج...' : 'Search software...'}
           icon={<Search size={16} />}
           className="w-64"
         />
@@ -128,7 +130,7 @@ export function SoftwareTab() {
               whileTap={{ scale: 0.95 }}
               className="ninja-btn ninja-btn-green ninja-btn-full mt-3 flex items-center justify-center gap-1.5"
             >
-              <ExternalLink size={12} /> OPEN
+              <ExternalLink size={12} /> {ar ? 'فتح' : 'OPEN'}
             </motion.div>
           </motion.div>
         ))}
@@ -137,7 +139,7 @@ export function SoftwareTab() {
       {filtered.length === 0 && (
         <div className="text-center py-16">
           <Download size={48} className="text-gray-700 mx-auto mb-4" />
-          <p className="font-ninja text-lg text-gray-600">NO SOFTWARE FOUND</p>
+          <p className="font-ninja text-lg text-gray-600">{ar ? 'لا توجد برامج' : 'NO SOFTWARE FOUND'}</p>
         </div>
       )}
     </div>

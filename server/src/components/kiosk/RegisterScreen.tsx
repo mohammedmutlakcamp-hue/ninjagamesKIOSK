@@ -271,6 +271,8 @@ function CyberInput({
 function CountryDropdown({ countries, selected, onSelect }: {
   countries: typeof COUNTRY_NINJAS; selected: string; onSelect: (id: string) => void;
 }) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -297,7 +299,7 @@ function CountryDropdown({ countries, selected, onSelect }: {
   return (
     <div className="mt-4 relative" ref={dropdownRef}>
       <label className="text-gray-400 font-mono text-[11px] tracking-[0.15em] mb-2 block uppercase">
-        Country
+        {ar ? 'البلد' : 'Country'}
       </label>
       <button type="button" onClick={() => setOpen(!open)}
         className={`group relative w-full flex items-center justify-between px-4 py-3.5 rounded-lg text-sm font-body transition-all`}
@@ -317,7 +319,7 @@ function CountryDropdown({ countries, selected, onSelect }: {
               <span className="text-ninja-green/80 font-mono text-xs">{current.dialCode}</span>
             </>
           ) : (
-            <span className="text-gray-500">Select country...</span>
+            <span className="text-gray-500">{ar ? 'اختر البلد...' : 'Select country...'}</span>
           )}
         </div>
         <motion.div animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.2 }}>
@@ -345,14 +347,14 @@ function CountryDropdown({ countries, selected, onSelect }: {
                 style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(57,255,20,0.15)' }}>
                 <Search size={14} className="text-ninja-green/60 flex-shrink-0" />
                 <input ref={searchRef} value={search} onChange={e => setSearch(e.target.value)}
-                  placeholder="Search country or dial code..."
+                  placeholder={ar ? 'ابحث عن بلد أو رمز...' : 'Search country or dial code...'}
                   className="bg-transparent text-sm text-white font-body outline-none w-full placeholder:text-gray-600" />
               </div>
             </div>
             {/* Options */}
             <div className="max-h-[260px] overflow-y-auto px-1.5 pb-1.5" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(57,255,20,0.25) transparent' }}>
               {filtered.length === 0 ? (
-                <p className="text-center text-gray-600 text-xs py-4 font-body">No results</p>
+                <p className="text-center text-gray-600 text-xs py-4 font-body">{ar ? 'لا توجد نتائج' : 'No results'}</p>
               ) : filtered.map(c => (
                 <button key={c.id} type="button"
                   onClick={() => { onSelect(c.id); setOpen(false); }}
@@ -497,7 +499,7 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
           referrerId = refSnap.docs[0].id;
           bonusCoins = REFERRAL_CONFIG.newUserBonus;
         } else {
-          setError('Invalid referral code');
+          setError(lang === 'ar' ? 'كود الإحالة غير صحيح' : 'Invalid referral code');
           setLoading(false);
           return;
         }
@@ -746,12 +748,12 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
                   value={referralCode}
                   onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                   icon={<UserPlus size={16} strokeWidth={2.2} className="text-yellow-400" />}
-                  placeholder="Friend's code for bonus coins"
+                  placeholder={currentLang === 'ar' ? 'كود صديقك لعملات مكافأة' : "Friend's code for bonus coins"}
                   maxLength={12}
-                  label={<span className="text-yellow-400/80"><UserPlus size={11} className="inline mr-1" /> Referral Code (optional)</span>}
+                  label={<span className="text-yellow-400/80"><UserPlus size={11} className="inline mr-1" /> {currentLang === 'ar' ? 'كود الإحالة (اختياري)' : 'Referral Code (optional)'}</span>}
                 />
                 <p className="font-mono text-[10px] text-yellow-400/60 mt-1.5 tracking-wide">
-                  &gt; Both get {REFERRAL_CONFIG.newUserBonus} bonus coins
+                  &gt; {currentLang === 'ar' ? `كلاكما يحصل على ${REFERRAL_CONFIG.newUserBonus} عملة مكافأة` : `Both get ${REFERRAL_CONFIG.newUserBonus} bonus coins`}
                 </p>
               </div>
 
@@ -817,7 +819,7 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
                 </div>
               </div>
               <h2 className="font-ninja text-2xl tracking-wider text-ninja-green" style={{ textShadow: '0 0 12px rgba(57,255,20,0.6)' }}>
-                CHOOSE YOUR NINJA
+                {currentLang === 'ar' ? 'اختر النينجا' : 'CHOOSE YOUR NINJA'}
               </h2>
               <div className="flex items-center justify-center gap-2 mt-2">
                 <motion.div animate={{ opacity: [1, 0.3, 1] }} transition={{ duration: 1.4, repeat: Infinity }} className="w-1.5 h-1.5 rounded-full bg-ninja-green" style={{ boxShadow: '0 0 6px #39FF14' }} />
@@ -876,7 +878,7 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
               return sel ? (
                 <motion.div key={sel.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-center mb-6">
                   <p className="font-ninja text-xl tracking-wider" style={{ color: sel.color, textShadow: `0 0 20px ${sel.color}80` }}>
-                    {sel.name.toUpperCase()} NINJA
+                    {currentLang === 'ar' ? `نينجا ${sel.name.toUpperCase()}` : `${sel.name.toUpperCase()} NINJA`}
                   </p>
                 </motion.div>
               ) : null;

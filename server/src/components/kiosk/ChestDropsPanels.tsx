@@ -21,15 +21,17 @@ interface ChestDrop {
   timestamp: number;
 }
 
-function formatTime(ts: number) {
+function formatTime(ts: number, ar = false) {
   const diff = Date.now() - ts;
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  return `${Math.floor(diff / 86400000)}d ago`;
+  if (diff < 60000) return ar ? 'الآن' : 'Just now';
+  if (diff < 3600000) return ar ? `منذ ${Math.floor(diff / 60000)}د` : `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return ar ? `منذ ${Math.floor(diff / 3600000)}س` : `${Math.floor(diff / 3600000)}h ago`;
+  return ar ? `منذ ${Math.floor(diff / 86400000)}ي` : `${Math.floor(diff / 86400000)}d ago`;
 }
 
 export function ChestDropsPanels() {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [recentDrops, setRecentDrops] = useState<ChestDrop[]>([]);
   const [luckyDrops, setLuckyDrops] = useState<ChestDrop[]>([]);
 
@@ -61,12 +63,12 @@ export function ChestDropsPanels() {
             <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.2)' }}>
               <Clock size={12} className="text-ninja-green" />
             </div>
-            <span className="font-ninja text-xs text-gray-200 tracking-wider">LAST OPENED</span>
+            <span className="font-ninja text-xs text-gray-200 tracking-wider">{ar ? 'آخر ما تم فتحه' : 'LAST OPENED'}</span>
             <div className="ml-auto w-1.5 h-1.5 rounded-full bg-ninja-green animate-pulse" style={{ boxShadow: '0 0 6px rgba(57,255,20,0.5)' }} />
           </div>
           <div className="space-y-1">
             {recentDrops.length === 0 ? (
-              <p className="font-body text-[11px] text-gray-600 text-center py-2">No drops yet — be the first!</p>
+              <p className="font-body text-[11px] text-gray-600 text-center py-2">{ar ? 'لا يوجد جوائز بعد — كن الأول!' : 'No drops yet — be the first!'}</p>
             ) : (
               recentDrops.slice(0, 5).map((drop, idx) => {
                 const rc = RARITY_COLORS[drop.rewardRarity as keyof typeof RARITY_COLORS]?.bg || '#666';
@@ -83,7 +85,7 @@ export function ChestDropsPanels() {
                       <p className="font-body text-xs text-white truncate">{drop.playerName}</p>
                       <p className="font-body text-[10px] truncate" style={{ color: rc }}>{drop.rewardName}</p>
                     </div>
-                    <span className="font-body text-[10px] text-gray-600 flex-shrink-0">{formatTime(drop.timestamp)}</span>
+                    <span className="font-body text-[10px] text-gray-600 flex-shrink-0">{formatTime(drop.timestamp, ar)}</span>
                   </motion.div>
                 );
               })
@@ -108,12 +110,12 @@ export function ChestDropsPanels() {
             <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.2)' }}>
               <Crown size={12} className="text-yellow-400" />
             </div>
-            <span className="font-ninja text-xs text-yellow-300/90 tracking-wider">LUCKY PLAYERS</span>
+            <span className="font-ninja text-xs text-yellow-300/90 tracking-wider">{ar ? 'اللاعبون المحظوظون' : 'LUCKY PLAYERS'}</span>
             <Sparkles size={10} className="text-yellow-400/40 ml-auto" />
           </div>
           <div className="space-y-1">
             {luckyDrops.length === 0 ? (
-              <p className="font-body text-[11px] text-gray-600 text-center py-2">No big wins yet — try your luck!</p>
+              <p className="font-body text-[11px] text-gray-600 text-center py-2">{ar ? 'لا توجد جوائز كبيرة بعد — جرب حظك!' : 'No big wins yet — try your luck!'}</p>
             ) : (
               luckyDrops.slice(0, 5).map((drop, idx) => {
                 const rc = RARITY_COLORS[drop.rewardRarity as keyof typeof RARITY_COLORS]?.bg || '#666';
@@ -131,7 +133,7 @@ export function ChestDropsPanels() {
                         <span className="font-ninja" style={{ color: rc }}>{drop.playerName}</span>
                       </p>
                       <p className="font-body text-[10px] text-gray-400 truncate">
-                        won <span style={{ color: rc }}>{drop.rewardName}</span> from {drop.chestTier}
+                        {ar ? 'ربح ' : 'won '}<span style={{ color: rc }}>{drop.rewardName}</span> {ar ? 'من ' : 'from '}{drop.chestTier}
                       </p>
                     </div>
                     <span className="font-ninja text-[10px] px-2 py-0.5 rounded flex-shrink-0"

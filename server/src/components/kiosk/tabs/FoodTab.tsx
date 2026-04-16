@@ -26,13 +26,15 @@ interface ActiveOrder {
   createdAt: number;
 }
 
-const STATUS_CONFIG: Record<string, { label: string; color: string; desc: string }> = {
-  pending:   { label: 'WAITING',   color: '#facc15', desc: 'Waiting for kitchen...' },
-  preparing: { label: 'PREPARING', color: '#FF6F00', desc: 'Being prepared!' },
-  ready:     { label: 'READY!',    color: '#39FF14', desc: 'Pick up your order!' },
+const STATUS_CONFIG: Record<string, { label: string; labelAr: string; color: string; desc: string; descAr: string }> = {
+  pending:   { label: 'WAITING',   labelAr: 'في الانتظار', color: '#facc15', desc: 'Waiting for kitchen...', descAr: 'بانتظار المطبخ...' },
+  preparing: { label: 'PREPARING', labelAr: 'قيد التحضير', color: '#FF6F00', desc: 'Being prepared!', descAr: 'جاري التحضير!' },
+  ready:     { label: 'READY!',    labelAr: 'جاهز!',       color: '#39FF14', desc: 'Pick up your order!', descAr: 'استلم طلبك!' },
 };
 
 export function FoodTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [items, setItems] = useState<MenuItem[]>([]);
   const [category, setCategory] = useState<'all' | 'drinks' | 'snacks' | 'food'>('all');
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -261,7 +263,7 @@ export function FoodTab({ player }: Props) {
       <div className="flex items-center justify-between px-5 pt-4 pb-2 shrink-0">
         <div>
           <h2 className="font-ninja text-xl tracking-wider text-[#39FF14] flex items-center gap-2">
-            <UtensilsCrossed size={20} /> NINJA KITCHEN
+            <UtensilsCrossed size={20} /> {ar ? 'مطبخ النينجا' : 'NINJA KITCHEN'}
           </h2>
         </div>
         <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg"
@@ -274,10 +276,10 @@ export function FoodTab({ player }: Props) {
       {/* Category pills */}
       <div className="flex gap-1.5 px-5 pb-3 shrink-0">
         {([
-          { id: 'all' as const, label: 'All', icon: <UtensilsCrossed size={11} /> },
-          { id: 'food' as const, label: 'Food', icon: <Sandwich size={11} /> },
-          { id: 'drinks' as const, label: 'Drinks', icon: <Coffee size={11} /> },
-          { id: 'snacks' as const, label: 'Snacks', icon: <Cookie size={11} /> },
+          { id: 'all' as const, label: ar ? 'الكل' : 'All', icon: <UtensilsCrossed size={11} /> },
+          { id: 'food' as const, label: ar ? 'طعام' : 'Food', icon: <Sandwich size={11} /> },
+          { id: 'drinks' as const, label: ar ? 'مشروبات' : 'Drinks', icon: <Coffee size={11} /> },
+          { id: 'snacks' as const, label: ar ? 'سناكات' : 'Snacks', icon: <Cookie size={11} /> },
         ]).map(cat => {
           const active = category === cat.id;
           return (
@@ -299,9 +301,9 @@ export function FoodTab({ player }: Props) {
         <div className="flex-1 overflow-y-auto px-5 pb-4">
           {category === 'all' ? (
             <>
-              {renderSection('FOOD & SANDWICHES', foodItems, '#ef4444')}
-              {renderSection('DRINKS', drinkItems, '#3b82f6')}
-              {renderSection('SNACKS', snackItems, '#f59e0b')}
+              {renderSection(ar ? 'الطعام والسندويشات' : 'FOOD & SANDWICHES', foodItems, '#ef4444')}
+              {renderSection(ar ? 'المشروبات' : 'DRINKS', drinkItems, '#3b82f6')}
+              {renderSection(ar ? 'السناكات' : 'SNACKS', snackItems, '#f59e0b')}
             </>
           ) : (
             <div className="grid grid-cols-5 gap-2">
@@ -318,7 +320,7 @@ export function FoodTab({ player }: Props) {
               style={{ background: 'rgba(10,10,14,0.8)' }}>
               <div className="flex items-center gap-2 px-3 py-2.5 border-b border-white/5">
                 <ShoppingCart size={14} className="text-[#FF6F00]" />
-                <span className="font-ninja text-xs text-white">ORDER</span>
+                <span className="font-ninja text-xs text-white">{ar ? 'الطلب' : 'ORDER'}</span>
                 <span className="ml-auto text-[9px] text-black px-1.5 py-0.5 rounded-full font-ninja" style={{ background: '#FF6F00' }}>{cartCount}</span>
               </div>
               <div className="flex-1 overflow-y-auto px-2.5 py-2 space-y-1.5">
@@ -349,19 +351,19 @@ export function FoodTab({ player }: Props) {
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className="font-body text-[10px] text-gray-400">Total</span>
+                  <span className="font-body text-[10px] text-gray-400">{ar ? 'الإجمالي' : 'Total'}</span>
                   <span className="font-ninja text-sm text-yellow-400 flex items-center gap-0.5"><Coins size={11} /> {totalCoins}</span>
                 </div>
-                {totalCoins > player.coins && <p className="text-red-400 text-[9px] font-body">Not enough coins</p>}
+                {totalCoins > player.coins && <p className="text-red-400 text-[9px] font-body">{ar ? 'عملات غير كافية' : 'Not enough coins'}</p>}
                 <button onClick={placeOrder} disabled={ordering || totalCoins > player.coins}
                   className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-ninja text-[10px] transition-all disabled:opacity-40"
                   style={{ background: 'linear-gradient(135deg, #FF6F00, #FF4500)', color: '#fff' }}>
                   {ordering ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                  {ordering ? 'ORDERING...' : 'PLACE ORDER'}
+                  {ordering ? (ar ? 'جاري الطلب...' : 'ORDERING...') : (ar ? 'إرسال الطلب' : 'PLACE ORDER')}
                 </button>
                 <button onClick={() => setCart({})}
                   className="w-full flex items-center justify-center gap-1 py-1 text-red-400/50 hover:text-red-400 font-body text-[8px]">
-                  <Trash2 size={8} /> Clear
+                  <Trash2 size={8} /> {ar ? 'مسح' : 'Clear'}
                 </button>
               </div>
             </motion.div>
@@ -383,7 +385,7 @@ export function FoodTab({ player }: Props) {
                     {order.status === 'preparing' ? <motion.div animate={{ rotate: [0, 10, -10, 0] }} transition={{ duration: 1, repeat: Infinity }}><ChefHat size={11} style={{ color: cfg.color }} /></motion.div>
                      : order.status === 'ready' ? <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 0.8, repeat: Infinity }}><CheckCircle2 size={11} style={{ color: cfg.color }} /></motion.div>
                      : <Clock size={11} style={{ color: cfg.color }} />}
-                    <span className="font-ninja text-[8px]" style={{ color: cfg.color }}>{cfg.label}</span>
+                    <span className="font-ninja text-[8px]" style={{ color: cfg.color }}>{ar ? cfg.labelAr : cfg.label}</span>
                   </div>
                   {order.items.map((item, idx) => <p key={idx} className="font-body text-[8px] text-gray-500">{item.quantity}x {item.name}</p>)}
                 </div>
@@ -400,7 +402,7 @@ export function FoodTab({ player }: Props) {
             className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[200] rounded-xl px-6 py-3 flex items-center gap-2"
             style={{ background: 'rgba(10,12,16,0.95)', border: '1px solid rgba(57,255,20,0.3)' }}>
             <CheckCircle2 size={18} className="text-[#39FF14]" />
-            <span className="font-ninja text-xs text-[#39FF14]">ORDER PLACED!</span>
+            <span className="font-ninja text-xs text-[#39FF14]">{ar ? 'تم إرسال الطلب!' : 'ORDER PLACED!'}</span>
           </motion.div>
         )}
       </AnimatePresence>
@@ -458,10 +460,10 @@ export function FoodTab({ player }: Props) {
                   </motion.div>
                   <div>
                     <h3 className="font-ninja text-xl tracking-wider text-[#39FF14]">
-                      {bundlePopup.rule.title || 'Add more?'}
+                      {bundlePopup.rule.title || (ar ? 'أضف المزيد؟' : 'Add more?')}
                     </h3>
                     <p className="font-body text-xs text-gray-400 mt-0.5">
-                      {bundlePopup.rule.reason || `Goes great with ${bundlePopup.triggerItemName}`}
+                      {bundlePopup.rule.reason || (ar ? `يتناسب تماماً مع ${bundlePopup.triggerItemName}` : `Goes great with ${bundlePopup.triggerItemName}`)}
                     </p>
                   </div>
                 </div>
@@ -479,7 +481,7 @@ export function FoodTab({ player }: Props) {
                 style={{ background: 'rgba(57,255,20,0.05)', border: '1px solid rgba(57,255,20,0.15)' }}>
                 <CheckCircle2 size={14} className="text-[#39FF14]" />
                 <p className="font-body text-xs text-gray-300">
-                  You added <span className="font-semibold text-[#39FF14]">{bundlePopup.triggerItemName}</span> — how about pairing it with:
+                  {ar ? (<>أضفت <span className="font-semibold text-[#39FF14]">{bundlePopup.triggerItemName}</span> — ما رأيك أن تضيف معه:</>) : (<>You added <span className="font-semibold text-[#39FF14]">{bundlePopup.triggerItemName}</span> — how about pairing it with:</>)}
                 </p>
               </div>
 
@@ -527,7 +529,7 @@ export function FoodTab({ player }: Props) {
                           boxShadow: '0 0 15px rgba(57,255,20,0.3)',
                         }}
                       >
-                        <Plus size={14} /> ADD
+                        <Plus size={14} /> {ar ? 'أضف' : 'ADD'}
                       </motion.button>
                     </motion.div>
                   ))}
@@ -535,7 +537,7 @@ export function FoodTab({ player }: Props) {
               ) : (
                 <div className="py-6 text-center mb-2">
                   <CheckCircle2 size={24} className="text-[#39FF14] mx-auto mb-2" />
-                  <p className="font-body text-sm text-gray-400">All added to your cart!</p>
+                  <p className="font-body text-sm text-gray-400">{ar ? 'تم إضافة الكل إلى السلة!' : 'All added to your cart!'}</p>
                 </div>
               )}
 
@@ -549,7 +551,7 @@ export function FoodTab({ player }: Props) {
                   color: '#888',
                 }}
               >
-                {bundlePopup.suggestions.length > 0 ? 'SKIP' : 'DONE'} <ArrowRight size={14} />
+                {bundlePopup.suggestions.length > 0 ? (ar ? 'تخطي' : 'SKIP') : (ar ? 'تم' : 'DONE')} <ArrowRight size={14} />
               </button>
             </motion.div>
           </motion.div>

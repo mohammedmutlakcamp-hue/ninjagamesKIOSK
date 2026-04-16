@@ -704,8 +704,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
         <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
           <div className="text-center">
             <Wrench size={64} className="text-yellow-400 mx-auto mb-6 animate-pulse" />
-            <h1 className="font-ninja text-4xl text-yellow-400 mb-4">MAINTENANCE MODE</h1>
-            <p className="font-body text-xl text-gray-300 max-w-md">{maintenanceMode.message || 'System is under maintenance. Please wait.'}</p>
+            <h1 className="font-ninja text-4xl text-yellow-400 mb-4">{lang === 'ar' ? 'وضع الصيانة' : 'MAINTENANCE MODE'}</h1>
+            <p className="font-body text-xl text-gray-300 max-w-md">{maintenanceMode.message || (lang === 'ar' ? 'النظام قيد الصيانة. الرجاء الانتظار.' : 'System is under maintenance. Please wait.')}</p>
           </div>
         </div>
       )}
@@ -714,11 +714,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       {isGuest && (
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-[998] px-5 py-1.5 glass rounded-full border border-ninja-green/30 flex items-center gap-2">
           <Gamepad2 size={14} className="text-ninja-green" />
-          <span className="font-ninja text-sm text-ninja-green tracking-wider">GUEST MODE</span>
+          <span className="font-ninja text-sm text-ninja-green tracking-wider">{lang === 'ar' ? 'وضع الضيف' : 'GUEST MODE'}</span>
           <span className="text-gray-500 font-body text-xs">·</span>
           <button onClick={() => { setShowBecomeUser(true); setBecomeUserStep('info'); }}
             className="font-ninja text-xs text-purple-400 hover:text-purple-300 transition-all underline underline-offset-2">
-            BECOME A USER
+            {lang === 'ar' ? 'كن نينجا' : 'BECOME A USER'}
           </button>
         </div>
       )}
@@ -938,7 +938,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   <div className="inline-flex items-center gap-1 mt-1.5 px-3 py-0.5 rounded-full"
                     style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,140,0,0.1))', border: '1px solid rgba(255,215,0,0.25)' }}>
                     <Crown size={9} style={{ color: '#FFD700' }} />
-                    <span className="font-ninja text-[8px] tracking-widest" style={{ color: '#FFD700' }}>VIP MEMBER</span>
+                    <span className="font-ninja text-[8px] tracking-widest" style={{ color: '#FFD700' }}>{lang === 'ar' ? 'عضو VIP' : 'VIP MEMBER'}</span>
                   </div>
                 )}
               </div>
@@ -1094,7 +1094,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.2)', boxShadow: '0 0 10px rgba(57,255,20,0.15)' }}>
                       <Gamepad2 size={18} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.7))' }} />
                     </div>
-                    <span className="font-ninja text-[14px] tracking-wider text-ninja-green" style={{ textShadow: '0 0 10px rgba(57,255,20,0.5)' }}>GAMES</span>
+                    <span className="font-ninja text-[14px] tracking-wider text-ninja-green" style={{ textShadow: '0 0 10px rgba(57,255,20,0.5)' }}>{lang === 'ar' ? 'الألعاب' : 'GAMES'}</span>
                   </div>
                   <ChevronRight size={14} className={`text-ninja-green/60 transition-transform duration-200 ${openDropdown === 'games' ? 'rotate-90' : ''}`} />
                 </button>
@@ -1154,7 +1154,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: 'rgba(59,130,246,0.1)', border: '1px solid rgba(59,130,246,0.2)', boxShadow: '0 0 10px rgba(59,130,246,0.15)' }}>
                       <Play size={18} className="text-blue-400" style={{ filter: 'drop-shadow(0 0 6px rgba(59,130,246,0.7))' }} />
                     </div>
-                    <span className="font-ninja text-[14px] tracking-wider text-blue-400" style={{ textShadow: '0 0 10px rgba(59,130,246,0.5)' }}>LAUNCHERS</span>
+                    <span className="font-ninja text-[14px] tracking-wider text-blue-400" style={{ textShadow: '0 0 10px rgba(59,130,246,0.5)' }}>{lang === 'ar' ? 'المشغلات' : 'LAUNCHERS'}</span>
                   </div>
                   <ChevronRight size={14} className={`text-blue-400/60 transition-transform duration-200 ${openDropdown === 'launchers' ? 'rotate-90' : ''}`} />
                 </button>
@@ -1215,7 +1215,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.2)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}>
                       <Wrench size={18} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 6px rgba(168,85,247,0.7))' }} />
                     </div>
-                    <span className="font-ninja text-[14px] tracking-wider text-purple-400" style={{ textShadow: '0 0 10px rgba(168,85,247,0.5)' }}>CREATOR TOOLS</span>
+                    <span className="font-ninja text-[14px] tracking-wider text-purple-400" style={{ textShadow: '0 0 10px rgba(168,85,247,0.5)' }}>{lang === 'ar' ? 'أدوات المبدعين' : 'CREATOR TOOLS'}</span>
                   </div>
                   <ChevronRight size={14} className={`text-purple-400/60 transition-transform duration-200 ${openDropdown === 'creator' ? 'rotate-90' : ''}`} />
                 </button>
@@ -1417,7 +1417,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               onClick={() => { window.location.href = '/ghanimadmin'; }}
               className="w-full flex items-center justify-center gap-2 py-2.5 bg-purple-500/10 border border-purple-500/20 rounded-xl text-purple-400 font-body text-sm hover:bg-purple-500/20 transition-all">
               <Shield size={16} />
-              {!sidebarCollapsed && <span>Admin Panel</span>}
+              {!sidebarCollapsed && <span>{lang === 'ar' ? 'لوحة الإدارة' : 'Admin Panel'}</span>}
             </motion.button>
           )}
           {/* Logout — Cyberpunk styled */}
@@ -1579,14 +1579,16 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               </p>
               <p className="font-body text-gray-400">
                 {remainingPlaytime <= 0
-                  ? (coins > 0 ? 'Buy more time with your tokens' : 'Top up tokens to continue playing')
-                  : 'Your playtime is running low'}
+                  ? (coins > 0
+                      ? (lang === 'ar' ? 'اشترِ وقتًا أكثر بالتوكنز' : 'Buy more time with your tokens')
+                      : (lang === 'ar' ? 'اشحن التوكنز للاستمرار في اللعب' : 'Top up tokens to continue playing'))
+                  : (lang === 'ar' ? 'وقت اللعب على وشك الانتهاء' : 'Your playtime is running low')}
               </p>
               <button onClick={() => {
                 if (coins > 0) { setShowBuyTimeModal(true); setBuyTimeSelected(null); }
                 else { setShowTopUpModal(true); setTopUpSelected(null); setTopUpSent(false); }
               }} className="ninja-btn ninja-btn-green mt-4 px-6">
-                {coins > 0 ? 'BUY TIME' : 'TOP UP'}
+                {coins > 0 ? (lang === 'ar' ? 'شراء وقت' : 'BUY TIME') : (lang === 'ar' ? 'شحن' : 'TOP UP')}
               </button>
             </motion.div>
           </motion.div>
@@ -1624,9 +1626,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     >
                       <Loader2 size={36} className="text-purple-400 animate-spin" />
                     </motion.div>
-                    <h2 className="font-ninja text-2xl text-purple-400 mb-3 tracking-wider">WAITING FOR ADMIN</h2>
-                    <p className="font-body text-gray-400 text-sm mb-2">Your registration request has been sent!</p>
-                    <p className="font-body text-gray-500 text-xs mb-8">Ask a staff member to come to your PC. They will give you a 6-digit code.</p>
+                    <h2 className="font-ninja text-2xl text-purple-400 mb-3 tracking-wider">{lang === 'ar' ? 'بانتظار الإدارة' : 'WAITING FOR ADMIN'}</h2>
+                    <p className="font-body text-gray-400 text-sm mb-2">{lang === 'ar' ? 'تم إرسال طلب تسجيلك!' : 'Your registration request has been sent!'}</p>
+                    <p className="font-body text-gray-500 text-xs mb-8">{lang === 'ar' ? 'اطلب من أحد الموظفين الحضور إلى جهازك. سيعطيك رمزًا من 6 أرقام.' : 'Ask a staff member to come to your PC. They will give you a 6-digit code.'}</p>
 
                     <motion.button
                       whileHover={{ scale: 1.02 }}
@@ -1635,11 +1637,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       className="w-full py-4 rounded-xl font-ninja text-lg tracking-wider text-white flex items-center justify-center gap-2 transition-all"
                       style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', boxShadow: '0 0 20px rgba(147,51,234,0.3)' }}
                     >
-                      <Shield size={20} /> I HAVE THE CODE
+                      <Shield size={20} /> {lang === 'ar' ? 'لدي الرمز' : 'I HAVE THE CODE'}
                     </motion.button>
                     <button onClick={() => { setShowBecomeUser(false); setBecomeUserStep('info'); }}
                       className="w-full mt-3 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all">
-                      Cancel
+                      {lang === 'ar' ? 'إلغاء' : 'Cancel'}
                     </button>
                   </div>
                 </>
@@ -1659,9 +1661,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         <Crown size={36} className="text-purple-400" />
                       </motion.div>
                       <h1 className="font-ninja text-3xl tracking-wider mb-2" style={{ background: 'linear-gradient(90deg, #A855F7, #E879F9, #C084FC)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        BECOME A NINJA
+                        {lang === 'ar' ? 'كن نينجا' : 'BECOME A NINJA'}
                       </h1>
-                      <p className="font-body text-gray-400 text-sm">Create your account and unlock everything</p>
+                      <p className="font-body text-gray-400 text-sm">{lang === 'ar' ? 'أنشئ حسابك وافتح كل الميزات' : 'Create your account and unlock everything'}</p>
                     </div>
                   </div>
 
@@ -1669,12 +1671,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   <div className="px-8 pb-4">
                     <div className="grid grid-cols-2 gap-3">
                       {[
-                        { icon: <Package size={22} />, title: 'CHESTS', desc: 'Open chests & win skins', color: '#00BFFF', glow: 'rgba(0,191,255,0.15)' },
-                        { icon: <Users size={22} />, title: 'FRIENDS', desc: 'Add friends, chat & call', color: '#39FF14', glow: 'rgba(57,255,20,0.15)' },
-                        { icon: <Swords size={22} />, title: 'TOURNAMENTS', desc: 'Compete & win prizes', color: '#FF6B6B', glow: 'rgba(255,107,107,0.15)' },
-                        { icon: <ClipboardCheck size={22} />, title: 'DAILY TASKS', desc: 'Complete tasks for rewards', color: '#FBBF24', glow: 'rgba(251,191,36,0.15)' },
-                        { icon: <ShoppingBag size={22} />, title: 'STORE', desc: 'Buy skins & items', color: '#FF6F00', glow: 'rgba(255,111,0,0.15)' },
-                        { icon: <Backpack size={22} />, title: 'INVENTORY', desc: 'Collect & gift items', color: '#A855F7', glow: 'rgba(168,85,247,0.15)' },
+                        { icon: <Package size={22} />, title: lang === 'ar' ? 'الصناديق' : 'CHESTS', desc: lang === 'ar' ? 'افتح الصناديق واربح الأزياء' : 'Open chests & win skins', color: '#00BFFF', glow: 'rgba(0,191,255,0.15)' },
+                        { icon: <Users size={22} />, title: lang === 'ar' ? 'الأصدقاء' : 'FRIENDS', desc: lang === 'ar' ? 'أضف أصدقاء ودردش واتصل' : 'Add friends, chat & call', color: '#39FF14', glow: 'rgba(57,255,20,0.15)' },
+                        { icon: <Swords size={22} />, title: lang === 'ar' ? 'البطولات' : 'TOURNAMENTS', desc: lang === 'ar' ? 'نافس واربح جوائز' : 'Compete & win prizes', color: '#FF6B6B', glow: 'rgba(255,107,107,0.15)' },
+                        { icon: <ClipboardCheck size={22} />, title: lang === 'ar' ? 'المهام اليومية' : 'DAILY TASKS', desc: lang === 'ar' ? 'أكمل المهام للمكافآت' : 'Complete tasks for rewards', color: '#FBBF24', glow: 'rgba(251,191,36,0.15)' },
+                        { icon: <ShoppingBag size={22} />, title: lang === 'ar' ? 'المتجر' : 'STORE', desc: lang === 'ar' ? 'اشترِ أزياء وعناصر' : 'Buy skins & items', color: '#FF6F00', glow: 'rgba(255,111,0,0.15)' },
+                        { icon: <Backpack size={22} />, title: lang === 'ar' ? 'الحقيبة' : 'INVENTORY', desc: lang === 'ar' ? 'اجمع وأهدِ عناصر' : 'Collect & gift items', color: '#A855F7', glow: 'rgba(168,85,247,0.15)' },
                       ].map((f, i) => (
                         <motion.div key={f.title}
                           initial={{ opacity: 0, y: 20 }}
@@ -1724,11 +1726,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       className="w-full py-4 rounded-xl font-ninja text-xl tracking-wider text-white flex items-center justify-center gap-3 transition-all disabled:opacity-60"
                       style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', boxShadow: '0 0 20px rgba(147,51,234,0.3)' }}
                     >
-                      {regRequestSending ? <Loader2 size={22} className="animate-spin" /> : <UserPlus size={22} />} CREATE MY ACCOUNT
+                      {regRequestSending ? <Loader2 size={22} className="animate-spin" /> : <UserPlus size={22} />} {lang === 'ar' ? 'أنشئ حسابي' : 'CREATE MY ACCOUNT'}
                     </motion.button>
                     <button onClick={() => setShowBecomeUser(false)}
                       className="w-full mt-3 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all">
-                      Maybe later
+                      {lang === 'ar' ? 'ربما لاحقًا' : 'Maybe later'}
                     </button>
                   </div>
                 </>
@@ -1740,9 +1742,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       style={{ background: 'rgba(57,255,20,0.1)', border: '2px solid rgba(57,255,20,0.3)' }}>
                       <Shield size={32} className="text-ninja-green" />
                     </div>
-                    <h2 className="font-ninja text-2xl text-ninja-green mb-2 tracking-wider">ADMIN APPROVAL</h2>
-                    <p className="font-body text-gray-400 text-sm mb-1">Ask the staff for your 6-digit approval code</p>
-                    <p className="font-body text-gray-600 text-xs">The admin will come to you to set up your account</p>
+                    <h2 className="font-ninja text-2xl text-ninja-green mb-2 tracking-wider">{lang === 'ar' ? 'موافقة الإدارة' : 'ADMIN APPROVAL'}</h2>
+                    <p className="font-body text-gray-400 text-sm mb-1">{lang === 'ar' ? 'اطلب من الموظف رمز الموافقة المكون من 6 أرقام' : 'Ask the staff for your 6-digit approval code'}</p>
+                    <p className="font-body text-gray-600 text-xs">{lang === 'ar' ? 'سيحضر المسؤول لإعداد حسابك' : 'The admin will come to you to set up your account'}</p>
                   </div>
 
                   <div className="px-8 pb-6">
@@ -1819,12 +1821,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       style={{ background: adminCode.length === 6 ? '#39FF14' : 'rgba(57,255,20,0.3)' }}
                     >
                       {adminCodeLoading ? <Loader2 size={20} className="animate-spin" /> : <Check size={20} />}
-                      VERIFY CODE
+                      {lang === 'ar' ? 'تحقق من الرمز' : 'VERIFY CODE'}
                     </motion.button>
 
                     <button onClick={() => setBecomeUserStep('waiting')}
                       className="w-full mt-3 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all flex items-center justify-center gap-2">
-                      Back
+                      {lang === 'ar' ? 'رجوع' : 'Back'}
                     </button>
                   </div>
                 </>
@@ -1832,40 +1834,40 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 /* ── Registration Form ── */
                 <>
                   <div className="px-8 pt-6 pb-2 text-center">
-                    <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #A855F7, #E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CREATE YOUR ACCOUNT</h2>
-                    <p className="font-body text-gray-500 text-xs">Fill in your details to become a Ninja</p>
+                    <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #A855F7, #E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{lang === 'ar' ? 'أنشئ حسابك' : 'CREATE YOUR ACCOUNT'}</h2>
+                    <p className="font-body text-gray-500 text-xs">{lang === 'ar' ? 'املأ بياناتك لتصبح نينجا' : 'Fill in your details to become a Ninja'}</p>
                   </div>
                   <div className="px-8 pb-6 space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-gray-500 font-body text-[11px] mb-1 block">First Name</label>
+                        <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'الاسم الأول' : 'First Name'}</label>
                         <input type="text" value={regFirstName} onChange={e => setRegFirstName(e.target.value)}
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder="First name" />
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder={lang === 'ar' ? 'الاسم الأول' : 'First name'} />
                       </div>
                       <div>
-                        <label className="text-gray-500 font-body text-[11px] mb-1 block">Last Name</label>
+                        <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'اسم العائلة' : 'Last Name'}</label>
                         <input type="text" value={regLastName} onChange={e => setRegLastName(e.target.value)}
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder="Last name" />
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder={lang === 'ar' ? 'اسم العائلة' : 'Last name'} />
                       </div>
                     </div>
                     <div>
-                      <label className="text-gray-500 font-body text-[11px] mb-1 block">Username</label>
+                      <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'اسم المستخدم' : 'Username'}</label>
                       <input type="text" value={regUsername} onChange={e => setRegUsername(e.target.value.replace(/[^a-zA-Z0-9_\u0600-\u06FF]/g, ''))}
-                        className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder="Choose a username" />
+                        className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder={lang === 'ar' ? 'اختر اسم مستخدم' : 'Choose a username'} />
                     </div>
                     <div>
-                      <label className="text-gray-500 font-body text-[11px] mb-1 block">Phone (Jordan)</label>
+                      <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'الهاتف (الأردن)' : 'Phone (Jordan)'}</label>
                       <input type="tel" value={regPhone} onChange={e => { let d = e.target.value.replace(/\D/g, ''); if (!d.startsWith('962')) d = '962' + d.replace(/^0/, ''); setRegPhone('+' + d.slice(0,12)); }}
                         className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm focus:border-purple-500 outline-none" placeholder="+962 7X XXXX XXX" />
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-gray-500 font-body text-[11px] mb-1 block">6-Digit PIN</label>
+                        <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'رمز PIN من 6 أرقام' : '6-Digit PIN'}</label>
                         <input type="password" value={regPin} onChange={e => setRegPin(e.target.value.replace(/\D/g, '').slice(0,6))}
                           className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm tracking-[0.3em] text-center focus:border-purple-500 outline-none" placeholder="• • • • • •" maxLength={6} />
                       </div>
                       <div>
-                        <label className="text-gray-500 font-body text-[11px] mb-1 block">Confirm PIN</label>
+                        <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'تأكيد رمز PIN' : 'Confirm PIN'}</label>
                         <input type="password" value={regConfirmPin} onChange={e => setRegConfirmPin(e.target.value.replace(/\D/g, '').slice(0,6))}
                           className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm tracking-[0.3em] text-center focus:border-purple-500 outline-none" placeholder="• • • • • •" maxLength={6} />
                       </div>
@@ -1888,7 +1890,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       className="w-full py-3.5 rounded-xl font-ninja text-lg tracking-wider text-white flex items-center justify-center gap-2 transition-all disabled:opacity-50"
                       style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}
                     >
-                      {regLoading ? <Loader2 size={18} className="animate-spin" /> : null} NEXT - CHOOSE NINJA
+                      {regLoading ? <Loader2 size={18} className="animate-spin" /> : null} {lang === 'ar' ? 'التالي - اختر نينجا' : 'NEXT - CHOOSE NINJA'}
                     </motion.button>
                   </div>
                 </>
@@ -1896,8 +1898,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 /* ── Ninja Picker ── */
                 <>
                   <div className="px-8 pt-6 pb-2 text-center">
-                    <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #A855F7, #E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CHOOSE YOUR NINJA</h2>
-                    <p className="font-body text-gray-500 text-xs">Pick your starter ninja</p>
+                    <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #A855F7, #E879F9)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{lang === 'ar' ? 'اختر نينجاك' : 'CHOOSE YOUR NINJA'}</h2>
+                    <p className="font-body text-gray-500 text-xs">{lang === 'ar' ? 'اختر نينجاك المبتدئ' : 'Pick your starter ninja'}</p>
                   </div>
                   <div className="px-8 pb-4">
                     <div className="grid grid-cols-4 gap-2">
@@ -1925,17 +1927,17 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       className="w-full py-3.5 rounded-xl font-ninja text-lg tracking-wider text-white flex items-center justify-center gap-2 transition-all"
                       style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)' }}
                     >
-                      NEXT - CHOOSE PACKAGE
+                      {lang === 'ar' ? 'التالي - اختر الباقة' : 'NEXT - CHOOSE PACKAGE'}
                     </motion.button>
-                    <button onClick={() => setBecomeUserStep('form')} className="w-full mt-2 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all">Back</button>
+                    <button onClick={() => setBecomeUserStep('form')} className="w-full mt-2 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all">{lang === 'ar' ? 'رجوع' : 'Back'}</button>
                   </div>
                 </>
               ) : becomeUserStep === 'package' ? (
                 /* ── Package Picker + Complete ── */
                 <>
                   <div className="px-8 pt-6 pb-2 text-center">
-                    <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #FBBF24, #F59E0B)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>CHOOSE YOUR PACKAGE</h2>
-                    <p className="font-body text-gray-500 text-xs">Select a token package to start playing</p>
+                    <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #FBBF24, #F59E0B)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{lang === 'ar' ? 'اختر الباقة' : 'CHOOSE YOUR PACKAGE'}</h2>
+                    <p className="font-body text-gray-500 text-xs">{lang === 'ar' ? 'اختر باقة عملات لبدء اللعب' : 'Select a token package to start playing'}</p>
                   </div>
                   <div className="px-8 pb-4 space-y-2.5">
                     {COIN_PACKAGES.map((pkg) => {
@@ -1952,12 +1954,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 {sel && <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />}
                               </div>
                               <div>
-                                <span className="font-ninja text-white">{pkg.coins.toLocaleString()} tokens</span>
+                                <span className="font-ninja text-white">{pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
                                 <span className="font-body text-gray-500 text-xs ml-2">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
-                              {pkg.popular && <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-ninja text-[9px]">BEST</span>}
+                              {pkg.popular && <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-ninja text-[9px]">{lang === 'ar' ? 'الأفضل' : 'BEST'}</span>}
                               <span className="font-ninja text-lg text-white">{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
                             </div>
                           </div>
@@ -2016,9 +2018,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       style={{ background: regSelectedPkg ? 'linear-gradient(135deg, #FBBF24, #F59E0B)' : 'rgba(251,191,36,0.3)' }}
                     >
                       {regLoading ? <Loader2 size={20} className="animate-spin text-black" /> : <Sparkles size={20} />}
-                      REQUEST ACCOUNT & TOP-UP
+                      {lang === 'ar' ? 'طلب الحساب والشحن' : 'REQUEST ACCOUNT & TOP-UP'}
                     </motion.button>
-                    <button onClick={() => setBecomeUserStep('ninja')} className="w-full mt-2 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all">Back</button>
+                    <button onClick={() => setBecomeUserStep('ninja')} className="w-full mt-2 py-2 text-gray-600 font-body text-sm hover:text-gray-400 transition-all">{lang === 'ar' ? 'رجوع' : 'Back'}</button>
                   </div>
                 </>
               ) : becomeUserStep === 'pendingApproval' ? (
@@ -2033,10 +2035,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     >
                       <Loader2 size={36} className="text-yellow-400 animate-spin" />
                     </motion.div>
-                    <h2 className="font-ninja text-2xl text-yellow-400 mb-3 tracking-wider">WAITING FOR APPROVAL</h2>
-                    <p className="font-body text-gray-400 text-sm mb-2">Your registration and top-up request has been sent!</p>
-                    <p className="font-body text-gray-500 text-xs mb-2">The admin will approve your payment and your account will be created automatically.</p>
-                    <p className="font-body text-gray-600 text-[11px]">Please wait or ask staff for help.</p>
+                    <h2 className="font-ninja text-2xl text-yellow-400 mb-3 tracking-wider">{lang === 'ar' ? 'بانتظار الموافقة' : 'WAITING FOR APPROVAL'}</h2>
+                    <p className="font-body text-gray-400 text-sm mb-2">{lang === 'ar' ? 'تم إرسال طلب التسجيل والشحن!' : 'Your registration and top-up request has been sent!'}</p>
+                    <p className="font-body text-gray-500 text-xs mb-2">{lang === 'ar' ? 'سيوافق المسؤول على دفعتك وسيتم إنشاء حسابك تلقائيًا.' : 'The admin will approve your payment and your account will be created automatically.'}</p>
+                    <p className="font-body text-gray-600 text-[11px]">{lang === 'ar' ? 'الرجاء الانتظار أو اطلب المساعدة من الموظفين.' : 'Please wait or ask staff for help.'}</p>
                   </div>
                 </>
               ) : null}
@@ -2112,7 +2114,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         style={{ border: '2px solid rgba(234,179,8,0.4)', background: 'radial-gradient(circle, rgba(234,179,8,0.15) 0%, transparent 70%)', boxShadow: '0 0 15px rgba(234,179,8,0.1)' }}>
                         <Coins size={20} className="text-yellow-400" />
                       </motion.div>
-                      <h2 className="font-ninja text-3xl text-white tracking-wide" style={{ textShadow: '0 0 20px rgba(234,179,8,0.15)' }}>TOP UP</h2>
+                      <h2 className="font-ninja text-3xl text-white tracking-wide" style={{ textShadow: '0 0 20px rgba(234,179,8,0.15)' }}>{lang === 'ar' ? 'شحن' : 'TOP UP'}</h2>
                     </div>
                     <div className="flex items-center gap-2">
                       {/* Switch to Buy Time */}
@@ -2122,7 +2124,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         whileTap={{ scale: 0.97 }}
                         className="hidden sm:flex items-center gap-1.5 px-3 h-11 rounded-xl font-ninja text-xs tracking-wider transition-all relative overflow-hidden"
                         style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.12), rgba(57,255,20,0.05))', border: '1px solid rgba(57,255,20,0.35)', color: '#39FF14', boxShadow: '0 0 10px rgba(57,255,20,0.08)' }}>
-                        <Timer size={14} /> BUY TIME
+                        <Timer size={14} /> {lang === 'ar' ? 'شراء وقت' : 'BUY TIME'}
                       </motion.button>
                       <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
                         onClick={() => setShowTopUpModal(false)}
@@ -2136,12 +2138,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   {/* Balance + Name */}
                   <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
                     className="font-body text-sm text-gray-400 mb-5 flex items-center justify-between flex-wrap gap-2">
-                    <span>Balance: <motion.span
+                    <span>{lang === 'ar' ? 'الرصيد:' : 'Balance:'} <motion.span
                       animate={{ textShadow: ['0 0 8px rgba(234,179,8,0.3)', '0 0 16px rgba(234,179,8,0.6)', '0 0 8px rgba(234,179,8,0.3)'] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="font-ninja text-yellow-400 text-lg">{Math.floor(coins)} tokens</motion.span></span>
+                      className="font-ninja text-yellow-400 text-lg">{Math.floor(coins)} {lang === 'ar' ? 'توكنز' : 'tokens'}</motion.span></span>
                     <span className="flex items-center gap-1.5">
-                      For:{' '}
+                      {lang === 'ar' ? 'لـ:' : 'For:'}{' '}
                       {editingTopUpName ? (
                         <input type="text" value={topUpPlayerName} onChange={(e) => setTopUpPlayerName(e.target.value)}
                           onBlur={() => setEditingTopUpName(false)} onKeyDown={(e) => e.key === 'Enter' && setEditingTopUpName(false)} autoFocus
@@ -2175,7 +2177,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                             {isBest && (
                               <div className="absolute -top-1 -right-1 z-10 px-2.5 py-1 rounded-bl-lg rounded-tr-lg font-ninja text-[9px] tracking-wider pointer-events-none"
                                 style={{ background: 'linear-gradient(135deg, #eab308, #f59e0b)', color: '#000', boxShadow: '0 2px 8px rgba(234,179,8,0.4)' }}>
-                                BEST
+                                {lang === 'ar' ? 'الأفضل' : 'BEST'}
                               </div>
                             )}
                             <div className="relative rounded-lg px-5 py-4" style={{ background: 'rgba(255,255,255,0.02)' }}>
@@ -2201,7 +2203,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                     </AnimatePresence>
                                   </motion.div>
                                   <div className="flex items-baseline gap-3">
-                                    <span className="font-ninja text-2xl text-white">{pkg.coins.toLocaleString()} tokens</span>
+                                    <span className="font-ninja text-2xl text-white">{pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
                                     <span className="font-body text-gray-500 text-sm">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
                                   </div>
                                 </div>
@@ -2255,8 +2257,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 mb-1.5">
-                            <span className="font-ninja text-sm text-gray-400 tracking-wider">CUSTOM AMOUNT</span>
-                            <span className="font-body text-[10px] text-gray-600">min {CUSTOM_TOKEN_MIN.toLocaleString()}</span>
+                            <span className="font-ninja text-sm text-gray-400 tracking-wider">{lang === 'ar' ? 'مبلغ مخصص' : 'CUSTOM AMOUNT'}</span>
+                            <span className="font-body text-[10px] text-gray-600">{lang === 'ar' ? 'الحد الأدنى' : 'min'} {CUSTOM_TOKEN_MIN.toLocaleString()}</span>
                           </div>
                           <div className="flex items-center gap-3">
                             <div className="flex-1 relative">
@@ -2268,7 +2270,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 value={topUpCustomTokens}
                                 onChange={(e) => { setTopUpCustomTokens(e.target.value); setTopUpSelected('custom'); }}
                                 onClick={(e) => { e.stopPropagation(); setTopUpSelected('custom'); }}
-                                placeholder="Enter tokens"
+                                placeholder={lang === 'ar' ? 'أدخل التوكنز' : 'Enter tokens'}
                                 className="w-full bg-white/5 border border-yellow-500/30 rounded-md px-3 py-2 font-ninja text-lg text-white outline-none focus:border-yellow-400 placeholder:text-gray-600"
                                 style={{ textShadow: '0 0 8px rgba(234,179,8,0.2)' }}
                               />
@@ -2283,12 +2285,14 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           </div>
                           {!topUpCustomValid && topUpCustomTokens && (
                             <p className="font-body text-[10px] text-red-400 mt-1.5">
-                              Minimum is {CUSTOM_TOKEN_MIN.toLocaleString()} tokens. Use a package for smaller amounts.
+                              {lang === 'ar'
+                                ? `الحد الأدنى هو ${CUSTOM_TOKEN_MIN.toLocaleString()} توكنز. استخدم باقة للمبالغ الأصغر.`
+                                : `Minimum is ${CUSTOM_TOKEN_MIN.toLocaleString()} tokens. Use a package for smaller amounts.`}
                             </p>
                           )}
                           {topUpCustomValid && (
                             <p className="font-body text-[10px] text-gray-500 mt-1.5">
-                              {CUSTOM_TOKENS_PER_JOD} tokens / JOD · {Math.floor(topUpCustomNum / 150)}h {Math.round((topUpCustomNum % 150) / 2.5)}m play time
+                              {CUSTOM_TOKENS_PER_JOD} {lang === 'ar' ? 'توكنز / دينار · ' : 'tokens / JOD · '}{Math.floor(topUpCustomNum / 150)}h {Math.round((topUpCustomNum % 150) / 2.5)}m {lang === 'ar' ? 'وقت لعب' : 'play time'}
                             </p>
                           )}
                         </div>
@@ -2340,14 +2344,14 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                             boxShadow: canSubmit ? '0 0 20px rgba(234,179,8,0.3)' : 'none',
                           }}>
                           {topUpLoading ? <Loader2 size={20} className="animate-spin" /> : <Coins size={20} />}
-                          {topUpLoading ? 'SENDING...' : 'REQUEST TOP-UP'}
+                          {topUpLoading ? (lang === 'ar' ? 'جارٍ الإرسال...' : 'SENDING...') : (lang === 'ar' ? 'طلب شحن' : 'REQUEST TOP-UP')}
                         </button>
                       );
                     })()}
                   </motion.div>
 
                   <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.9 }}
-                    className="font-body text-gray-600 text-[11px] text-center mt-4">Ask staff to confirm your payment.</motion.p>
+                    className="font-body text-gray-600 text-[11px] text-center mt-4">{lang === 'ar' ? 'اطلب من الموظف تأكيد دفعتك.' : 'Ask staff to confirm your payment.'}</motion.p>
                 </>
               )}
               </div>
@@ -2432,9 +2436,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     className="w-16 h-16 rounded-full bg-yellow-500/10 flex items-center justify-center mx-auto mb-4 border border-yellow-500/30">
                     <Timer size={30} className="text-yellow-400" />
                   </motion.div>
-                  <h3 className="font-ninja text-xl text-yellow-400 mb-2">FREE PLAY ACTIVE</h3>
-                  <p className="font-body text-gray-400 text-sm mb-4">You can buy time after your free play expires.</p>
-                  <p className="font-ninja text-lg text-ninja-green">{Math.floor(freePlayRemaining / 60)}:{String(freePlayRemaining % 60).padStart(2, '0')} remaining</p>
+                  <h3 className="font-ninja text-xl text-yellow-400 mb-2">{lang === 'ar' ? 'اللعب المجاني نشط' : 'FREE PLAY ACTIVE'}</h3>
+                  <p className="font-body text-gray-400 text-sm mb-4">{lang === 'ar' ? 'يمكنك شراء الوقت بعد انتهاء اللعب المجاني.' : 'You can buy time after your free play expires.'}</p>
+                  <p className="font-ninja text-lg text-ninja-green">{Math.floor(freePlayRemaining / 60)}:{String(freePlayRemaining % 60).padStart(2, '0')} {lang === 'ar' ? 'متبقٍ' : 'remaining'}</p>
                   <button onClick={() => setShowBuyTimeModal(false)} className="ninja-btn ninja-btn-ghost mt-6 px-8">{t(lang, 'ok')}</button>
                 </div>
               ) : (
@@ -2452,7 +2456,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       </motion.div>
                       <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                         className="font-ninja text-3xl text-white tracking-wide"
-                        style={{ textShadow: '0 0 20px rgba(57,255,20,0.15)' }}>BUY TIME</motion.h2>
+                        style={{ textShadow: '0 0 20px rgba(57,255,20,0.15)' }}>{lang === 'ar' ? 'شراء وقت' : 'BUY TIME'}</motion.h2>
                     </div>
                     <div className="flex items-center gap-2">
                       {/* Switch to Buy Tokens */}
@@ -2462,7 +2466,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         whileTap={{ scale: 0.97 }}
                         className="hidden sm:flex items-center gap-1.5 px-3 h-11 rounded-xl font-ninja text-xs tracking-wider transition-all relative overflow-hidden"
                         style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.05))', border: '1px solid rgba(234,179,8,0.35)', color: '#facc15', boxShadow: '0 0 10px rgba(234,179,8,0.08)' }}>
-                        <Coins size={14} /> BUY TOKENS
+                        <Coins size={14} /> {lang === 'ar' ? 'شراء توكنز' : 'BUY TOKENS'}
                       </motion.button>
                       <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
                         onClick={() => setShowBuyTimeModal(false)}
@@ -2476,10 +2480,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   {/* Animated Balance */}
                   <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
                     className="font-body text-gray-400 mb-5">
-                    Balance: <motion.span
+                    {lang === 'ar' ? 'الرصيد:' : 'Balance:'} <motion.span
                       animate={{ textShadow: ['0 0 8px rgba(57,255,20,0.3)', '0 0 16px rgba(57,255,20,0.6)', '0 0 8px rgba(57,255,20,0.3)'] }}
                       transition={{ duration: 2, repeat: Infinity }}
-                      className="font-ninja text-ninja-green text-lg">{Math.floor(coins)} tokens</motion.span>
+                      className="font-ninja text-ninja-green text-lg">{Math.floor(coins)} {lang === 'ar' ? 'توكنز' : 'tokens'}</motion.span>
                   </motion.p>
 
                   {/* Staggered Package cards */}
@@ -2570,7 +2574,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                         style={{ textShadow: selected ? '0 0 20px rgba(234,179,8,0.55), 0 0 40px rgba(234,179,8,0.25)' : '0 0 8px rgba(234,179,8,0.25)' }}>
                                         −{pkg.coins.toLocaleString()}
                                       </span>
-                                      <p className="font-ninja text-[10px] tracking-[0.3em] text-yellow-500/70 leading-none mt-0.5">TOKENS</p>
+                                      <p className="font-ninja text-[10px] tracking-[0.3em] text-yellow-500/70 leading-none mt-0.5">{lang === 'ar' ? 'توكنز' : 'TOKENS'}</p>
                                     </div>
                                   </motion.div>
 
@@ -2627,7 +2631,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                   className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-md font-ninja text-[10px] tracking-[0.2em] text-white flex items-center gap-1 z-10"
                                   style={{ background: 'linear-gradient(135deg, #39FF14, #06b6d4)', color: '#000' }}>
                                   <Shield size={10} />
-                                  BEST
+                                  {lang === 'ar' ? 'الأفضل' : 'BEST'}
                                 </motion.div>
                               )}
                             </div>
@@ -2666,12 +2670,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         boxShadow: buyTimeSelected ? '0 0 20px rgba(57,255,20,0.3)' : 'none',
                       }}>
                       {buyTimeLoading ? <Loader2 size={20} className="animate-spin" /> : <Timer size={20} />}
-                      {buyTimeLoading ? 'BUYING...' : 'BUY TIME'}
+                      {buyTimeLoading ? (lang === 'ar' ? 'جارٍ الشراء...' : 'BUYING...') : (lang === 'ar' ? 'شراء وقت' : 'BUY TIME')}
                     </button>
                   </motion.div>
 
                   <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1 }}
-                    className="font-body text-gray-600 text-[11px] text-center mt-4">Coins are deducted and playtime is added instantly.</motion.p>
+                    className="font-body text-gray-600 text-[11px] text-center mt-4">{lang === 'ar' ? 'يتم خصم العملات وإضافة وقت اللعب فورًا.' : 'Coins are deducted and playtime is added instantly.'}</motion.p>
                 </>
               )}
               </div>
@@ -2705,13 +2709,13 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 className="text-7xl mb-4"
               >⚡</motion.div>
               <h2 className="font-ninja text-4xl text-yellow-400 mb-2" style={{ textShadow: '0 0 30px rgba(255,215,0,0.6)' }}>
-                LEVEL UP!
+                {lang === 'ar' ? 'ارتقاء مستوى!' : 'LEVEL UP!'}
               </h2>
-              <p className="font-ninja text-6xl text-white mb-2">LVL {levelUpNewLevel}</p>
-              <p className="font-body text-gray-400 text-sm mb-2">You earned a Bronze Chest!</p>
+              <p className="font-ninja text-6xl text-white mb-2">{lang === 'ar' ? 'المستوى' : 'LVL'} {levelUpNewLevel}</p>
+              <p className="font-body text-gray-400 text-sm mb-2">{lang === 'ar' ? 'لقد ربحت صندوقًا برونزيًا!' : 'You earned a Bronze Chest!'}</p>
               <div className="flex items-center justify-center gap-2 mb-6">
                 <span className="text-2xl">🎁</span>
-                <span className="font-ninja text-yellow-400 text-sm">Bronze Chest Added to Inventory</span>
+                <span className="font-ninja text-yellow-400 text-sm">{lang === 'ar' ? 'تمت إضافة الصندوق البرونزي إلى الحقيبة' : 'Bronze Chest Added to Inventory'}</span>
               </div>
               <motion.button
                 whileHover={{ scale: 1.05 }}
@@ -2719,7 +2723,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 onClick={() => setShowLevelUpModal(false)}
                 className="ninja-btn ninja-btn-yellow ninja-btn-lg px-10"
               >
-                AWESOME!
+                {lang === 'ar' ? 'رائع!' : 'AWESOME!'}
               </motion.button>
             </motion.div>
           </motion.div>
@@ -2757,7 +2761,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 {centerNotification.title}
               </h3>
               <p className="font-body text-gray-300 text-sm">{centerNotification.message}</p>
-              <p className="font-body text-gray-600 text-xs mt-3">Click to view inventory</p>
+              <p className="font-body text-gray-600 text-xs mt-3">{lang === 'ar' ? 'انقر لعرض الحقيبة' : 'Click to view inventory'}</p>
             </motion.div>
           </motion.div>
         )}
@@ -2783,6 +2787,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
         <PlayerProfileCard
           targetUid={viewPlayerUid}
           currentPlayer={player}
+          lang={lang}
           onClose={() => setViewPlayerUid(null)}
           onStartCall={(uid, name) => {
             window.dispatchEvent(new CustomEvent('start-voice-call', { detail: { friendId: uid, friendName: name } }));
@@ -2794,6 +2799,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       {viewClubId && (
         <ClubInfoCard
           clubId={viewClubId}
+          lang={lang}
           onClose={() => setViewClubId(null)}
         />
       )}
@@ -2861,17 +2867,17 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 {sendAmount && parseInt(sendAmount) > 0 && (
                   <div className="mt-2 p-2 bg-black/30 rounded-lg border border-white/5 space-y-1">
                     <div className="flex justify-between text-[11px] font-body">
-                      <span className="text-gray-500">Send amount</span>
-                      <span className="text-white">{parseInt(sendAmount)} tokens</span>
+                      <span className="text-gray-500">{lang === 'ar' ? 'مبلغ الإرسال' : 'Send amount'}</span>
+                      <span className="text-white">{parseInt(sendAmount)} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
                     </div>
                     <div className="flex justify-between text-[11px] font-body">
-                      <span className="text-gray-500">Fee (10%)</span>
-                      <span className="text-red-400">+{Math.ceil(parseInt(sendAmount) * 0.1)} tokens</span>
+                      <span className="text-gray-500">{lang === 'ar' ? 'الرسوم (10%)' : 'Fee (10%)'}</span>
+                      <span className="text-red-400">+{Math.ceil(parseInt(sendAmount) * 0.1)} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
                     </div>
                     <div className="border-t border-white/10 pt-1 flex justify-between text-[11px] font-body">
-                      <span className="text-gray-400">Balance after</span>
+                      <span className="text-gray-400">{lang === 'ar' ? 'الرصيد بعد' : 'Balance after'}</span>
                       <span className={`font-ninja ${(player.coins - Math.ceil(parseInt(sendAmount) * 1.1)) < 0 ? 'text-red-400' : 'text-yellow-400'}`}>
-                        {Math.floor(player.coins - Math.ceil(parseInt(sendAmount) * 1.1))} tokens
+                        {Math.floor(player.coins - Math.ceil(parseInt(sendAmount) * 1.1))} {lang === 'ar' ? 'توكنز' : 'tokens'}
                       </span>
                     </div>
                   </div>
@@ -2880,7 +2886,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
               {!sendPinVerified && (
                 <div className="mb-4">
-                  <label className="text-gray-400 text-xs font-body mb-1.5 block">Enter your PIN to confirm</label>
+                  <label className="text-gray-400 text-xs font-body mb-1.5 block">{lang === 'ar' ? 'أدخل رمز PIN للتأكيد' : 'Enter your PIN to confirm'}</label>
                   <NinjaInput
                     type="password"
                     value={sendPin}

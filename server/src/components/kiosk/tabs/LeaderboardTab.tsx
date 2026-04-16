@@ -52,6 +52,8 @@ interface Props {
 }
 
 export function LeaderboardTab({ onClose }: Props = {}) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [type, setType] = useState<LeaderboardType>('playtime');
   const [players, setPlayers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -272,7 +274,7 @@ export function LeaderboardTab({ onClose }: Props = {}) {
           <div className="flex items-center gap-3 mb-2">
             <Trophy size={30} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 10px rgba(255,215,0,0.7))' }} />
             <h2 className="font-ninja text-4xl tracking-wider" style={{ color: '#FFD700', textShadow: '0 0 22px rgba(255,215,0,0.45), 0 0 45px rgba(255,215,0,0.12)' }}>
-              LEADERBOARD
+              {ar ? 'لوحة المتصدرين' : 'LEADERBOARD'}
             </h2>
           </div>
           <p className="font-body text-gray-500 text-xs tracking-wider">TOP NINJAS · WEEKLY REWARDS</p>
@@ -458,7 +460,7 @@ export function LeaderboardTab({ onClose }: Props = {}) {
           {sorted.length === 0 && !loading && (
             <div className="text-center py-12">
               <Trophy size={40} className="text-gray-600 mx-auto mb-3" />
-              <p className="font-ninja text-base text-gray-500">No players yet</p>
+              <p className="font-ninja text-base text-gray-500">{ar ? 'لا يوجد لاعبون بعد' : 'No players yet'}</p>
             </div>
           )}
         </div>

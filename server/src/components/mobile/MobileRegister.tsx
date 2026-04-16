@@ -183,7 +183,9 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
             {t(lang, 'create_account') || 'CREATE ACCOUNT'}
           </h1>
           <p className="font-body text-[11px] text-gray-500">
-            {step === 1 ? 'Step 1 of 4 — Your Info' : step === 2 ? 'Step 2 of 4 — Country Ninja' : step === 3 ? 'Step 3 of 4 — Starter Ninja' : 'Step 4 of 4 — Ninja Type'}
+            {lang === 'ar'
+              ? (step === 1 ? 'الخطوة 1 من 4 — معلوماتك' : step === 2 ? 'الخطوة 2 من 4 — نينجا الدولة' : step === 3 ? 'الخطوة 3 من 4 — نينجا البداية' : 'الخطوة 4 من 4 — نوع النينجا')
+              : (step === 1 ? 'Step 1 of 4 — Your Info' : step === 2 ? 'Step 2 of 4 — Country Ninja' : step === 3 ? 'Step 3 of 4 — Starter Ninja' : 'Step 4 of 4 — Ninja Type')}
           </p>
         </div>
       </div>
@@ -318,7 +320,7 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
             exit={{ opacity: 0, x: -40 }}
             className="flex-1 flex flex-col"
           >
-            <p className="font-ninja text-sm text-white/60 mb-4 text-center tracking-wider">CHOOSE YOUR COUNTRY NINJA</p>
+            <p className="font-ninja text-sm text-white/60 mb-4 text-center tracking-wider">{lang === 'ar' ? 'اختر نينجا دولتك' : 'CHOOSE YOUR COUNTRY NINJA'}</p>
             <div className="grid grid-cols-3 gap-3 overflow-y-auto flex-1 pb-2">
               {COUNTRY_NINJAS.map((ninja) => {
                 const isSelected = selectedCountryNinja === ninja.id;
@@ -347,7 +349,7 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
               className="w-full py-3.5 rounded-2xl font-ninja font-bold text-base bg-[#39FF14] text-black mt-4 mb-6"
               style={{ boxShadow: '0 0 30px rgba(57,255,20,0.2)' }}
             >
-              NEXT →
+              {lang === 'ar' ? '→ التالي' : 'NEXT →'}
             </motion.button>
           </motion.div>
         )}
@@ -360,7 +362,7 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
             exit={{ opacity: 0, x: -40 }}
             className="flex-1 flex flex-col"
           >
-            <p className="font-ninja text-sm text-white/60 mb-4 text-center tracking-wider">CHOOSE YOUR STARTER NINJA</p>
+            <p className="font-ninja text-sm text-white/60 mb-4 text-center tracking-wider">{lang === 'ar' ? 'اختر نينجا البداية' : 'CHOOSE YOUR STARTER NINJA'}</p>
             <div className="grid grid-cols-2 gap-3 flex-1">
               {STARTER_NINJAS_MOBILE.map((ninja) => {
                 const isSelected = selectedStarterNinja === ninja.id;
@@ -378,7 +380,7 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
                       <img src={ninja.img} alt={ninja.name} className="w-full h-full object-cover" />
                     </div>
                     <span className="font-ninja text-sm" style={{ color: isSelected ? ninja.color : 'rgba(255,255,255,0.5)' }}>{ninja.name.toUpperCase()}</span>
-                    {isSelected && <span className="text-[9px] font-ninja text-black px-2 py-0.5 rounded-full" style={{ background: ninja.color }}>SELECTED</span>}
+                    {isSelected && <span className="text-[9px] font-ninja text-black px-2 py-0.5 rounded-full" style={{ background: ninja.color }}>{lang === 'ar' ? 'مختار' : 'SELECTED'}</span>}
                   </button>
                 );
               })}
@@ -392,7 +394,7 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
                 boxShadow: `0 0 30px ${STARTER_NINJAS_MOBILE.find(n => n.id === selectedStarterNinja)?.color || '#39FF14'}30`,
               }}
             >
-              NEXT →
+              {lang === 'ar' ? '→ التالي' : 'NEXT →'}
             </motion.button>
           </motion.div>
         )}

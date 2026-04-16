@@ -23,9 +23,12 @@ interface Props {
   currentPlayer: any;
   onClose: () => void;
   onStartCall?: (uid: string, name: string) => void;
+  lang?: 'en' | 'ar';
 }
 
-export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCall }: Props) {
+export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCall, lang: langProp }: Props) {
+  const lang: 'en' | 'ar' = langProp || (typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en');
+  const ar = lang === 'ar';
   const [targetPlayer, setTargetPlayer] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [targetClub, setTargetClub] = useState<{ name: string; tag: string; logo?: string; memberCount: number } | null>(null);
@@ -335,7 +338,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
             <Loader2 size={28} className="text-[#39FF14] animate-spin" />
           </div>
         ) : !targetPlayer ? (
-          <div className="text-center py-24 text-gray-500 font-body">Player not found</div>
+          <div className="text-center py-24 text-gray-500 font-body">{ar ? 'اللاعب غير موجود' : 'Player not found'}</div>
         ) : (
           <>
             {/* ── Top Section: Avatar + Name ── */}
@@ -418,7 +421,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                     boxShadow: '0 0 12px rgba(168,85,247,0.2)',
                   }}>
                   <Shield size={12} className="text-purple-300" style={{ filter: 'drop-shadow(0 0 3px rgba(168,85,247,0.6))' }} />
-                  <span className="font-ninja text-[9px] text-purple-300/80 tracking-[0.2em]">CLUB:</span>
+                  <span className="font-ninja text-[9px] text-purple-300/80 tracking-[0.2em]">{ar ? 'النادي:' : 'CLUB:'}</span>
                   <span className="text-base">{targetClub.logo || '⚔️'}</span>
                   <span className="font-ninja text-[10px] text-purple-300 tracking-[0.15em]">[{targetClub.tag}]</span>
                   <span className="font-ninja text-[11px] text-white">{targetClub.name}</span>
@@ -431,8 +434,8 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                     border: '1px solid rgba(255,255,255,0.08)',
                   }}>
                   <Shield size={12} className="text-gray-500" />
-                  <span className="font-ninja text-[9px] text-gray-500 tracking-[0.2em]">CLUB:</span>
-                  <span className="font-body text-[10px] text-gray-500">No club</span>
+                  <span className="font-ninja text-[9px] text-gray-500 tracking-[0.2em]">{ar ? 'النادي:' : 'CLUB:'}</span>
+                  <span className="font-body text-[10px] text-gray-500">{ar ? 'لا يوجد نادي' : 'No club'}</span>
                 </div>
               )}
 
@@ -468,7 +471,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                         }}>
                         <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #00BFFF', borderLeft: '1.5px solid #00BFFF' }} />
                         <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #00BFFF', borderRight: '1.5px solid #00BFFF' }} />
-                        <MessageSquare size={14} /> MESSAGE
+                        <MessageSquare size={14} /> {ar ? 'رسالة' : 'MESSAGE'}
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }} onClick={handleCall}
                         className="relative flex-1 flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-xs tracking-wider overflow-hidden transition-all"
@@ -481,7 +484,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                         }}>
                         <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #39FF14', borderLeft: '1.5px solid #39FF14' }} />
                         <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #39FF14', borderRight: '1.5px solid #39FF14' }} />
-                        <Phone size={14} /> CALL
+                        <Phone size={14} /> {ar ? 'اتصال' : 'CALL'}
                       </motion.button>
                     </div>
                     <div className="flex gap-2">
@@ -497,7 +500,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                         }}>
                         <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #FBBF24', borderLeft: '1.5px solid #FBBF24' }} />
                         <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #FBBF24', borderRight: '1.5px solid #FBBF24' }} />
-                        <Coins size={14} /> SEND COINS
+                        <Coins size={14} /> {ar ? 'إرسال عملات' : 'SEND COINS'}
                       </motion.button>
                       <motion.button whileTap={{ scale: 0.95 }} whileHover={{ scale: 1.02 }}
                         onClick={() => setConfirmRemove(true)}
@@ -511,7 +514,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                         }}>
                         <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid #EF4444', borderLeft: '1.5px solid #EF4444' }} />
                         <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid #EF4444', borderRight: '1.5px solid #EF4444' }} />
-                        <UserMinus size={14} /> REMOVE
+                        <UserMinus size={14} /> {ar ? 'إزالة' : 'REMOVE'}
                       </motion.button>
                     </div>
                   </div>
@@ -531,8 +534,8 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                     <div className="absolute bottom-0 left-0 w-2.5 h-2.5" style={{ borderBottom: '2px solid #39FF14', borderLeft: '2px solid #39FF14' }} />
                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '2px solid #39FF14', borderRight: '2px solid #39FF14' }} />
                     {actionLoading ? <Loader2 size={16} className="animate-spin" /> :
-                      requestSent ? <><Check size={16} /> REQUEST SENT</> :
-                      <><UserPlus size={16} /> ADD FRIEND</>}
+                      requestSent ? <><Check size={16} /> {ar ? 'تم إرسال الطلب' : 'REQUEST SENT'}</> :
+                      <><UserPlus size={16} /> {ar ? 'إضافة صديق' : 'ADD FRIEND'}</>}
                   </motion.button>
                 )}
               </div>
@@ -543,9 +546,9 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
               {showFullProfile ? (
                 <div className="grid grid-cols-3 gap-2">
                   {[
-                    { label: 'Playtime', val: `${Math.floor((targetPlayer?.totalPlaytime || 0) / 60)}h`, icon: <Clock size={16} />, color: '#39FF14' },
-                    { label: 'Games', val: String(stats.gamesPlayed || 0), icon: <Gamepad2 size={16} />, color: '#3B82F6' },
-                    { label: 'Gifts', val: String(targetPlayer?.totalGiftsReceived || 0), icon: <Gift size={16} />, color: '#F59E0B' },
+                    { label: ar ? 'وقت اللعب' : 'Playtime', val: `${Math.floor((targetPlayer?.totalPlaytime || 0) / 60)}h`, icon: <Clock size={16} />, color: '#39FF14' },
+                    { label: ar ? 'الألعاب' : 'Games', val: String(stats.gamesPlayed || 0), icon: <Gamepad2 size={16} />, color: '#3B82F6' },
+                    { label: ar ? 'الهدايا' : 'Gifts', val: String(targetPlayer?.totalGiftsReceived || 0), icon: <Gift size={16} />, color: '#F59E0B' },
                   ].map(s => (
                     <div key={s.label} className="rounded-lg py-3 px-2 text-center"
                       style={{
@@ -563,7 +566,9 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                 <div className="text-center py-4 bg-white/[0.02] rounded-xl border border-white/[0.04]">
                   <EyeOff size={20} className="text-gray-600 mx-auto mb-2" />
                   <p className="font-body text-xs text-gray-500">
-                    {isProfilePrivate ? 'This profile is private' : 'Friends only'}
+                    {ar
+                      ? (isProfilePrivate ? 'هذا الملف الشخصي خاص' : 'الأصدقاء فقط')
+                      : (isProfilePrivate ? 'This profile is private' : 'Friends only')}
                   </p>
                 </div>
               )}
@@ -576,11 +581,11 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                   <div className="flex items-center gap-2 mb-2">
                     <Backpack size={13} className="text-purple-400" />
                     <span className="font-ninja text-[10px] text-gray-400 tracking-wider">
-                      INVENTORY ({(targetPlayer?.inventory || []).length})
+                      {ar ? `الحقيبة (${(targetPlayer?.inventory || []).length})` : `INVENTORY (${(targetPlayer?.inventory || []).length})`}
                     </span>
                   </div>
                   {(targetPlayer?.inventory || []).length === 0 ? (
-                    <p className="text-gray-600 font-body text-xs py-2">No items yet</p>
+                    <p className="text-gray-600 font-body text-xs py-2">{ar ? 'لا توجد عناصر بعد' : 'No items yet'}</p>
                   ) : (
                     <div className="max-h-[140px] overflow-y-auto scrollbar-thin scrollbar-thumb-white/10 space-y-1">
                       {(targetPlayer?.inventory || []).slice(0, 20).map((item: any, i: number) => {
@@ -603,7 +608,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
               ) : (
                 <div className="flex items-center gap-2 py-2">
                   <Lock size={12} className="text-gray-600" />
-                  <span className="font-body text-xs text-gray-600">Inventory is {privacy.inventoryVisibility}</span>
+                  <span className="font-body text-xs text-gray-600">{ar ? `الحقيبة ${privacy.inventoryVisibility === 'private' ? 'خاصة' : privacy.inventoryVisibility === 'friends' ? 'للأصدقاء فقط' : 'مخفية'}` : `Inventory is ${privacy.inventoryVisibility}`}</span>
                 </div>
               )}
             </div>
@@ -629,19 +634,19 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
                     <Coins size={18} className="text-yellow-400" />
-                    <h3 className="font-ninja text-base text-white tracking-wider">SEND COINS</h3>
+                    <h3 className="font-ninja text-base text-white tracking-wider">{ar ? 'إرسال عملات' : 'SEND COINS'}</h3>
                   </div>
                   <button onClick={() => { setSendCoinsOpen(false); setSendPin(''); setSendPinVerified(false); setSendAmount(''); setSendResult(null); }}
                     className="w-7 h-7 rounded-lg flex items-center justify-center text-gray-400 hover:text-white" style={{ background: 'rgba(255,255,255,0.05)' }}>
                     <X size={14} />
                   </button>
                 </div>
-                <p className="font-body text-xs text-gray-400 mb-1">To</p>
+                <p className="font-body text-xs text-gray-400 mb-1">{ar ? 'إلى' : 'To'}</p>
                 <p className="font-ninja text-sm text-white mb-4">{targetPlayer.username?.toUpperCase()}</p>
 
                 {!sendPinVerified ? (
                   <>
-                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">VERIFY YOUR 6-DIGIT PIN</p>
+                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">{ar ? 'تحقق من رمز PIN المكون من 6 أرقام' : 'VERIFY YOUR 6-DIGIT PIN'}</p>
                     <input type="password" inputMode="numeric" value={sendPin}
                       onChange={(e) => setSendPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
                       placeholder="••••••"
@@ -650,7 +655,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                   </>
                 ) : (
                   <>
-                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">AMOUNT (COINS)</p>
+                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">{ar ? 'المبلغ (عملات)' : 'AMOUNT (COINS)'}</p>
                     <input type="number" value={sendAmount}
                       onChange={(e) => setSendAmount(e.target.value.replace(/\D/g, '').slice(0, 7))}
                       placeholder="0"
@@ -659,13 +664,13 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                     {sendAmount && parseInt(sendAmount) > 0 && (
                       <div className="mt-3 p-3 rounded-lg" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                         <div className="flex justify-between text-[11px] text-gray-400 font-body mb-1">
-                          <span>Amount</span><span className="text-white">{parseInt(sendAmount)}</span>
+                          <span>{ar ? 'المبلغ' : 'Amount'}</span><span className="text-white">{parseInt(sendAmount)}</span>
                         </div>
                         <div className="flex justify-between text-[11px] text-gray-400 font-body mb-1">
-                          <span>Fee (10%)</span><span className="text-orange-400">{Math.ceil(parseInt(sendAmount) * 0.1)}</span>
+                          <span>{ar ? 'الرسوم (10%)' : 'Fee (10%)'}</span><span className="text-orange-400">{Math.ceil(parseInt(sendAmount) * 0.1)}</span>
                         </div>
                         <div className="flex justify-between text-[12px] font-ninja pt-1 border-t border-white/5 mt-1">
-                          <span className="text-gray-300">Total</span>
+                          <span className="text-gray-300">{ar ? 'الإجمالي' : 'Total'}</span>
                           <span className="text-yellow-400">{parseInt(sendAmount) + Math.ceil(parseInt(sendAmount) * 0.1)}</span>
                         </div>
                       </div>
@@ -686,7 +691,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                     boxShadow: '0 0 14px rgba(251,191,36,0.25)',
                   }}>
                   {sendLoading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                  {sendPinVerified ? 'SEND' : 'VERIFY PIN'}
+                  {sendPinVerified ? (ar ? 'إرسال' : 'SEND') : (ar ? 'تحقق من PIN' : 'VERIFY PIN')}
                 </button>
               </motion.div>
             </motion.div>
@@ -712,15 +717,17 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                   style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)' }}>
                   <UserMinus size={22} className="text-red-400" />
                 </div>
-                <h3 className="font-ninja text-base text-white mb-1 tracking-wider">REMOVE FRIEND?</h3>
+                <h3 className="font-ninja text-base text-white mb-1 tracking-wider">{ar ? 'إزالة الصديق؟' : 'REMOVE FRIEND?'}</h3>
                 <p className="font-body text-xs text-gray-400 mb-5">
-                  {targetPlayer.username?.toUpperCase()} will be removed from your friends list.
+                  {ar
+                    ? `سيتم إزالة ${targetPlayer.username?.toUpperCase()} من قائمة أصدقائك.`
+                    : `${targetPlayer.username?.toUpperCase()} will be removed from your friends list.`}
                 </p>
                 <div className="flex gap-2">
                   <button onClick={() => setConfirmRemove(false)} disabled={actionLoading}
                     className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider text-gray-300"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    CANCEL
+                    {ar ? 'إلغاء' : 'CANCEL'}
                   </button>
                   <button onClick={handleRemoveFriend} disabled={actionLoading}
                     className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1.5 disabled:opacity-50"
@@ -730,7 +737,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                       color: '#EF4444',
                     }}>
                     {actionLoading ? <Loader2 size={12} className="animate-spin" /> : <UserMinus size={12} />}
-                    REMOVE
+                    {ar ? 'إزالة' : 'REMOVE'}
                   </button>
                 </div>
               </motion.div>
@@ -742,7 +749,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
           <div className="mt-4 rounded-xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
             <div className="p-4">
               <h4 className="font-ninja text-xs text-gray-400 mb-3 flex items-center gap-1.5">
-                <MessageSquare size={12} /> COMMENTS
+                <MessageSquare size={12} /> {ar ? 'التعليقات' : 'COMMENTS'}
               </h4>
               {/* Write comment */}
               <div className="flex gap-2 mb-3">
@@ -750,7 +757,9 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                   type="text"
                   value={commentText}
                   onChange={(e) => setCommentText(e.target.value)}
-                  placeholder={isSelf ? 'Pin a message on your profile...' : `Write on ${targetPlayer.username?.toUpperCase()}'s wall...`}
+                  placeholder={ar
+                    ? (isSelf ? 'ثبّت رسالة على ملفك الشخصي...' : `اكتب على جدار ${targetPlayer.username?.toUpperCase()}...`)
+                    : (isSelf ? 'Pin a message on your profile...' : `Write on ${targetPlayer.username?.toUpperCase()}'s wall...`)}
                   maxLength={300}
                   onKeyDown={(e) => e.key === 'Enter' && postComment()}
                   className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-2 text-xs text-white font-body focus:outline-none focus:border-ninja-green/40"
@@ -764,7 +773,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
               {/* Comment list */}
               <div className="space-y-1.5 max-h-40 overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: '#333 transparent' }}>
                 {comments.length === 0 ? (
-                  <p className="text-gray-600 font-body text-[11px] text-center py-2">No comments yet</p>
+                  <p className="text-gray-600 font-body text-[11px] text-center py-2">{ar ? 'لا توجد تعليقات بعد' : 'No comments yet'}</p>
                 ) : (
                   comments.map((c: any) => (
                     <div key={c.id} className="flex gap-2 p-2 rounded-lg bg-black/20 border border-white/5">

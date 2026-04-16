@@ -107,7 +107,10 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
   const launchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartXRef = useRef(0);
-  const searchPlaceholders = ['Search CS2...', 'Search Valorant...', 'Search Fortnite...', 'Search Dota 2...', 'Find a game...'];
+  const ar = lang === 'ar';
+  const searchPlaceholders = ar
+    ? ['ابحث عن CS2...', 'ابحث عن Valorant...', 'ابحث عن Fortnite...', 'ابحث عن Dota 2...', 'ابحث عن لعبة...']
+    : ['Search CS2...', 'Search Valorant...', 'Search Fortnite...', 'Search Dota 2...', 'Find a game...'];
 
   // ESC closes inner modals (innermost first). Register outer → inner so the
   // last-mounted handler wins.
@@ -608,7 +611,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                             style={{ background: 'linear-gradient(110deg, transparent 20%, rgba(57,255,20,0.45) 50%, transparent 80%)', filter: 'blur(6px)' }}
                           />
                           <Play size={16} className="relative z-10 text-ninja-green" fill="#39FF14" style={{ filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.9))' }} />
-                          <span className="relative z-10 font-ninja text-ninja-green uppercase" style={{ textShadow: '0 0 10px rgba(57,255,20,0.7)' }}>PLAY NOW</span>
+                          <span className="relative z-10 font-ninja text-ninja-green uppercase" style={{ textShadow: '0 0 10px rgba(57,255,20,0.7)' }}>{ar ? 'العب الآن' : 'PLAY NOW'}</span>
                         </motion.button>
 
                         {/* Cyberpunk DETAILS — ghost */}
@@ -643,7 +646,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                             className="absolute top-0 bottom-0 w-1/3 pointer-events-none z-[1]"
                             style={{ background: 'linear-gradient(110deg, transparent 20%, rgba(0,200,255,0.4) 50%, transparent 80%)', filter: 'blur(6px)' }}
                           />
-                          <span className="relative z-10 font-ninja text-cyan-300 uppercase" style={{ textShadow: '0 0 10px rgba(0,200,255,0.7)' }}>DETAILS</span>
+                          <span className="relative z-10 font-ninja text-cyan-300 uppercase" style={{ textShadow: '0 0 10px rgba(0,200,255,0.7)' }}>{ar ? 'التفاصيل' : 'DETAILS'}</span>
                         </motion.button>
                       </div>
                     </div>
@@ -666,7 +669,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
           <div className="min-h-0 flex flex-col" style={{ flex: '1 1 45%' }}>
             <div className="flex items-center gap-2 mb-2 flex-shrink-0">
               <Gamepad2 size={13} className="text-gray-500" />
-              <span className="font-ninja text-[12px] text-gray-400 tracking-wider">Suggested Games</span>
+              <span className="font-ninja text-[12px] text-gray-400 tracking-wider">{ar ? 'ألعاب مقترحة' : 'Suggested Games'}</span>
               <div className="flex-1 border-t border-dashed border-white/10 ml-2" />
             </div>
 
@@ -740,7 +743,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                         />
                         {/* Content */}
                         <Play size={10} className="relative z-10 text-ninja-green" fill="#39FF14" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.9))' }} />
-                        <span className="relative z-10 font-ninja text-ninja-green uppercase" style={{ textShadow: '0 0 8px rgba(57,255,20,0.7)' }}>PLAY NOW</span>
+                        <span className="relative z-10 font-ninja text-ninja-green uppercase" style={{ textShadow: '0 0 8px rgba(57,255,20,0.7)' }}>{ar ? 'العب الآن' : 'PLAY NOW'}</span>
                       </motion.button>
                     </div>
                   </motion.div>
@@ -823,8 +826,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                 <div className="w-14 h-14 rounded-full bg-purple-500/20 border border-purple-500/30 flex items-center justify-center mb-3">
                   <Lock size={24} className="text-purple-400" />
                 </div>
-                <p className="font-ninja text-purple-400 text-sm tracking-wider">MEMBERS ONLY</p>
-                <p className="font-body text-gray-400 text-[11px] mt-1">Click to become a user</p>
+                <p className="font-ninja text-purple-400 text-sm tracking-wider">{ar ? 'للأعضاء فقط' : 'MEMBERS ONLY'}</p>
+                <p className="font-body text-gray-400 text-[11px] mt-1">{ar ? 'اضغط لتصبح عضواً' : 'Click to become a user'}</p>
               </div>
             </div>
           )}
@@ -867,8 +870,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
             </div>
             <div className="relative h-full flex flex-col items-center justify-between px-4 py-5">
               <div className="flex flex-col items-center">
-                <p className="font-ninja text-[14px] tracking-[0.3em] mb-1" style={{ color: '#00BFFF', textShadow: '0 0 15px rgba(0,191,255,0.6)' }}>FREE DAILY CHEST</p>
-                <p className="font-body text-[10px] text-gray-500">Finish all daily tasks to unlock your chest!</p>
+                <p className="font-ninja text-[14px] tracking-[0.3em] mb-1" style={{ color: '#00BFFF', textShadow: '0 0 15px rgba(0,191,255,0.6)' }}>{ar ? 'صندوق يومي مجاني' : 'FREE DAILY CHEST'}</p>
+                <p className="font-body text-[10px] text-gray-500">{ar ? 'أنجز كل المهام اليومية لفتح صندوقك!' : 'Finish all daily tasks to unlock your chest!'}</p>
               </div>
               <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }} className="relative my-1">
                 <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-36 h-10 rounded-full"
@@ -884,7 +887,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     className="flex items-center justify-center gap-2 py-3 rounded-xl"
                     style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)' }}>
                     <CheckSquare size={14} className="text-ninja-green" />
-                    <span className="font-ninja text-sm text-ninja-green">CLAIMED!</span>
+                    <span className="font-ninja text-sm text-ninja-green">{ar ? 'تم الاستلام!' : 'CLAIMED!'}</span>
                   </motion.div>
                 ) : freeChestCooldown > 0 ? (
                   <div className="flex items-center justify-center gap-2 py-3 rounded-xl"
@@ -901,7 +904,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid #00BFFF', borderRight: '2px solid #00BFFF' }} />
                     <div className="absolute top-0 left-[20%] right-[20%] h-[2px]" style={{ background: '#00BFFF', boxShadow: '0 0 6px #00BFFF' }} />
                     <Gift size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(0,191,255,0.7))' }} />
-                    CLAIM FREE CHEST
+                    {ar ? 'استلم الصندوق المجاني' : 'CLAIM FREE CHEST'}
                   </motion.button>
                 )}
                 <div className="relative" style={{ overflow: 'visible' }}>
@@ -911,7 +914,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.15), rgba(255,215,0,0.04))', border: '1px solid rgba(255,215,0,0.4)', color: '#FFD700', boxShadow: '0 0 12px rgba(255,215,0,0.15)' }}>
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(255,215,0,0.6)', borderLeft: '1px solid rgba(255,215,0,0.6)' }} />
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(255,215,0,0.6)', borderRight: '1px solid rgba(255,215,0,0.6)' }} />
-                    <CheckSquare size={13} style={{ filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))' }} /> DAILY TASKS
+                    <CheckSquare size={13} style={{ filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))' }} /> {ar ? 'المهام اليومية' : 'DAILY TASKS'}
                   </motion.button>
                   {unclaimedTaskCount > 0 && (
                     <motion.span
@@ -967,8 +970,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   <Trophy size={18} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.6))' }} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-ninja text-sm tracking-[0.15em]" style={{ color: '#FF6F00', textShadow: '0 0 10px rgba(255,111,0,0.4)' }}>TOURNAMENTS</p>
-                  <p className="font-body text-[9px] text-gray-500">Compete & win big prizes</p>
+                  <p className="font-ninja text-sm tracking-[0.15em]" style={{ color: '#FF6F00', textShadow: '0 0 10px rgba(255,111,0,0.4)' }}>{ar ? 'البطولات' : 'TOURNAMENTS'}</p>
+                  <p className="font-body text-[9px] text-gray-500">{ar ? 'تنافس واربح جوائز كبيرة' : 'Compete & win big prizes'}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -978,7 +981,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   style={{ background: 'linear-gradient(135deg, rgba(255,111,0,0.15), rgba(255,111,0,0.05))', border: '1px solid rgba(255,111,0,0.4)', color: '#FF6F00', boxShadow: '0 0 10px rgba(255,111,0,0.1)' }}>
                   <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(255,111,0,0.6)', borderLeft: '1px solid rgba(255,111,0,0.6)' }} />
                   <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(255,111,0,0.6)', borderRight: '1px solid rgba(255,111,0,0.6)' }} />
-                  <Swords size={12} style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.6))' }} /> COMPETE
+                  <Swords size={12} style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.6))' }} /> {ar ? 'تنافس' : 'COMPETE'}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                   onClick={() => window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'leaderboard' }))}
@@ -986,7 +989,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   style={{ background: 'linear-gradient(135deg, rgba(255,215,0,0.12), rgba(255,215,0,0.04))', border: '1px solid rgba(255,215,0,0.35)', color: '#FFD700', boxShadow: '0 0 10px rgba(255,215,0,0.1)' }}>
                   <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(255,215,0,0.6)', borderLeft: '1px solid rgba(255,215,0,0.6)' }} />
                   <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(255,215,0,0.6)', borderRight: '1px solid rgba(255,215,0,0.6)' }} />
-                  <Trophy size={12} style={{ filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))' }} /> LEADERBOARD
+                  <Trophy size={12} style={{ filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))' }} /> {ar ? 'المتصدرين' : 'LEADERBOARD'}
                 </motion.button>
               </div>
             </div>
@@ -1028,21 +1031,21 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                 <Users size={13} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
               </div>
               <h3 className="font-ninja text-sm tracking-[0.1em]" style={{ color: '#39FF14', textShadow: '0 0 8px rgba(57,255,20,0.4)' }}>
-                FRIENDS &amp; CLUB
+                {ar ? 'الأصدقاء والنادي' : 'FRIENDS & CLUB'}
               </h3>
             </div>
             {/* ── Search bar + CLUB button row ── */}
             <div className="relative z-[3] px-3 pb-2 flex items-center gap-1.5 flex-shrink-0">
               <div className="flex-1 min-w-0">
                 <NinjaInput ref={friendSearchRef} type="text" value={friendSearch} onChange={(e) => setFriendSearch(e.target.value)}
-                  placeholder="Search players..." icon={<Search size={12} />} />
+                  placeholder={ar ? 'ابحث عن لاعبين...' : 'Search players...'} icon={<Search size={12} />} />
               </div>
               <button onClick={() => setShowClub(true)}
                 className="relative h-9 px-2.5 rounded-md flex items-center gap-1 text-purple-300 hover:text-white transition-all flex-shrink-0 overflow-visible"
                 style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.35)', boxShadow: '0 0 6px rgba(168,85,247,0.15)' }}
-                title={clubInviteCount > 0 ? `Club · ${clubInviteCount} invite${clubInviteCount === 1 ? '' : 's'}` : 'Club'}>
+                title={clubInviteCount > 0 ? (ar ? `النادي · ${clubInviteCount} دعوة` : `Club · ${clubInviteCount} invite${clubInviteCount === 1 ? '' : 's'}`) : (ar ? 'النادي' : 'Club')}>
                 <Shield size={12} />
-                <span className="font-ninja text-[9px] tracking-[0.1em]">CLUB</span>
+                <span className="font-ninja text-[9px] tracking-[0.1em]">{ar ? 'النادي' : 'CLUB'}</span>
                 {clubInviteCount > 0 && (
                   <motion.span
                     initial={{ scale: 0 }}
@@ -1089,8 +1092,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
               {friends.length === 0 && !friendSearch ? (
                 <div className="flex flex-col items-center justify-center h-full text-center py-6">
                   <Users size={28} className="text-gray-700 mb-2" />
-                  <p className="font-body text-xs text-gray-500">No friends yet</p>
-                  <p className="font-body text-[10px] text-ninja-green mt-1">Type a name above to find players</p>
+                  <p className="font-body text-xs text-gray-500">{ar ? 'لا يوجد أصدقاء بعد' : 'No friends yet'}</p>
+                  <p className="font-body text-[10px] text-ninja-green mt-1">{ar ? 'اكتب اسماً أعلاه للعثور على لاعبين' : 'Type a name above to find players'}</p>
                 </div>
               ) : (
                 <div className="space-y-0.5">
@@ -1120,7 +1123,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                           {f.isOnline && f.currentActivity ? (
                             <p className="font-body text-[9px] text-ninja-green truncate">{f.currentActivity}</p>
                           ) : (
-                            <p className="font-body text-[9px] text-gray-600">{f.isOnline ? 'Online' : 'Offline'}</p>
+                            <p className="font-body text-[9px] text-gray-600">{f.isOnline ? (ar ? 'متصل' : 'Online') : (ar ? 'غير متصل' : 'Offline')}</p>
                           )}
                         </div>
                       </div>
@@ -1131,7 +1134,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                           <>
                             <div className="flex items-center gap-1.5 px-2 pt-1 pb-1">
                               <div className="w-1.5 h-1.5 rounded-full bg-green-500" style={{ boxShadow: '0 0 6px #39FF14' }} />
-                              <span className="font-ninja text-[9px] text-green-400 tracking-[0.15em]" style={{ textShadow: '0 0 6px rgba(57,255,20,0.4)' }}>ONLINE — {onlineFriends.length}</span>
+                              <span className="font-ninja text-[9px] text-green-400 tracking-[0.15em]" style={{ textShadow: '0 0 6px rgba(57,255,20,0.4)' }}>{ar ? `متصل — ${onlineFriends.length}` : `ONLINE — ${onlineFriends.length}`}</span>
                               <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.3), transparent)' }} />
                             </div>
                             {onlineFriends.map(renderFriend)}
@@ -1141,7 +1144,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                           <>
                             <div className="flex items-center gap-1.5 px-2 pt-2 pb-1">
                               <div className="w-1.5 h-1.5 rounded-full bg-gray-600" />
-                              <span className="font-ninja text-[9px] text-gray-500 tracking-[0.15em]">OFFLINE — {offlineFriends.length}</span>
+                              <span className="font-ninja text-[9px] text-gray-500 tracking-[0.15em]">{ar ? `غير متصل — ${offlineFriends.length}` : `OFFLINE — ${offlineFriends.length}`}</span>
                               <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)' }} />
                             </div>
                             {offlineFriends.map(renderFriend)}
@@ -1153,7 +1156,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                             <div className="flex items-center gap-1.5 px-2 pt-3 pb-1">
                               <div className="w-1.5 h-1.5 rounded-full bg-purple-400" style={{ boxShadow: '0 0 6px #A855F7' }} />
                               <span className="font-ninja text-[9px] text-purple-300 tracking-[0.15em]">
-                                PLAYERS {playerSearchLoading ? '…' : `— ${playerSearchResults.length}`}
+                                {ar ? 'لاعبون' : 'PLAYERS'} {playerSearchLoading ? '…' : `— ${playerSearchResults.length}`}
                               </span>
                               <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(168,85,247,0.3), transparent)' }} />
                             </div>
@@ -1163,7 +1166,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                               </div>
                             )}
                             {!playerSearchLoading && playerSearchResults.length === 0 && (
-                              <p className="font-body text-[10px] text-gray-500 text-center py-3">No players found</p>
+                              <p className="font-body text-[10px] text-gray-500 text-center py-3">{ar ? 'لم يتم العثور على لاعبين' : 'No players found'}</p>
                             )}
                             {playerSearchResults.map((p: any) => {
                               const isRequested = outgoingReqUids.has(p.uid);
@@ -1182,12 +1185,12 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <p className="font-body text-[12px] text-white truncate">{p.username}</p>
-                                    <p className="font-body text-[9px] text-gray-500">Lvl {p.level || 1}</p>
+                                    <p className="font-body text-[9px] text-gray-500">{ar ? `مستوى ${p.level || 1}` : `Lvl ${p.level || 1}`}</p>
                                   </div>
                                   {isRequested ? (
                                     <span className="font-ninja text-[9px] text-gray-400 tracking-wider px-2 py-1 rounded"
                                       style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                                      REQUESTED
+                                      {ar ? 'تم الطلب' : 'REQUESTED'}
                                     </span>
                                   ) : (
                                     <button
@@ -1196,7 +1199,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                                       className="relative px-2 py-1 rounded font-ninja text-[9px] tracking-wider text-ninja-green overflow-hidden transition-all hover:brightness-125 flex items-center gap-1"
                                       style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(57,255,20,0.04))', border: '1px solid rgba(57,255,20,0.4)', boxShadow: '0 0 6px rgba(57,255,20,0.15)' }}>
                                       {sendingRequest === p.uid ? <Loader2 size={10} className="animate-spin" /> : <UserPlus size={10} />}
-                                      ADD
+                                      {ar ? 'إضافة' : 'ADD'}
                                     </button>
                                   )}
                                 </div>
@@ -1383,15 +1386,15 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                 <p className="font-body text-sm text-gray-400">{activeGame.description}</p>
                 <div className="grid grid-cols-3 gap-3">
                   <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.15)' }}>
-                    <p className="font-body text-[10px] text-gray-500 mb-1">GENRE</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1">{ar ? 'النوع' : 'GENRE'}</p>
                     <p className="font-ninja text-xs text-ninja-green">{activeGame.genre}</p>
                   </div>
                   <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.15)' }}>
-                    <p className="font-body text-[10px] text-gray-500 mb-1">PLAYERS</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1">{ar ? 'لاعبون' : 'PLAYERS'}</p>
                     <p className="font-ninja text-xs text-ninja-green">{activeGame.players}</p>
                   </div>
                   <div className="rounded-lg p-3 text-center" style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.15)' }}>
-                    <p className="font-body text-[10px] text-gray-500 mb-1">RATING</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1">{ar ? 'التقييم' : 'RATING'}</p>
                     <p className="font-ninja text-xs text-yellow-400 flex items-center justify-center gap-1"><Star size={11} fill="#facc15" /> {activeGame.rating}</p>
                   </div>
                 </div>
@@ -1432,7 +1435,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     style={{ background: 'linear-gradient(110deg, transparent 20%, rgba(57,255,20,0.45) 50%, transparent 80%)', filter: 'blur(6px)' }}
                   />
                   <Play size={18} className="relative z-10 text-ninja-green" fill="#39FF14" style={{ filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.9))' }} />
-                  <span className="relative z-10 font-ninja text-ninja-green uppercase" style={{ textShadow: '0 0 10px rgba(57,255,20,0.7)' }}>PLAY NOW</span>
+                  <span className="relative z-10 font-ninja text-ninja-green uppercase" style={{ textShadow: '0 0 10px rgba(57,255,20,0.7)' }}>{ar ? 'العب الآن' : 'PLAY NOW'}</span>
                 </motion.button>
               </div>
             </motion.div>
@@ -1448,7 +1451,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
               onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
                 <h2 className="font-ninja text-xl text-white flex items-center gap-2">
-                  <Settings size={22} className="text-ninja-green" /> Profile & Settings
+                  <Settings size={22} className="text-ninja-green" /> {ar ? 'الملف الشخصي والإعدادات' : 'Profile & Settings'}
                 </h2>
                 <button onClick={() => setShowProfile(false)} className="ninja-btn ninja-btn-ghost w-11 h-11 flex items-center justify-center"><X size={28} /></button>
               </div>
@@ -1469,7 +1472,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
               onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="flex items-center justify-between px-5 py-3 border-b border-white/[0.06]">
-                <h3 className="font-ninja text-sm text-white">PLAYER PROFILE</h3>
+                <h3 className="font-ninja text-sm text-white">{ar ? 'ملف اللاعب' : 'PLAYER PROFILE'}</h3>
                 <button onClick={() => setSelectedRightFriend(null)} className="ninja-btn ninja-btn-ghost w-11 h-11 flex items-center justify-center"><X size={28} /></button>
               </div>
               {/* Profile info */}
@@ -1483,8 +1486,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   <div className={`w-2.5 h-2.5 rounded-full ${selectedRightFriend.isOnline ? 'bg-green-500' : 'bg-gray-600'}`} />
                   <span className={`font-body text-sm ${selectedRightFriend.isOnline ? 'text-green-400' : 'text-gray-500'}`}>
                     {selectedRightFriend.isOnline
-                      ? selectedRightFriend.currentActivity || 'Online'
-                      : 'Offline'}
+                      ? selectedRightFriend.currentActivity || (ar ? 'متصل' : 'Online')
+                      : (ar ? 'غير متصل' : 'Offline')}
                   </span>
                 </div>
               </div>
@@ -1503,7 +1506,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     setSelectedRightFriend(null);
                   }}
                   className="ninja-btn ninja-btn-green ninja-btn-full flex items-center justify-center gap-2">
-                  {viewInfoLoading ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />} VIEW INFO
+                  {viewInfoLoading ? <Loader2 size={14} className="animate-spin" /> : <Users size={14} />} {ar ? 'عرض المعلومات' : 'VIEW INFO'}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => {
@@ -1511,7 +1514,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     window.dispatchEvent(new CustomEvent('open-private-chat', { detail: { friendId: selectedRightFriend.uid, friendName: selectedRightFriend.username } }));
                   }}
                   className="ninja-btn ninja-btn-blue ninja-btn-full flex items-center justify-center gap-2">
-                  <Send size={14} /> MESSAGE
+                  <Send size={14} /> {ar ? 'رسالة' : 'MESSAGE'}
                 </motion.button>
                 <div className="grid grid-cols-2 gap-2">
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
@@ -1521,7 +1524,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                       onSendCoins?.(friendName);
                     }}
                     className="ninja-btn ninja-btn-yellow flex items-center justify-center gap-2">
-                    <Coins size={14} /> TOKENS
+                    <Coins size={14} /> {ar ? 'توكنز' : 'TOKENS'}
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                     onClick={() => {
@@ -1529,7 +1532,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                       setShowInventory(true);
                     }}
                     className="ninja-btn ninja-btn-purple flex items-center justify-center gap-2">
-                    <Gift size={14} /> GIFT
+                    <Gift size={14} /> {ar ? 'هدية' : 'GIFT'}
                   </motion.button>
                 </div>
               </div>
@@ -1549,7 +1552,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
               onClick={(e) => e.stopPropagation()}>
               {/* Header */}
               <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06]">
-                <h3 className="font-ninja text-sm text-white tracking-wider">PLAYER INFO</h3>
+                <h3 className="font-ninja text-sm text-white tracking-wider">{ar ? 'معلومات اللاعب' : 'PLAYER INFO'}</h3>
                 <button onClick={() => setViewInfoFriend(null)} className="ninja-btn ninja-btn-ghost w-9 h-9 flex items-center justify-center"><X size={20} /></button>
               </div>
               {/* Profile */}
@@ -1562,7 +1565,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   <div>
                     <p className="font-ninja text-xl text-white">{viewInfoFriend.username?.toUpperCase()}</p>
                     <p className="font-body text-sm" style={{ color: getLevelInfo(calculateTotalXP(viewInfoFriend)).color }}>
-                      {getLevelInfo(calculateTotalXP(viewInfoFriend)).title} — Level {getLevelInfo(calculateTotalXP(viewInfoFriend)).level}
+                      {getLevelInfo(calculateTotalXP(viewInfoFriend)).title} — {ar ? 'المستوى' : 'Level'} {getLevelInfo(calculateTotalXP(viewInfoFriend)).level}
                     </p>
                   </div>
                 </div>
@@ -1570,33 +1573,33 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                 {/* Stats grid */}
                 <div className="grid grid-cols-2 gap-3">
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Coins size={10} /> TOKENS</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Coins size={10} /> {ar ? 'توكنز' : 'TOKENS'}</p>
                     <p className="font-ninja text-lg text-yellow-400">{Math.floor(viewInfoFriend.coins || 0)}</p>
                   </div>
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Clock size={10} /> PLAYTIME</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Clock size={10} /> {ar ? 'وقت اللعب' : 'PLAYTIME'}</p>
                     <p className="font-ninja text-lg text-white">{Math.floor((viewInfoFriend.totalPlaytime || 0) / 60)}h {(viewInfoFriend.totalPlaytime || 0) % 60}m</p>
                   </div>
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Package size={10} /> INVENTORY</p>
-                    <p className="font-ninja text-lg text-purple-400">{(viewInfoFriend.inventory || []).filter((i: any) => !i.used).length} items</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Package size={10} /> {ar ? 'المخزون' : 'INVENTORY'}</p>
+                    <p className="font-ninja text-lg text-purple-400">{(viewInfoFriend.inventory || []).filter((i: any) => !i.used).length} {ar ? 'عنصر' : 'items'}</p>
                   </div>
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Swords size={10} /> SKINS</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Swords size={10} /> {ar ? 'السكنز' : 'SKINS'}</p>
                     <p className="font-ninja text-lg text-green-400">{(viewInfoFriend.ownedNinjas || []).length}</p>
                   </div>
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Gamepad2 size={10} /> GAMES PLAYED</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Gamepad2 size={10} /> {ar ? 'الألعاب الملعوبة' : 'GAMES PLAYED'}</p>
                     <p className="font-ninja text-lg text-blue-400">{viewInfoFriend.stats?.gamesPlayed || 0}</p>
                   </div>
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Trophy size={10} /> WINS</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Trophy size={10} /> {ar ? 'الانتصارات' : 'WINS'}</p>
                     <p className="font-ninja text-lg text-yellow-400">{viewInfoFriend.stats?.totalWins || 0}</p>
                   </div>
                   <div className="glass rounded-xl p-3 border border-white/5">
-                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Calendar size={10} /> MEMBER SINCE</p>
+                    <p className="font-body text-[10px] text-gray-500 mb-1 flex items-center gap-1"><Calendar size={10} /> {ar ? 'عضو منذ' : 'MEMBER SINCE'}</p>
                     <p className="font-ninja text-lg text-gray-300">
-                      {viewInfoFriend.createdAt ? new Date(viewInfoFriend.createdAt).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
+                      {viewInfoFriend.createdAt ? new Date(viewInfoFriend.createdAt).toLocaleDateString(ar ? 'ar-EG' : 'en-US', { month: 'short', year: 'numeric' }) : 'N/A'}
                     </p>
                   </div>
                 </div>
@@ -1607,7 +1610,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   return (
                     <div className="mt-4 glass rounded-xl p-3 border border-white/5">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="font-body text-[10px] text-gray-500">XP PROGRESS</span>
+                        <span className="font-body text-[10px] text-gray-500">{ar ? 'تقدم الخبرة' : 'XP PROGRESS'}</span>
                         <span className="font-body text-[10px]" style={{ color: info.color }}>{Math.floor(info.progress * 100)}%</span>
                       </div>
                       <div className="h-2 bg-black/50 rounded-full overflow-hidden">
@@ -1628,13 +1631,13 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     return (
                       <div className="mt-4 glass rounded-xl p-4 border border-white/5 flex items-center justify-center gap-2">
                         <Lock size={14} className="text-gray-600" />
-                        <span className="font-body text-sm text-gray-600">Inventory is private</span>
+                        <span className="font-body text-sm text-gray-600">{ar ? 'المخزون خاص' : 'Inventory is private'}</span>
                       </div>
                     );
                   }
                   return items.length > 0 ? (
                     <div className="mt-4 glass rounded-xl p-3 border border-white/5">
-                      <p className="font-body text-[10px] text-gray-500 mb-2 flex items-center gap-1"><Package size={10} /> INVENTORY ({items.length})</p>
+                      <p className="font-body text-[10px] text-gray-500 mb-2 flex items-center gap-1"><Package size={10} /> {ar ? `المخزون (${items.length})` : `INVENTORY (${items.length})`}</p>
                       <div className="grid grid-cols-4 gap-2 max-h-[160px] overflow-y-auto" style={{ scrollbarWidth: 'thin', scrollbarColor: 'rgba(57,255,20,0.2) transparent' }}>
                         {items.map((item: any, idx: number) => (
                           <div key={item.id || idx} className="rounded-lg p-2 text-center border border-white/5"
@@ -1694,24 +1697,24 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                   {launchStatus === 'launching' && (
                     <>
                       <Loader2 size={14} className="text-ninja-green animate-spin" />
-                      <p className="font-body text-sm text-gray-400">Opening game...</p>
+                      <p className="font-body text-sm text-gray-400">{ar ? 'جاري فتح اللعبة...' : 'Opening game...'}</p>
                     </>
                   )}
                   {launchStatus === 'success' && (
                     <>
                       <Check size={14} className="text-ninja-green" />
-                      <p className="font-body text-sm text-ninja-green">Game launched!</p>
+                      <p className="font-body text-sm text-ninja-green">{ar ? 'تم تشغيل اللعبة!' : 'Game launched!'}</p>
                     </>
                   )}
                   {launchStatus === 'failed' && (
                     <>
                       <X size={14} className="text-red-400" />
-                      <p className="font-body text-sm text-red-400">Failed to launch</p>
+                      <p className="font-body text-sm text-red-400">{ar ? 'فشل التشغيل' : 'Failed to launch'}</p>
                     </>
                   )}
                 </div>
                 {launchStatus === 'failed' && (
-                  <p className="font-body text-xs text-gray-500 mt-2">Tap to dismiss</p>
+                  <p className="font-body text-xs text-gray-500 mt-2">{ar ? 'اضغط للإغلاق' : 'Tap to dismiss'}</p>
                 )}
               </div>
             </motion.div>
@@ -1720,7 +1723,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       </AnimatePresence>
 
       {/* Club panel */}
-      <ClubPanel player={player} open={showClub} onClose={() => setShowClub(false)} />
+      <ClubPanel player={player} open={showClub} lang={lang} onClose={() => setShowClub(false)} />
     </div>
   );
 }

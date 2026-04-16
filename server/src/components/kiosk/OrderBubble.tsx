@@ -26,13 +26,14 @@ interface Order {
 const FOOD_COLOR = '#FF6F00';
 const SHISHA_COLOR = '#06B6D4';
 
-const STATUS_CFG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  pending:   { label: 'WAITING',   color: '#FACC15',  icon: <Clock size={12} /> },
-  preparing: { label: 'PREPARING', color: '#FF6F00',  icon: <ChefHat size={12} /> },
-  ready:     { label: 'READY!',    color: '#39FF14',  icon: <CheckCircle2 size={12} /> },
-};
-
 export function OrderBubble({ playerUid }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
+  const STATUS_CFG: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+    pending:   { label: ar ? 'قيد الانتظار' : 'WAITING',   color: '#FACC15',  icon: <Clock size={12} /> },
+    preparing: { label: ar ? 'قيد التحضير' : 'PREPARING', color: '#FF6F00',  icon: <ChefHat size={12} /> },
+    ready:     { label: ar ? 'جاهز!' : 'READY!',    color: '#39FF14',  icon: <CheckCircle2 size={12} /> },
+  };
   const [foodOrders, setFoodOrders] = useState<any[]>([]);
   const [shishaOrders, setShishaOrders] = useState<any[]>([]);
   const [expanded, setExpanded] = useState(false);
@@ -90,7 +91,7 @@ export function OrderBubble({ playerUid }: Props) {
       status: o.status,
       createdAt: o.createdAt,
       prepTime: o.prepTime || 12, // food default 12 min
-      label: `${o.items?.length || 0} item${(o.items?.length || 0) > 1 ? 's' : ''}`,
+      label: ar ? `${o.items?.length || 0} صنف` : `${o.items?.length || 0} item${(o.items?.length || 0) > 1 ? 's' : ''}`,
       details: (o.items || []).map((i: any) => `${i.name} ×${i.quantity}`).join(', '),
       icon: <UtensilsCrossed size={18} />,
       color: FOOD_COLOR,
@@ -101,8 +102,8 @@ export function OrderBubble({ playerUid }: Props) {
       status: o.status,
       createdAt: o.createdAt,
       prepTime: o.prepTime || 10,
-      label: o.flavorName || 'Shisha',
-      details: o.iceInWater ? 'With ice' : 'No ice',
+      label: o.flavorName || (ar ? 'أرجيلة' : 'Shisha'),
+      details: o.iceInWater ? (ar ? 'مع ثلج' : 'With ice') : (ar ? 'بدون ثلج' : 'No ice'),
       iceInWater: o.iceInWater,
       icon: <Wind size={18} />,
       color: SHISHA_COLOR,
@@ -199,7 +200,7 @@ export function OrderBubble({ playerUid }: Props) {
               {soonest.icon}
             </span>
             {soonest.status === 'ready' ? (
-              <span className="font-ninja text-[8px] mt-0.5" style={{ color: bubbleColor }}>READY!</span>
+              <span className="font-ninja text-[8px] mt-0.5" style={{ color: bubbleColor }}>{ar ? 'جاهز!' : 'READY!'}</span>
             ) : (
               <span className="font-ninja text-[9px] mt-0.5 tabular-nums" style={{ color: bubbleColor }}>
                 {fmtTime(soonestRemaining)}
@@ -250,7 +251,7 @@ export function OrderBubble({ playerUid }: Props) {
 
             <div className="p-4 flex items-center justify-between" style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
               <p className="font-ninja text-sm tracking-wider" style={{ color: bubbleColor }}>
-                YOUR ORDERS
+                {ar ? 'طلباتك' : 'YOUR ORDERS'}
               </p>
               <button onClick={() => setExpanded(false)} className="p-1 rounded hover:bg-white/5">
                 <X size={16} className="text-gray-500" />
@@ -279,7 +280,7 @@ export function OrderBubble({ playerUid }: Props) {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <p className="font-ninja text-xs tracking-wider" style={{ color: o.color }}>
-                            {o.kind === 'shisha' ? 'HUBBLY' : 'FOOD'}
+                            {o.kind === 'shisha' ? (ar ? 'أرجيلة' : 'HUBBLY') : (ar ? 'طعام' : 'FOOD')}
                           </p>
                           {o.kind === 'shisha' && o.iceInWater && <Snowflake size={10} className="text-cyan-400" />}
                         </div>
@@ -294,7 +295,7 @@ export function OrderBubble({ playerUid }: Props) {
                     {o.status !== 'ready' ? (
                       <>
                         <div className="flex items-center justify-between mb-1.5">
-                          <span className="font-body text-[10px] text-gray-500">Time remaining</span>
+                          <span className="font-body text-[10px] text-gray-500">{ar ? 'الوقت المتبقي' : 'Time remaining'}</span>
                           <span className="font-ninja text-sm tabular-nums" style={{ color: o.color }}>
                             {fmtTime(rem)}
                           </span>
@@ -311,7 +312,7 @@ export function OrderBubble({ playerUid }: Props) {
                     ) : (
                       <div className="flex items-center gap-2 py-1 px-2 rounded-lg" style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.2)' }}>
                         <CheckCircle2 size={14} className="text-[#39FF14]" />
-                        <p className="font-body text-xs text-[#39FF14]">Ready for pickup!</p>
+                        <p className="font-body text-xs text-[#39FF14]">{ar ? 'جاهز للاستلام!' : 'Ready for pickup!'}</p>
                       </div>
                     )}
                   </motion.div>
@@ -320,7 +321,7 @@ export function OrderBubble({ playerUid }: Props) {
             </div>
 
             <div className="px-4 py-2 flex items-center justify-center" style={{ borderTop: '1px solid rgba(255,255,255,0.05)' }}>
-              <span className="font-body text-[10px] text-gray-600">Drag the bubble to move · Tap to toggle</span>
+              <span className="font-body text-[10px] text-gray-600">{ar ? 'اسحب الفقاعة للتحريك · اضغط للتبديل' : 'Drag the bubble to move · Tap to toggle'}</span>
             </div>
           </motion.div>
         )}

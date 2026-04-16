@@ -22,6 +22,8 @@ const GOLD_DARK = '#B8860B';
 const AMBER = '#FF8C00';
 
 export function VIPTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const isVIP = player.vip?.active === true && (player.vip?.expiresAt || 0) > Date.now();
   const vipExpiry: number | null = player.vip?.expiresAt ?? null;
   const isExpired = player.vip?.active && (player.vip?.expiresAt || 0) <= Date.now();
@@ -162,10 +164,10 @@ export function VIPTab({ player }: Props) {
                 <motion.h2 initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                   className="font-ninja text-4xl tracking-wide"
                   style={{ background: `linear-gradient(135deg, ${GOLD_LIGHT}, ${GOLD}, ${AMBER})`, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', textShadow: 'none', filter: `drop-shadow(0 0 15px ${GOLD}40)` }}>
-                  VIP ZONE
+                  {ar ? 'منطقة VIP' : 'VIP ZONE'}
                 </motion.h2>
                 <p className="font-body text-gray-400 text-sm mt-1">
-                  {isVIP ? `${daysLeft} days remaining` : isExpired ? 'Membership expired' : 'Unlock elite membership'}
+                  {isVIP ? (ar ? `متبقي ${daysLeft} يوم` : `${daysLeft} days remaining`) : isExpired ? (ar ? 'انتهت العضوية' : 'Membership expired') : (ar ? 'افتح العضوية النخبة' : 'Unlock elite membership')}
                 </p>
               </div>
             </div>
@@ -232,7 +234,7 @@ export function VIPTab({ player }: Props) {
                         color: isVIP ? '#000' : isExpired ? '#ff4444' : '#666',
                         fontWeight: isVIP ? 900 : 'normal',
                       }}>
-                        {isVIP ? 'VIP ACTIVE' : isExpired ? 'EXPIRED' : 'NOT A MEMBER'}
+                        {isVIP ? (ar ? 'VIP مفعل' : 'VIP ACTIVE') : isExpired ? (ar ? 'منتهي' : 'EXPIRED') : (ar ? 'لست عضواً' : 'NOT A MEMBER')}
                       </p>
                       {isVIP && daysLeft !== null && (
                         <div className="flex items-center gap-2 mt-2">
@@ -272,7 +274,7 @@ export function VIPTab({ player }: Props) {
                       transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
                       style={{ background: `linear-gradient(105deg, transparent 30%, ${isVIP ? 'rgba(255,215,0,0.3)' : 'rgba(255,255,255,0.4)'} 50%, transparent 70%)`, width: '40%' }} />
                     <ShoppingBag size={18} />
-                    {isVIP ? 'RENEW' : 'GET VIP'}
+                    {isVIP ? (ar ? 'تجديد' : 'RENEW') : (ar ? 'اشترك في VIP' : 'GET VIP')}
                   </motion.button>
                 </div>
               </div>
@@ -328,7 +330,7 @@ export function VIPTab({ player }: Props) {
           <div>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.5 }}
               className="font-ninja text-xs tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}60` }}>
-              MEMBER PERKS
+              {ar ? 'مزايا العضو' : 'MEMBER PERKS'}
             </motion.p>
             <div className="grid grid-cols-3 gap-2.5">
               {PERKS.map((perk, i) => (
@@ -392,8 +394,8 @@ export function VIPTab({ player }: Props) {
                   </motion.div>
                   <div>
                     <p className="font-ninja text-base flex items-center gap-2" style={{ color: inviteUsedToday ? '#555' : GOLD }}>
-                      DAILY GIFT
-                      {inviteUsedToday && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800/50 text-gray-500">USED</span>}
+                      {ar ? 'الهدية اليومية' : 'DAILY GIFT'}
+                      {inviteUsedToday && <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-800/50 text-gray-500">{ar ? 'مستخدم' : 'USED'}</span>}
                     </p>
                     <p className="font-body text-xs text-gray-400 mt-1">
                       Send <span style={{ color: inviteUsedToday ? '#555' : '#39FF14' }}>30 min</span> or <span style={{ color: inviteUsedToday ? '#555' : GOLD }}>50 coins</span>
@@ -422,7 +424,7 @@ export function VIPTab({ player }: Props) {
           {/* ══ HOW TO GET VIP — for non-VIP ══ */}
           {!isVIP && (
             <motion.div initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7, type: 'spring', stiffness: 100 }}>
-              <p className="font-ninja text-xs tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>HOW TO BECOME VIP</p>
+              <p className="font-ninja text-xs tracking-[0.2em] mb-3 px-1" style={{ color: `${GOLD}50` }}>{ar ? 'كيف تصبح VIP' : 'HOW TO BECOME VIP'}</p>
               <div className="space-y-2.5">
                 {[
                   { n: '01', icon: <ShoppingBag size={22} />, text: 'Buy VIP Pass from the Store' },
@@ -510,7 +512,7 @@ export function VIPTab({ player }: Props) {
             <div className="px-5 py-3.5 flex items-center justify-between" style={{ borderBottom: `1px solid ${GOLD}08` }}>
               <div className="flex items-center gap-2">
                 <Crown size={16} style={{ color: GOLD }} />
-                <span className="font-ninja text-sm tracking-wider" style={{ color: `${GOLD}90` }}>VIP MEMBERS</span>
+                <span className="font-ninja text-sm tracking-wider" style={{ color: `${GOLD}90` }}>{ar ? 'أعضاء VIP' : 'VIP MEMBERS'}</span>
               </div>
               <span className="font-ninja text-xs" style={{ color: `${GOLD}50` }}>{vipPlayers.length} ACTIVE</span>
             </div>

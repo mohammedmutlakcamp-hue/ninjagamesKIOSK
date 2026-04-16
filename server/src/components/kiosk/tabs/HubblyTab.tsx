@@ -62,6 +62,8 @@ const CIGARETTES: CigaretteOption[] = [
 ];
 
 export function HubblyTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [step, setStep] = useState<Step>('flavor');
   const [selectedFlavor, setSelectedFlavor] = useState<string | null>(null);
   const [iceInWater, setIceInWater] = useState<boolean | null>(null);
@@ -150,12 +152,12 @@ export function HubblyTab({ player }: Props) {
         {/* Header with steps indicator */}
         <div className="text-center pt-2 pb-5">
           <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="text-4xl block mb-2">💨</motion.span>
-          <h1 className="font-ninja text-2xl tracking-wider" style={{ color: '#06B6D4' }}>HUBBLY BUBBLY</h1>
+          <h1 className="font-ninja text-2xl tracking-wider" style={{ color: '#06B6D4' }}>{ar ? 'شيشة' : 'HUBBLY BUBBLY'}</h1>
           <p className="font-body text-xs text-gray-500 mt-1">
-            {step === 'flavor' && 'Step 1 · Pick your flavor'}
-            {step === 'ice' && 'Step 2 · Ice in water?'}
-            {step === 'smokes' && 'Step 3 · Smoke with it?'}
-            {step === 'confirm' && 'Step 4 · Confirm order'}
+            {step === 'flavor' && (ar ? 'الخطوة 1 · اختر نكهتك' : 'Step 1 · Pick your flavor')}
+            {step === 'ice' && (ar ? 'الخطوة 2 · ثلج في الماء؟' : 'Step 2 · Ice in water?')}
+            {step === 'smokes' && (ar ? 'الخطوة 3 · دخان معها؟' : 'Step 3 · Smoke with it?')}
+            {step === 'confirm' && (ar ? 'الخطوة 4 · تأكيد الطلب' : 'Step 4 · Confirm order')}
           </p>
 
           {/* Step indicator dots */}
@@ -189,7 +191,7 @@ export function HubblyTab({ player }: Props) {
         {/* Active orders */}
         {activeOrders.length > 0 && (
           <div className="mb-4 rounded-xl px-4 py-3" style={{ background: 'rgba(6,182,212,0.05)', border: '1px solid rgba(6,182,212,0.15)' }}>
-            <p className="font-ninja text-[10px] text-cyan-400 mb-2">ACTIVE ORDERS</p>
+            <p className="font-ninja text-[10px] text-cyan-400 mb-2">{ar ? 'الطلبات النشطة' : 'ACTIVE ORDERS'}</p>
             {activeOrders.map(order => (
               <div key={order.id} className="flex items-center justify-between py-1">
                 <span className="font-body text-xs text-gray-400 flex items-center gap-1.5">
@@ -199,7 +201,7 @@ export function HubblyTab({ player }: Props) {
                 <span className="font-ninja text-[9px] px-2 py-0.5 rounded" style={{
                   background: order.status === 'pending' ? 'rgba(250,204,21,0.1)' : 'rgba(255,111,0,0.1)',
                   color: order.status === 'pending' ? '#facc15' : '#FF6F00',
-                }}>{order.status === 'pending' ? 'WAITING' : 'PREPARING'}</span>
+                }}>{order.status === 'pending' ? (ar ? 'قيد الانتظار' : 'WAITING') : (ar ? 'قيد التحضير' : 'PREPARING')}</span>
               </div>
             ))}
           </div>
@@ -211,7 +213,7 @@ export function HubblyTab({ player }: Props) {
             <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
               className="mb-4 rounded-xl px-4 py-3 flex items-center gap-2" style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.2)' }}>
               <CheckCircle2 size={16} className="text-[#39FF14]" />
-              <p className="font-body text-xs text-[#39FF14]">Order sent! Staff will bring it to your PC.</p>
+              <p className="font-body text-xs text-[#39FF14]">{ar ? 'تم إرسال الطلب! الموظفون سيحضرونها إلى جهازك.' : 'Order sent! Staff will bring it to your PC.'}</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -271,7 +273,7 @@ export function HubblyTab({ player }: Props) {
                 color: selectedFlavor ? '#fff' : 'rgba(6,182,212,0.3)',
                 boxShadow: selectedFlavor ? `0 0 20px ${selected?.color}30` : 'none',
               }}>
-              {selectedFlavor ? <>CONTINUE <ChevronRight size={18} /></> : 'SELECT A FLAVOR'}
+              {selectedFlavor ? <>{ar ? 'متابعة' : 'CONTINUE'} <ChevronRight size={18} /></> : (ar ? 'اختر نكهة' : 'SELECT A FLAVOR')}
             </motion.button>
           </motion.div>
         )}
@@ -284,18 +286,18 @@ export function HubblyTab({ player }: Props) {
               <span className="text-2xl">{selected?.icon}</span>
               <div className="flex-1">
                 <p className="font-ninja text-xs tracking-wider" style={{ color: selected?.color }}>{selected?.name.toUpperCase()}</p>
-                <p className="font-body text-[10px] text-gray-500">Your flavor is locked in</p>
+                <p className="font-body text-[10px] text-gray-500">{ar ? 'تم تثبيت نكهتك' : 'Your flavor is locked in'}</p>
               </div>
               <CheckCircle2 size={16} style={{ color: selected?.color }} />
             </div>
 
-            <h2 className="font-ninja text-lg text-center mb-1" style={{ color: '#06B6D4' }}>ICE IN THE WATER?</h2>
-            <p className="font-body text-xs text-gray-500 text-center mb-5">Colder smoke, smoother draw</p>
+            <h2 className="font-ninja text-lg text-center mb-1" style={{ color: '#06B6D4' }}>{ar ? 'ثلج في الماء؟' : 'ICE IN THE WATER?'}</h2>
+            <p className="font-body text-xs text-gray-500 text-center mb-5">{ar ? 'دخان أبرد، سحب أنعم' : 'Colder smoke, smoother draw'}</p>
 
             <div className="grid grid-cols-2 gap-3 mb-5">
               {[
-                { val: true, icon: <Snowflake size={32} />, title: 'YES', sub: 'With Ice', desc: 'Cold & smooth', color: '#06B6D4' },
-                { val: false, icon: <Droplet size={32} />, title: 'NO', sub: 'Room Temp', desc: 'Classic feel', color: '#A855F7' },
+                { val: true, icon: <Snowflake size={32} />, title: ar ? 'نعم' : 'YES', sub: ar ? 'مع ثلج' : 'With Ice', desc: ar ? 'بارد وناعم' : 'Cold & smooth', color: '#06B6D4' },
+                { val: false, icon: <Droplet size={32} />, title: ar ? 'لا' : 'NO', sub: ar ? 'درجة الغرفة' : 'Room Temp', desc: ar ? 'الإحساس الكلاسيكي' : 'Classic feel', color: '#A855F7' },
               ].map((opt, i) => {
                 const isSel = iceInWater === opt.val;
                 return (
@@ -338,7 +340,7 @@ export function HubblyTab({ player }: Props) {
               <button onClick={goBack}
                 className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
-                <ChevronLeft size={18} /> BACK
+                <ChevronLeft size={18} /> {ar ? 'رجوع' : 'BACK'}
               </button>
               <motion.button
                 whileTap={iceInWater !== null ? { scale: 0.97 } : {}}
@@ -350,7 +352,7 @@ export function HubblyTab({ player }: Props) {
                   color: iceInWater !== null ? '#fff' : 'rgba(6,182,212,0.3)',
                   boxShadow: iceInWater !== null ? `0 0 20px ${selected?.color}30` : 'none',
                 }}>
-                CONTINUE <ChevronRight size={18} />
+                {ar ? 'متابعة' : 'CONTINUE'} <ChevronRight size={18} />
               </motion.button>
             </div>
           </motion.div>
@@ -359,8 +361,8 @@ export function HubblyTab({ player }: Props) {
         {/* ═══════════ STEP 3: SMOKES (CIGARETTES) ═══════════ */}
         {step === 'smokes' && (
           <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-            <h2 className="font-ninja text-xl text-center mb-1" style={{ color: '#06B6D4' }}>ADD CIGARETTES?</h2>
-            <p className="font-body text-xs text-gray-500 text-center mb-5">Completely optional · add-on to your hubbly</p>
+            <h2 className="font-ninja text-xl text-center mb-1" style={{ color: '#06B6D4' }}>{ar ? 'أضف سجائر؟' : 'ADD CIGARETTES?'}</h2>
+            <p className="font-body text-xs text-gray-500 text-center mb-5">{ar ? 'اختياري تماماً · إضافة إلى الشيشة' : 'Completely optional · add-on to your hubbly'}</p>
 
             <div className="space-y-2.5 mb-4">
               {/* No cigarettes option */}
@@ -382,9 +384,9 @@ export function HubblyTab({ player }: Props) {
                 <span className="text-2xl">🚫</span>
                 <div className="flex-1 min-w-0">
                   <p className="font-ninja text-sm tracking-wider" style={{ color: cigDecided && !selectedCigarette ? '#06B6D4' : '#ccc' }}>
-                    NO CIGARETTES
+                    {ar ? 'بدون سجائر' : 'NO CIGARETTES'}
                   </p>
-                  <p className="font-body text-[10px] text-gray-500">Just the hubbly</p>
+                  <p className="font-body text-[10px] text-gray-500">{ar ? 'شيشة فقط' : 'Just the hubbly'}</p>
                 </div>
               </motion.div>
 
@@ -432,7 +434,7 @@ export function HubblyTab({ player }: Props) {
               <button onClick={goBack}
                 className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
-                <ChevronLeft size={18} /> BACK
+                <ChevronLeft size={18} /> {ar ? 'رجوع' : 'BACK'}
               </button>
               <motion.button
                 whileTap={cigDecided ? { scale: 0.97 } : {}}
@@ -444,7 +446,7 @@ export function HubblyTab({ player }: Props) {
                   color: cigDecided ? '#fff' : 'rgba(6,182,212,0.3)',
                   boxShadow: cigDecided ? `0 0 20px ${selected?.color}30` : 'none',
                 }}>
-                CONTINUE <ChevronRight size={18} />
+                {ar ? 'متابعة' : 'CONTINUE'} <ChevronRight size={18} />
               </motion.button>
             </div>
           </motion.div>
@@ -479,7 +481,7 @@ export function HubblyTab({ player }: Props) {
                   border: `1px solid ${iceInWater ? 'rgba(6,182,212,0.3)' : 'rgba(168,85,247,0.3)'}`,
                   color: iceInWater ? '#06B6D4' : '#A855F7',
                 }}>
-                  {iceInWater ? <><Snowflake size={12} /> WITH ICE</> : <><Droplet size={12} /> NO ICE</>}
+                  {iceInWater ? <><Snowflake size={12} /> {ar ? 'مع ثلج' : 'WITH ICE'}</> : <><Droplet size={12} /> {ar ? 'بدون ثلج' : 'NO ICE'}</>}
                 </span>
                 {selectedCig && (
                   <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
@@ -496,7 +498,7 @@ export function HubblyTab({ player }: Props) {
                 <span className="px-3 py-1 rounded-full font-ninja text-xs flex items-center gap-1.5" style={{
                   background: 'rgba(255,111,0,0.1)', border: '1px solid rgba(255,111,0,0.3)', color: '#FF6F00',
                 }}>
-                  <Clock size={12} /> ~10 MIN
+                  <Clock size={12} /> {ar ? '~10 دقائق' : '~10 MIN'}
                 </span>
               </div>
               {selectedCig && (
@@ -504,14 +506,14 @@ export function HubblyTab({ player }: Props) {
                   Hubbly <span className="text-yellow-400">{selected.price}</span> + {selectedCig.name} <span className="text-yellow-400">{selectedCig.price}</span> = <span className="text-yellow-400 font-semibold">{totalPrice} coins</span>
                 </p>
               )}
-              <p className="font-body text-xs text-gray-400">Your hubbly will be brought to your PC</p>
+              <p className="font-body text-xs text-gray-400">{ar ? 'ستُحضر شيشتك إلى جهازك' : 'Your hubbly will be brought to your PC'}</p>
             </div>
 
             <div className="flex gap-3 mt-5">
               <button onClick={goBack}
                 className="flex-1 py-4 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', color: '#888' }}>
-                <ChevronLeft size={18} /> BACK
+                <ChevronLeft size={18} /> {ar ? 'رجوع' : 'BACK'}
               </button>
               <motion.button
                 whileTap={{ scale: 0.97 }}
@@ -529,7 +531,7 @@ export function HubblyTab({ player }: Props) {
                   transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut', repeatDelay: 2 }}
                   style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.3) 50%, transparent 70%)', width: '40%' }} />
                 {ordering ? <Loader2 size={18} className="animate-spin" /> : <Send size={18} />}
-                {ordering ? 'SENDING...' : 'PLACE ORDER'}
+                {ordering ? (ar ? 'جاري الإرسال...' : 'SENDING...') : (ar ? 'إرسال الطلب' : 'PLACE ORDER')}
               </motion.button>
             </div>
           </motion.div>

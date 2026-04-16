@@ -22,6 +22,7 @@ interface Props {
   player: any;
   open: boolean;
   onClose: () => void;
+  lang?: 'en' | 'ar';
 }
 
 type MemberInfo = {
@@ -32,7 +33,8 @@ type MemberInfo = {
   isOnline?: boolean;
 };
 
-export function ClubPanel({ player, open, onClose }: Props) {
+export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
+  const ar = lang === 'ar';
   const [club, setClub] = useState<Club | null>(null);
   const [clubLoaded, setClubLoaded] = useState(false);
   const [members, setMembers] = useState<MemberInfo[]>([]);
@@ -454,12 +456,18 @@ export function ClubPanel({ player, open, onClose }: Props) {
               </div>
               <div>
                 <h2 className="font-ninja text-2xl text-white tracking-wider" style={{ textShadow: '0 0 15px rgba(168,85,247,0.35)' }}>
-                  {view === 'create' ? 'CREATE CLUB' : view === 'invite' ? 'INVITE MEMBERS' : view === 'treasury' ? 'TREASURY' : 'CLUBS'}
+                  {view === 'create'
+                    ? (ar ? 'إنشاء نادٍ' : 'CREATE CLUB')
+                    : view === 'invite'
+                      ? (ar ? 'دعوة أعضاء' : 'INVITE MEMBERS')
+                      : view === 'treasury'
+                        ? (ar ? 'الخزينة' : 'TREASURY')
+                        : (ar ? 'النوادي' : 'CLUBS')}
                 </h2>
                 {club && view === 'main' && (
                   <p className="font-body text-xs text-gray-500">
-                    {club.members.length}/{CLUB_MAX_MEMBERS} members
-                    {isLeader && ' · Leader'}
+                    {club.members.length}/{CLUB_MAX_MEMBERS} {ar ? 'أعضاء' : 'members'}
+                    {isLeader && (ar ? ' · القائد' : ' · Leader')}
                   </p>
                 )}
               </div>
@@ -477,19 +485,19 @@ export function ClubPanel({ player, open, onClose }: Props) {
             {view === 'create' && (
               <div className="space-y-5 max-w-md mx-auto">
                 <div>
-                  <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">CLUB NAME</label>
+                  <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">{ar ? 'اسم النادي' : 'CLUB NAME'}</label>
                   <input type="text" value={createName} onChange={(e) => setCreateName(e.target.value)} maxLength={24}
-                    placeholder="e.g. Shadow Ninjas"
+                    placeholder={ar ? 'مثال: نينجا الظل' : 'e.g. Shadow Ninjas'}
                     className="w-full bg-white/5 border border-purple-500/30 rounded-lg px-4 py-3 font-body text-white outline-none focus:border-purple-400" />
                 </div>
                 <div>
-                  <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">TAG (2-5 chars)</label>
+                  <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">{ar ? 'الوسم (2-5 أحرف)' : 'TAG (2-5 chars)'}</label>
                   <input type="text" value={createTag} onChange={(e) => setCreateTag(e.target.value.toUpperCase())} maxLength={5}
                     placeholder="e.g. SNJA"
                     className="w-full bg-white/5 border border-purple-500/30 rounded-lg px-4 py-3 font-ninja text-white tracking-wider outline-none focus:border-purple-400 uppercase" />
                 </div>
                 <div>
-                  <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">EMBLEM</label>
+                  <label className="font-ninja text-xs text-purple-300 tracking-wider block mb-2">{ar ? 'الشعار' : 'EMBLEM'}</label>
 
                   {/* Live preview */}
                   <div className="flex items-center gap-3 mb-3 p-3 rounded-lg" style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
@@ -503,12 +511,14 @@ export function ClubPanel({ player, open, onClose }: Props) {
                     </div>
                     <div className="flex-1">
                       <p className="font-body text-xs text-gray-400">
-                        {isUploadedLogo ? 'Custom image uploaded' : 'Pick an emoji or upload your own'}
+                        {isUploadedLogo
+                          ? (ar ? 'تم رفع صورة مخصصة' : 'Custom image uploaded')
+                          : (ar ? 'اختر رمزًا تعبيريًا أو ارفع صورتك' : 'Pick an emoji or upload your own')}
                       </p>
                       {isUploadedLogo && (
                         <button onClick={() => setCreateLogo('⚔️')}
                           className="mt-1 text-[10px] text-purple-300 hover:text-purple-200 underline">
-                          Remove & use emoji
+                          {ar ? 'إزالة واستخدام رمز تعبيري' : 'Remove & use emoji'}
                         </button>
                       )}
                     </div>
@@ -522,8 +532,8 @@ export function ClubPanel({ player, open, onClose }: Props) {
                     style={{ background: 'rgba(168,85,247,0.08)', border: '1.5px dashed rgba(168,85,247,0.4)', color: '#d8b4fe' }}
                   >
                     {uploadingLogo
-                      ? <><Loader2 size={14} className="animate-spin" /> PROCESSING...</>
-                      : <><Upload size={14} /> UPLOAD CUSTOM LOGO</>}
+                      ? <><Loader2 size={14} className="animate-spin" /> {ar ? 'جارٍ المعالجة...' : 'PROCESSING...'}</>
+                      : <><Upload size={14} /> {ar ? 'رفع شعار مخصص' : 'UPLOAD CUSTOM LOGO'}</>}
                   </button>
                   <input
                     ref={logoInputRef}
@@ -534,7 +544,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                   />
 
                   {/* Emoji picker */}
-                  <p className="font-body text-[10px] text-gray-500 mb-2">Or pick an emoji:</p>
+                  <p className="font-body text-[10px] text-gray-500 mb-2">{ar ? 'أو اختر رمزًا تعبيريًا:' : 'Or pick an emoji:'}</p>
                   <div className="flex gap-2 flex-wrap">
                     {['⚔️','🥷','🐉','⚡','🔥','💀','👑','🛡️','⭐'].map(emoji => (
                       <button key={emoji} onClick={() => setCreateLogo(emoji)}
@@ -553,13 +563,13 @@ export function ClubPanel({ player, open, onClose }: Props) {
                   <button onClick={() => setView('main')}
                     className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-gray-400 hover:text-white transition-all"
                     style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
-                    CANCEL
+                    {ar ? 'إلغاء' : 'CANCEL'}
                   </button>
                   <button onClick={handleCreate} disabled={creating}
                     className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-white flex items-center justify-center gap-2"
                     style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)', boxShadow: '0 0 15px rgba(168,85,247,0.35)' }}>
                     {creating ? <Loader2 size={16} className="animate-spin" /> : <Plus size={16} />}
-                    CREATE CLUB
+                    {ar ? 'إنشاء نادٍ' : 'CREATE CLUB'}
                   </button>
                 </div>
               </div>
@@ -577,12 +587,12 @@ export function ClubPanel({ player, open, onClose }: Props) {
                   }}>
                   <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(168,85,247,0.7)', borderLeft: '1px solid rgba(168,85,247,0.7)' }} />
                   <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid rgba(168,85,247,0.7)', borderRight: '1px solid rgba(168,85,247,0.7)' }} />
-                  <ArrowLeft size={12} /> BACK TO CLUB
+                  <ArrowLeft size={12} /> {ar ? 'الرجوع للنادي' : 'BACK TO CLUB'}
                 </button>
                 <div className="relative">
                   <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" />
                   <input type="text" value={inviteSearch} onChange={(e) => handleSearchPlayers(e.target.value)}
-                    placeholder="Search players by username..."
+                    placeholder={ar ? 'ابحث عن لاعبين بالاسم...' : 'Search players by username...'}
                     className="w-full bg-white/5 border border-purple-500/30 rounded-lg pl-10 pr-4 py-3 font-body text-white outline-none focus:border-purple-400" />
                 </div>
                 {inviteError && (
@@ -593,7 +603,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                 <div className="space-y-2">
                   {inviteLoading && <Loader2 size={18} className="animate-spin text-purple-400 mx-auto" />}
                   {!inviteLoading && inviteSearch && inviteResults.length === 0 && (
-                    <p className="font-body text-xs text-gray-500 text-center py-4">No available players found</p>
+                    <p className="font-body text-xs text-gray-500 text-center py-4">{ar ? 'لم يتم العثور على لاعبين متاحين' : 'No available players found'}</p>
                   )}
                   {inviteResults.map((p: any) => (
                     <div key={p.uid} className="flex items-center gap-3 p-3 rounded-lg"
@@ -603,19 +613,19 @@ export function ClubPanel({ player, open, onClose }: Props) {
                         onError={(e) => { (e.target as HTMLImageElement).src = '/img/pfp-neon.png'; }} />
                       <div className="flex-1">
                         <p className="font-body text-sm text-white">{p.username}</p>
-                        <p className="font-body text-[10px] text-gray-500">Lvl {p.level || 1}</p>
+                        <p className="font-body text-[10px] text-gray-500">{ar ? 'المستوى' : 'Lvl'} {p.level || 1}</p>
                       </div>
                       {clubFull ? (
-                        <span className="font-body text-[10px] text-red-400">Club full</span>
+                        <span className="font-body text-[10px] text-red-400">{ar ? 'النادي ممتلئ' : 'Club full'}</span>
                       ) : p.invited ? (
                         <span className="font-ninja text-[10px] text-green-400 tracking-wider flex items-center gap-1">
-                          <Check size={12} /> INVITED
+                          <Check size={12} /> {ar ? 'تمت الدعوة' : 'INVITED'}
                         </span>
                       ) : (
                         <button onClick={() => handleSendInvite(p.uid)} disabled={invitingUid === p.uid}
                           className="px-3 py-1.5 rounded font-ninja text-[10px] tracking-wider text-white"
                           style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)', boxShadow: '0 0 8px rgba(168,85,247,0.3)' }}>
-                          {invitingUid === p.uid ? <Loader2 size={11} className="animate-spin" /> : 'INVITE'}
+                          {invitingUid === p.uid ? <Loader2 size={11} className="animate-spin" /> : (ar ? 'دعوة' : 'INVITE')}
                         </button>
                       )}
                     </div>
@@ -636,7 +646,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                   }}>
                   <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(168,85,247,0.7)', borderLeft: '1px solid rgba(168,85,247,0.7)' }} />
                   <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid rgba(168,85,247,0.7)', borderRight: '1px solid rgba(168,85,247,0.7)' }} />
-                  <ArrowLeft size={12} /> BACK TO CLUB
+                  <ArrowLeft size={12} /> {ar ? 'الرجوع للنادي' : 'BACK TO CLUB'}
                 </button>
 
                 {/* Treasury total card */}
@@ -653,19 +663,19 @@ export function ClubPanel({ player, open, onClose }: Props) {
                       opacity: 0.85,
                     }} />
                   ))}
-                  <div className="font-ninja text-[10px] tracking-[0.25em] text-yellow-300/80 mb-1.5">TOTAL TREASURY</div>
+                  <div className="font-ninja text-[10px] tracking-[0.25em] text-yellow-300/80 mb-1.5">{ar ? 'الخزينة الإجمالية' : 'TOTAL TREASURY'}</div>
                   <div className="flex items-center justify-center gap-2">
                     <Coins size={26} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 8px rgba(234,179,8,0.7))' }} />
                     <span className="font-ninja text-4xl text-yellow-400" style={{ textShadow: '0 0 18px rgba(234,179,8,0.55)' }}>
                       {clubTotalBalance(club)}
                     </span>
                   </div>
-                  <p className="font-body text-[10px] text-gray-500 mt-1.5">Deposits &amp; prizes split evenly across members.</p>
+                  <p className="font-body text-[10px] text-gray-500 mt-1.5">{ar ? 'الإيداعات والجوائز تُقسم بالتساوي على الأعضاء.' : 'Deposits & prizes split evenly across members.'}</p>
                 </div>
 
                 {/* Per-member shares grid */}
                 <div>
-                  <h4 className="font-ninja text-[10px] text-yellow-300/80 tracking-[0.2em] mb-2">MEMBER SHARES</h4>
+                  <h4 className="font-ninja text-[10px] text-yellow-300/80 tracking-[0.2em] mb-2">{ar ? 'حصص الأعضاء' : 'MEMBER SHARES'}</h4>
                   <div className="space-y-1.5">
                     {club.members.map(uid => {
                       const m = members.find(x => x.uid === uid);
@@ -692,7 +702,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                               {isMe && (
                                 <span className="font-ninja text-[8px] tracking-wider px-1.5 py-0.5 rounded"
                                   style={{ background: 'rgba(234,179,8,0.2)', border: '1px solid rgba(234,179,8,0.4)', color: '#EAB308' }}>
-                                  YOU
+                                  {ar ? 'أنت' : 'YOU'}
                                 </span>
                               )}
                             </div>
@@ -730,15 +740,15 @@ export function ClubPanel({ player, open, onClose }: Props) {
                       <div className="relative z-[2] flex items-start gap-3 mb-3">
                         <Ticket size={22} className="text-cyan-300 flex-shrink-0 mt-0.5" style={{ filter: 'drop-shadow(0 0 6px rgba(0,191,255,0.7))' }} />
                         <div className="flex-1 min-w-0">
-                          <div className="font-ninja text-[10px] tracking-[0.2em] text-cyan-300/80">VOUCHER POOL</div>
+                          <div className="font-ninja text-[10px] tracking-[0.2em] text-cyan-300/80">{ar ? 'مجمع القسائم' : 'VOUCHER POOL'}</div>
                           <div className="font-ninja text-2xl text-cyan-300" style={{ textShadow: '0 0 10px rgba(0,191,255,0.5)' }}>
                             {totalPool}
-                            <span className="text-[10px] text-gray-500 ml-2 tracking-wider">TOTAL</span>
+                            <span className="text-[10px] text-gray-500 ml-2 tracking-wider">{ar ? 'الإجمالي' : 'TOTAL'}</span>
                           </div>
                           <div className="font-body text-[10px] text-gray-500 mt-0.5">
-                            Your deposits: <span className="text-cyan-300 font-ninja">{myDeposited}</span>
+                            {ar ? 'إيداعاتك:' : 'Your deposits:'} <span className="text-cyan-300 font-ninja">{myDeposited}</span>
                             {' · '}
-                            In inventory: <span className="text-cyan-300 font-ninja">{ownVouchers}</span>
+                            {ar ? 'في الحقيبة:' : 'In inventory:'} <span className="text-cyan-300 font-ninja">{ownVouchers}</span>
                           </div>
                         </div>
                       </div>
@@ -778,12 +788,12 @@ export function ClubPanel({ player, open, onClose }: Props) {
                             boxShadow: '0 0 10px rgba(0,191,255,0.25)',
                             textShadow: '0 0 4px rgba(0,191,255,0.5)',
                           }}>
-                          <Ticket size={12} /> DEPOSIT PASS
+                          <Ticket size={12} /> {ar ? 'إيداع تذكرة' : 'DEPOSIT PASS'}
                         </motion.button>
                         <motion.button whileTap={{ scale: 0.94 }}
                           onClick={handleWithdrawVoucher}
                           disabled={treasuryLoading || myDeposited === 0}
-                          title={myDeposited === 0 ? 'You have no deposited vouchers' : 'Take back one of your own deposits'}
+                          title={myDeposited === 0 ? (ar ? 'ليس لديك قسائم مودعة' : 'You have no deposited vouchers') : (ar ? 'استرد إحدى إيداعاتك' : 'Take back one of your own deposits')}
                           className="relative flex-1 py-2 rounded-md font-ninja text-[10px] tracking-wider overflow-hidden transition-all disabled:opacity-40 flex items-center justify-center gap-1.5"
                           style={{
                             background: 'linear-gradient(135deg, rgba(168,85,247,0.22), rgba(168,85,247,0.06))',
@@ -792,7 +802,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                             boxShadow: '0 0 10px rgba(168,85,247,0.25)',
                             textShadow: '0 0 4px rgba(168,85,247,0.5)',
                           }}>
-                          <ArrowDownRight size={12} /> TAKE MINE
+                          <ArrowDownRight size={12} /> {ar ? 'خذ حصتي' : 'TAKE MINE'}
                         </motion.button>
                       </div>
                     </div>
@@ -801,16 +811,16 @@ export function ClubPanel({ player, open, onClose }: Props) {
 
                 {/* Your wallet reference */}
                 <div className="flex items-center justify-between text-xs px-1">
-                  <span className="font-body text-gray-400">Your wallet</span>
+                  <span className="font-body text-gray-400">{ar ? 'محفظتك' : 'Your wallet'}</span>
                   <span className="font-ninja text-yellow-400 flex items-center gap-1"><Coins size={12} /> {player.coins || 0}</span>
                 </div>
 
                 {/* Amount input */}
                 <div>
-                  <label className="font-ninja text-xs text-yellow-300 tracking-wider block mb-2">AMOUNT</label>
+                  <label className="font-ninja text-xs text-yellow-300 tracking-wider block mb-2">{ar ? 'المبلغ' : 'AMOUNT'}</label>
                   <input type="number" min={1} step={50} value={depositAmount}
                     onChange={(e) => { setDepositAmount(e.target.value); setTreasuryError(''); }}
-                    placeholder="Enter tokens"
+                    placeholder={ar ? 'أدخل التوكنز' : 'Enter tokens'}
                     className="w-full bg-white/5 border border-yellow-500/30 rounded-lg px-4 py-3 font-ninja text-lg text-white outline-none focus:border-yellow-400" />
                 </div>
 
@@ -832,7 +842,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                       textShadow: '0 0 6px rgba(57,255,20,0.5)',
                     }}>
                     {treasuryLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowUpRight size={14} />}
-                    DEPOSIT
+                    {ar ? 'إيداع' : 'DEPOSIT'}
                   </button>
                   <button onClick={handleWithdraw} disabled={treasuryLoading || !depositAmount}
                     className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-50"
@@ -844,11 +854,11 @@ export function ClubPanel({ player, open, onClose }: Props) {
                       textShadow: '0 0 6px rgba(168,85,247,0.5)',
                     }}>
                     {treasuryLoading ? <Loader2 size={14} className="animate-spin" /> : <ArrowDownRight size={14} />}
-                    TAKE MY CUT
+                    {ar ? 'خذ حصتي' : 'TAKE MY CUT'}
                   </button>
                 </div>
                 <p className="font-body text-[10px] text-gray-500 text-center">
-                  Each member can withdraw only from their own cut.
+                  {ar ? 'يمكن لكل عضو السحب من حصته فقط.' : 'Each member can withdraw only from their own cut.'}
                 </p>
               </div>
             )}
@@ -857,14 +867,14 @@ export function ClubPanel({ player, open, onClose }: Props) {
             {view === 'confirmLeave' && club && (
               <div className="max-w-sm mx-auto text-center py-8">
                 <LogOut size={48} className="text-red-400 mx-auto mb-4" />
-                <h3 className="font-ninja text-2xl text-white mb-2">Leave {club.name}?</h3>
-                <p className="font-body text-sm text-gray-400 mb-6">You will lose your spot and will need a new invite to rejoin.</p>
+                <h3 className="font-ninja text-2xl text-white mb-2">{ar ? `مغادرة ${club.name}؟` : `Leave ${club.name}?`}</h3>
+                <p className="font-body text-sm text-gray-400 mb-6">{ar ? 'ستفقد مكانك وستحتاج إلى دعوة جديدة للانضمام مرة أخرى.' : 'You will lose your spot and will need a new invite to rejoin.'}</p>
                 <div className="flex gap-3">
                   <button onClick={() => setView('main')} className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-gray-400"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>CANCEL</button>
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>{ar ? 'إلغاء' : 'CANCEL'}</button>
                   <button onClick={handleLeave} disabled={leavingClub} className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-white"
                     style={{ background: 'linear-gradient(135deg, #EF4444, #B91C1C)', boxShadow: '0 0 15px rgba(239,68,68,0.3)' }}>
-                    {leavingClub ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'LEAVE CLUB'}
+                    {leavingClub ? <Loader2 size={16} className="animate-spin mx-auto" /> : (ar ? 'مغادرة النادي' : 'LEAVE CLUB')}
                   </button>
                 </div>
               </div>
@@ -874,14 +884,14 @@ export function ClubPanel({ player, open, onClose }: Props) {
             {view === 'confirmDisband' && club && (
               <div className="max-w-sm mx-auto text-center py-8">
                 <Skull size={48} className="text-red-400 mx-auto mb-4" />
-                <h3 className="font-ninja text-2xl text-white mb-2">Disband {club.name}?</h3>
-                <p className="font-body text-sm text-gray-400 mb-6">All {club.members.length} members will be removed. This cannot be undone.</p>
+                <h3 className="font-ninja text-2xl text-white mb-2">{ar ? `حل نادي ${club.name}؟` : `Disband ${club.name}?`}</h3>
+                <p className="font-body text-sm text-gray-400 mb-6">{ar ? `سيتم إزالة جميع الأعضاء (${club.members.length}). لا يمكن التراجع.` : `All ${club.members.length} members will be removed. This cannot be undone.`}</p>
                 <div className="flex gap-3">
                   <button onClick={() => setView('main')} className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-gray-400"
-                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>CANCEL</button>
+                    style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>{ar ? 'إلغاء' : 'CANCEL'}</button>
                   <button onClick={handleDisband} disabled={leavingClub} className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-white"
                     style={{ background: 'linear-gradient(135deg, #EF4444, #B91C1C)', boxShadow: '0 0 15px rgba(239,68,68,0.3)' }}>
-                    {leavingClub ? <Loader2 size={16} className="animate-spin mx-auto" /> : 'DISBAND'}
+                    {leavingClub ? <Loader2 size={16} className="animate-spin mx-auto" /> : (ar ? 'حل النادي' : 'DISBAND')}
                   </button>
                 </div>
               </div>
@@ -897,7 +907,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                     {/* Incoming invites */}
                     {invites.length > 0 && (
                       <div>
-                        <h3 className="font-ninja text-sm text-purple-300 tracking-wider mb-3">INVITES ({invites.length})</h3>
+                        <h3 className="font-ninja text-sm text-purple-300 tracking-wider mb-3">{ar ? `الدعوات (${invites.length})` : `INVITES (${invites.length})`}</h3>
                         <div className="space-y-2">
                           {invites.map(invite => (
                             <div key={invite.id} className="flex items-center gap-3 p-3 rounded-lg"
@@ -908,7 +918,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="font-ninja text-sm text-white tracking-wider">[{invite.clubTag}] {invite.clubName}</p>
-                                <p className="font-body text-[11px] text-gray-500">Invited by {invite.fromUsername}</p>
+                                <p className="font-body text-[11px] text-gray-500">{ar ? 'دعاك' : 'Invited by'} {invite.fromUsername}</p>
                               </div>
                               <button onClick={() => handleAcceptInvite(invite)} disabled={processingInvite === invite.id}
                                 className="w-8 h-8 rounded flex items-center justify-center"
@@ -932,14 +942,14 @@ export function ClubPanel({ player, open, onClose }: Props) {
                         style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.2), rgba(168,85,247,0.05))', border: '2px solid rgba(168,85,247,0.4)', boxShadow: '0 0 25px rgba(168,85,247,0.2)' }}>
                         <Shield size={36} className="text-purple-300" style={{ filter: 'drop-shadow(0 0 6px rgba(168,85,247,0.6))' }} />
                       </div>
-                      <h3 className="font-ninja text-xl text-white mb-2">YOU'RE NOT IN A CLUB</h3>
+                      <h3 className="font-ninja text-xl text-white mb-2">{ar ? 'أنت لست في نادٍ' : "YOU'RE NOT IN A CLUB"}</h3>
                       <p className="font-body text-sm text-gray-500 mb-5 max-w-sm mx-auto">
-                        Form a club of up to {CLUB_MAX_MEMBERS} ninjas to compete in tournaments as a team.
+                        {ar ? `شكّل ناديًا يضم حتى ${CLUB_MAX_MEMBERS} من النينجا للتنافس في البطولات كفريق.` : `Form a club of up to ${CLUB_MAX_MEMBERS} ninjas to compete in tournaments as a team.`}
                       </p>
                       <button onClick={() => { setView('create'); setCreateError(''); }}
                         className="px-8 py-3 rounded-xl font-ninja text-sm tracking-wider text-white inline-flex items-center gap-2"
                         style={{ background: 'linear-gradient(135deg, #A855F7, #7C3AED)', boxShadow: '0 0 18px rgba(168,85,247,0.4)' }}>
-                        <Plus size={16} /> CREATE CLUB
+                        <Plus size={16} /> {ar ? 'إنشاء نادٍ' : 'CREATE CLUB'}
                       </button>
                     </div>
                   </div>
@@ -973,7 +983,7 @@ export function ClubPanel({ player, open, onClose }: Props) {
                             <span className="flex items-center gap-1 text-xs text-gray-400">
                               <Users size={11} className="text-cyan-400" /> {club.members.length}/{CLUB_MAX_MEMBERS}
                             </span>
-                            <span className="flex items-center gap-1 text-xs text-yellow-400" title="Club treasury">
+                            <span className="flex items-center gap-1 text-xs text-yellow-400" title={ar ? 'خزينة النادي' : 'Club treasury'}>
                               <Coins size={11} /> {club.balance || 0}
                             </span>
                           </div>
@@ -986,33 +996,33 @@ export function ClubPanel({ player, open, onClose }: Props) {
                       <button onClick={() => { setView('treasury'); setDepositAmount(''); setTreasuryError(''); }}
                         className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider text-yellow-300 flex items-center justify-center gap-1.5"
                         style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.18), rgba(234,179,8,0.06))', border: '1px solid rgba(234,179,8,0.4)' }}>
-                        <Coins size={13} /> TREASURY
+                        <Coins size={13} /> {ar ? 'الخزينة' : 'TREASURY'}
                       </button>
                       {isLeader && !clubFull && (
                         <button onClick={() => { setView('invite'); setInviteSearch(''); setInviteResults([]); setInviteError(''); }}
                           className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider text-white flex items-center justify-center gap-1.5"
                           style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.25), rgba(168,85,247,0.1))', border: '1px solid rgba(168,85,247,0.5)' }}>
-                          <UserPlus size={13} /> INVITE
+                          <UserPlus size={13} /> {ar ? 'دعوة' : 'INVITE'}
                         </button>
                       )}
                       {isLeader ? (
                         <button onClick={() => setView('confirmDisband')}
                           className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider text-red-400 flex items-center justify-center gap-1.5"
                           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                          <Skull size={13} /> DISBAND
+                          <Skull size={13} /> {ar ? 'حل النادي' : 'DISBAND'}
                         </button>
                       ) : (
                         <button onClick={() => setView('confirmLeave')}
                           className="flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider text-red-400 flex items-center justify-center gap-1.5"
                           style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.3)' }}>
-                          <LogOut size={13} /> LEAVE
+                          <LogOut size={13} /> {ar ? 'مغادرة' : 'LEAVE'}
                         </button>
                       )}
                     </div>
 
                     {/* Members list */}
                     <div>
-                      <h3 className="font-ninja text-xs text-purple-300 tracking-[0.2em] mb-3">MEMBERS</h3>
+                      <h3 className="font-ninja text-xs text-purple-300 tracking-[0.2em] mb-3">{ar ? 'الأعضاء' : 'MEMBERS'}</h3>
                       <div className="space-y-2">
                         {members.map(m => {
                           const isMemberLeader = m.uid === club.leaderUid;
@@ -1030,14 +1040,14 @@ export function ClubPanel({ player, open, onClose }: Props) {
                                   {isMemberLeader && (
                                     <span className="flex items-center gap-0.5 px-2 py-0.5 rounded text-[9px] font-ninja text-yellow-400 tracking-wider"
                                       style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)' }}>
-                                      <Crown size={9} /> LEADER
+                                      <Crown size={9} /> {ar ? 'القائد' : 'LEADER'}
                                     </span>
                                   )}
                                 </div>
-                                <p className="font-body text-[10px] text-gray-500">{m.isOnline ? 'Online' : 'Offline'}</p>
+                                <p className="font-body text-[10px] text-gray-500">{m.isOnline ? (ar ? 'متصل' : 'Online') : (ar ? 'غير متصل' : 'Offline')}</p>
                               </div>
                               {isLeader && !isMemberLeader && (
-                                <button onClick={() => handleKick(m.uid)} title="Kick"
+                                <button onClick={() => handleKick(m.uid)} title={ar ? 'طرد' : 'Kick'}
                                   className="w-7 h-7 rounded flex items-center justify-center hover:bg-red-500/20 transition-all"
                                   style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.25)' }}>
                                   <UserMinus size={12} className="text-red-400" />
@@ -1052,8 +1062,8 @@ export function ClubPanel({ player, open, onClose }: Props) {
                     {/* Invites section (still pending for this player) */}
                     {invites.length > 0 && (
                       <div>
-                        <h3 className="font-ninja text-xs text-gray-500 tracking-[0.2em] mb-2">PENDING INVITES</h3>
-                        <p className="font-body text-[11px] text-gray-600">Leave your current club first to accept another invite.</p>
+                        <h3 className="font-ninja text-xs text-gray-500 tracking-[0.2em] mb-2">{ar ? 'الدعوات المعلقة' : 'PENDING INVITES'}</h3>
+                        <p className="font-body text-[11px] text-gray-600">{ar ? 'غادر ناديك الحالي أولًا لقبول دعوة أخرى.' : 'Leave your current club first to accept another invite.'}</p>
                       </div>
                     )}
                   </div>

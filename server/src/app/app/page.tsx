@@ -428,7 +428,7 @@ function WelcomeScreen({ player, lang, onSkip }: { player: any; lang: Lang; onSk
         className="text-[11px] font-medium tracking-[0.3em] uppercase mt-6"
         style={{ color: 'rgba(57,255,20,0.6)' }}
       >
-        {t(lang, 'welcome_back')}
+        {lang === 'ar' ? 'أهلاً بعودتك' : t(lang, 'welcome_back')}
       </motion.p>
 
       <motion.h1

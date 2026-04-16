@@ -44,6 +44,8 @@ interface Props {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function SupportBubble({ player, pcName, isMobile = false }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [isOpen, setIsOpen] = useState(false);
   const [minimized, setMinimized] = useState(false);
   const [messages, setMessages] = useState<SupportMessage[]>([]);
@@ -253,7 +255,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
                 transition={{ duration: 2.2, repeat: Infinity }}
                 className="font-ninja text-[12px] tracking-wider text-ninja-green flex items-center gap-1.5"
                 style={{ textShadow: '0 0 8px rgba(57,255,20,0.5)' }}>
-                <span>👋</span> Need help? I'm here!
+                <span>👋</span> {ar ? 'تحتاج مساعدة؟ أنا هنا!' : "Need help? I'm here!"}
               </motion.span>
               {/* Tail pointing right toward the bubble */}
               <div className="absolute left-full top-1/2 -translate-y-1/2 w-0 h-0"
@@ -303,7 +305,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             className={`fixed ${isMobile ? 'bottom-[88px] right-16' : 'bottom-[72px] right-20'} z-[90] px-3 py-1.5 rounded-lg bg-black/90 border border-ninja-green/20`}
           >
             <p className="font-body text-[10px] text-ninja-green flex items-center gap-1">
-              <GripVertical size={10} /> Drag me anywhere!
+              <GripVertical size={10} /> {ar ? 'اسحبني لأي مكان!' : 'Drag me anywhere!'}
             </p>
           </motion.div>
         )}
@@ -340,8 +342,8 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
                   <Headphones size={16} className="text-ninja-green" />
                 </div>
                 <div>
-                  <p className="font-ninja text-sm text-ninja-green">NINJA SUPPORT</p>
-                  <p className="font-body text-[10px] text-gray-500">We&apos;re here to help</p>
+                  <p className="font-ninja text-sm text-ninja-green">{ar ? 'دعم النينجا' : 'NINJA SUPPORT'}</p>
+                  <p className="font-body text-[10px] text-gray-500">{ar ? 'نحن هنا للمساعدة' : "We're here to help"}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -367,9 +369,9 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
                   <div className="w-16 h-16 rounded-full bg-ninja-green/10 flex items-center justify-center mb-4 border border-ninja-green/20">
                     <Headphones size={28} className="text-ninja-green/60" />
                   </div>
-                  <p className="font-ninja text-lg text-ninja-green/80 mb-1">Need Help?</p>
+                  <p className="font-ninja text-lg text-ninja-green/80 mb-1">{ar ? 'تحتاج مساعدة؟' : 'Need Help?'}</p>
                   <p className="font-body text-xs text-gray-500 leading-relaxed">
-                    Send a message and our team will reply as soon as possible.
+                    {ar ? 'أرسل رسالة وسيرد فريقنا في أقرب وقت ممكن.' : 'Send a message and our team will reply as soon as possible.'}
                   </p>
                 </div>
               )}
@@ -385,7 +387,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
                   >
                     <div className={`max-w-[80%]`}>
                       {!isPlayer && (
-                        <p className="text-[9px] font-body text-ninja-green/60 mb-0.5 ml-1">Admin</p>
+                        <p className="text-[9px] font-body text-ninja-green/60 mb-0.5 ml-1">{ar ? 'المشرف' : 'Admin'}</p>
                       )}
                       <div
                         className={`px-3 py-2 rounded-xl ${
@@ -420,7 +422,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
                       sendMessage();
                     }
                   }}
-                  placeholder="Type your message..."
+                  placeholder={ar ? 'اكتب رسالتك...' : 'Type your message...'}
                   className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-sm text-white font-body placeholder-gray-600 focus:border-ninja-green/30 outline-none transition-all"
                   autoComplete="off"
                 />
@@ -459,7 +461,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             }}
           >
             <Headphones size={16} className="text-ninja-green" />
-            <span className="font-ninja text-xs text-ninja-green">SUPPORT</span>
+            <span className="font-ninja text-xs text-ninja-green">{ar ? 'الدعم' : 'SUPPORT'}</span>
             {unread > 0 && (
               <span className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center text-[9px] text-white font-bold">
                 {unread}

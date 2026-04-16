@@ -28,6 +28,8 @@ const getGameBanner = (gameName: string) => {
 };
 
 export function TournamentTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [joining, setJoining] = useState(false);
@@ -290,9 +292,9 @@ export function TournamentTab({ player }: Props) {
           </div>
           <div>
             <h2 className="font-ninja text-3xl tracking-wider flex items-center gap-3" style={{ color: '#FF6F00', textShadow: '0 0 20px rgba(255,111,0,0.4)' }}>
-              TOURNAMENTS
+              {ar ? 'البطولات' : 'TOURNAMENTS'}
             </h2>
-            <p className="font-body text-gray-400 text-sm mt-0.5">Compete for glory and massive prizes!</p>
+            <p className="font-body text-gray-400 text-sm mt-0.5">{ar ? 'تنافس من أجل المجد والجوائز الضخمة!' : 'Compete for glory and massive prizes!'}</p>
           </div>
           {/* Trailing accent line */}
           <div className="h-[1px] flex-1 min-w-[40px] ml-2" style={{ background: 'linear-gradient(90deg, rgba(255,111,0,0.4), rgba(255,69,0,0.2), transparent)', boxShadow: '0 0 6px rgba(255,111,0,0.15)' }} />
@@ -326,7 +328,7 @@ export function TournamentTab({ player }: Props) {
                   {/* Top accent */}
                   <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,111,0,0.6), transparent)' }} />
                 </>}
-                <span className="relative z-[1]">{v === 'all' ? 'ALL' : v === 'active' ? 'ACTIVE' : 'PAST'}</span>
+                <span className="relative z-[1]">{v === 'all' ? (ar ? 'الكل' : 'ALL') : v === 'active' ? (ar ? 'نشط' : 'ACTIVE') : (ar ? 'منتهي' : 'PAST')}</span>
               </button>
             );
           })}
@@ -342,8 +344,8 @@ export function TournamentTab({ player }: Props) {
             <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(255,111,0,0.4)', borderRight: '2px solid rgba(255,111,0,0.4)' }} />
             <Trophy size={40} className="text-gray-700" />
           </div>
-          <p className="font-ninja text-xl text-gray-500 tracking-wider" style={{ textShadow: '0 0 10px rgba(255,111,0,0.1)' }}>NO TOURNAMENTS YET</p>
-          <p className="font-body text-gray-700 mt-2">Check back soon!</p>
+          <p className="font-ninja text-xl text-gray-500 tracking-wider" style={{ textShadow: '0 0 10px rgba(255,111,0,0.1)' }}>{ar ? 'لا توجد بطولات بعد' : 'NO TOURNAMENTS YET'}</p>
+          <p className="font-body text-gray-700 mt-2">{ar ? 'عد قريباً!' : 'Check back soon!'}</p>
         </div>
       ) : (
         <>
@@ -353,10 +355,10 @@ export function TournamentTab({ player }: Props) {
               <Trophy size={15} style={{ color: '#FF6F00', filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.6))' }} />
             </div>
             <span className="font-ninja text-sm text-orange-400 tracking-[0.2em]" style={{ textShadow: '0 0 10px rgba(255,111,0,0.35)' }}>
-              {view === 'active' ? 'ACTIVE TOURNAMENTS' : view === 'past' ? 'PAST TOURNAMENTS' : 'ALL TOURNAMENTS'}
+              {view === 'active' ? (ar ? 'البطولات النشطة' : 'ACTIVE TOURNAMENTS') : view === 'past' ? (ar ? 'البطولات السابقة' : 'PAST TOURNAMENTS') : (ar ? 'كل البطولات' : 'ALL TOURNAMENTS')}
             </span>
             <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(255,111,0,0.4), rgba(255,69,0,0.18), transparent)', boxShadow: '0 0 6px rgba(255,111,0,0.15)' }} />
-            <span className="font-ninja text-[10px] text-gray-500 tracking-wider">{filtered.length} TOTAL</span>
+            <span className="font-ninja text-[10px] text-gray-500 tracking-wider">{filtered.length} {ar ? 'المجموع' : 'TOTAL'}</span>
           </div>
 
           <div className="space-y-4 max-w-5xl mx-auto">
@@ -421,12 +423,12 @@ export function TournamentTab({ player }: Props) {
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: `1px solid ${statusColor}80`, borderLeft: `1px solid ${statusColor}80` }} />
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: `1px solid ${statusColor}80`, borderRight: `1px solid ${statusColor}80` }} />
                     {isLive && <motion.div animate={{ scale: [1, 1.3, 1] }} transition={{ duration: 1, repeat: Infinity }} className="w-1.5 h-1.5 rounded-full relative" style={{ background: statusColor, boxShadow: `0 0 6px ${statusColor}` }} />}
-                    <span className="relative z-[1]">{isLive ? 'LIVE' : isOpen ? 'OPEN' : isCompleted ? 'ENDED' : 'UPCOMING'}</span>
+                    <span className="relative z-[1]">{isLive ? (ar ? 'مباشر' : 'LIVE') : isOpen ? (ar ? 'مفتوح' : 'OPEN') : isCompleted ? (ar ? 'منتهي' : 'ENDED') : (ar ? 'قريبا' : 'UPCOMING')}</span>
                   </div>
                   {registered && (
                     <div className="absolute top-3 left-8 flex items-center gap-1 px-2 py-0.5 rounded-md font-ninja text-[9px] relative overflow-hidden"
                       style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.2), rgba(57,255,20,0.06))', border: '1px solid rgba(57,255,20,0.4)', color: '#39FF14', backdropFilter: 'blur(8px)', boxShadow: '0 0 8px rgba(57,255,20,0.25)', textShadow: '0 0 6px rgba(57,255,20,0.6)' }}>
-                      <Check size={10} /> JOINED
+                      <Check size={10} /> {ar ? 'انضممت' : 'JOINED'}
                     </div>
                   )}
                   {/* Tournament name over banner */}
@@ -445,7 +447,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(234,179,8,0.5)', borderRight: '1px solid rgba(234,179,8,0.5)' }} />
                       <Coins size={14} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.6))' }} />
                       <span className="font-ninja text-base text-yellow-300" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}>{t.prizePool}</span>
-                      <span className="text-gray-500 text-[10px] font-body uppercase tracking-wider">prize</span>
+                      <span className="text-gray-500 text-[10px] font-body uppercase tracking-wider">{ar ? 'الجائزة' : 'prize'}</span>
                     </div>
 
                     {/* Players */}
@@ -461,7 +463,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.2)', borderLeft: '1px solid rgba(255,255,255,0.2)' }} />
                       <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.2)', borderRight: '1px solid rgba(255,255,255,0.2)' }} />
                       <Coins size={12} className="text-gray-400" />
-                      <span className="font-body text-xs text-gray-300">{t.entryFee} entry</span>
+                      <span className="font-body text-xs text-gray-300">{t.entryFee} {ar ? 'رسوم' : 'entry'}</span>
                     </div>
 
                     {/* Date */}
@@ -480,7 +482,7 @@ export function TournamentTab({ player }: Props) {
                   )}
                   {!isCompleted && (
                     <div className="flex items-center gap-1 text-orange-400 group-hover:translate-x-1 transition-transform">
-                      <span className="font-ninja text-[10px] tracking-wider opacity-60">VIEW</span>
+                      <span className="font-ninja text-[10px] tracking-wider opacity-60">{ar ? 'عرض' : 'VIEW'}</span>
                       <ChevronRight size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.5))' }} />
                     </div>
                   )}
@@ -545,10 +547,10 @@ export function TournamentTab({ player }: Props) {
                 {/* Stats grid */}
                 <div className="grid grid-cols-4 gap-3">
                   {[
-                    { label: 'Prize Pool', value: selectedTournament.prizePool, icon: <Coins size={16} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.6))' }} />, color: 'text-yellow-400', accent: 'rgba(234,179,8,0.3)', bg: 'rgba(234,179,8,0.04)' },
-                    { label: 'Entry Fee', value: selectedTournament.entryFee, icon: <Ticket size={16} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.6))' }} />, color: 'text-orange-400', accent: 'rgba(255,111,0,0.3)', bg: 'rgba(255,111,0,0.04)' },
-                    { label: 'Players', value: `${selectedTournament.participants?.length || 0}/${selectedTournament.maxPlayers}`, icon: <Users size={16} className="text-blue-400" style={{ filter: 'drop-shadow(0 0 4px rgba(59,130,246,0.6))' }} />, color: 'text-blue-400', accent: 'rgba(59,130,246,0.3)', bg: 'rgba(59,130,246,0.04)' },
-                    { label: 'Start', value: new Date(selectedTournament.startTime).toLocaleDateString(), icon: <Calendar size={16} className="text-gray-400" />, color: 'text-gray-300', accent: 'rgba(255,255,255,0.15)', bg: 'rgba(255,255,255,0.02)' },
+                    { label: ar ? 'الجائزة' : 'Prize Pool', value: selectedTournament.prizePool, icon: <Coins size={16} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.6))' }} />, color: 'text-yellow-400', accent: 'rgba(234,179,8,0.3)', bg: 'rgba(234,179,8,0.04)' },
+                    { label: ar ? 'رسوم الدخول' : 'Entry Fee', value: selectedTournament.entryFee, icon: <Ticket size={16} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.6))' }} />, color: 'text-orange-400', accent: 'rgba(255,111,0,0.3)', bg: 'rgba(255,111,0,0.04)' },
+                    { label: ar ? 'اللاعبون' : 'Players', value: `${selectedTournament.participants?.length || 0}/${selectedTournament.maxPlayers}`, icon: <Users size={16} className="text-blue-400" style={{ filter: 'drop-shadow(0 0 4px rgba(59,130,246,0.6))' }} />, color: 'text-blue-400', accent: 'rgba(59,130,246,0.3)', bg: 'rgba(59,130,246,0.04)' },
+                    { label: ar ? 'البداية' : 'Start', value: new Date(selectedTournament.startTime).toLocaleDateString(), icon: <Calendar size={16} className="text-gray-400" />, color: 'text-gray-300', accent: 'rgba(255,255,255,0.15)', bg: 'rgba(255,255,255,0.02)' },
                   ].map((s, i) => (
                     <div key={i} className="relative rounded-xl p-3 text-center overflow-hidden" style={{ background: s.bg, border: `1px solid ${s.accent}` }}>
                       <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: `1px solid ${s.accent}`, borderLeft: `1px solid ${s.accent}` }} />
@@ -574,7 +576,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(234,179,8,0.12)', border: '1px solid rgba(234,179,8,0.3)', boxShadow: '0 0 8px rgba(234,179,8,0.15)' }}>
                         <Crown size={12} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.6))' }} />
                       </div>
-                      <p className="font-ninja text-sm text-yellow-400 tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}>PRIZE DISTRIBUTION</p>
+                      <p className="font-ninja text-sm text-yellow-400 tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}>{ar ? 'توزيع الجوائز' : 'PRIZE DISTRIBUTION'}</p>
                       <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(234,179,8,0.3), transparent)' }} />
                     </div>
                     <div className="space-y-2 relative z-[1]">
@@ -583,7 +585,7 @@ export function TournamentTab({ player }: Props) {
                           {i === 0 && <div className="absolute left-0 top-[20%] bottom-[20%] w-[2px]" style={{ background: '#eab308', boxShadow: '0 0 6px #eab308', opacity: 0.5 }} />}
                           <span className="font-body text-base text-gray-300 flex items-center gap-2">
                             {i === 0 ? <Crown size={16} className="text-yellow-400" /> : i === 1 ? <Award size={14} className="text-gray-300" /> : <Award size={14} className="text-orange-400" />}
-                            {p.position === 1 ? '1st' : p.position === 2 ? '2nd' : p.position === 3 ? '3rd' : `${p.position}th`} Place
+                            {p.position === 1 ? (ar ? 'الأول' : '1st') : p.position === 2 ? (ar ? 'الثاني' : '2nd') : p.position === 3 ? (ar ? 'الثالث' : '3rd') : `${p.position}th`} {ar ? '' : 'Place'}
                           </span>
                           <span className="font-ninja text-yellow-400 flex items-center gap-1" style={{ textShadow: '0 0 6px rgba(234,179,8,0.3)' }}><Coins size={13} /> {p.coins}</span>
                         </div>
@@ -604,7 +606,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', boxShadow: '0 0 8px rgba(57,255,20,0.15)' }}>
                         <Trophy size={12} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
                       </div>
-                      <p className="font-ninja text-xs text-ninja-green tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(57,255,20,0.4)' }}>FINAL RESULTS</p>
+                      <p className="font-ninja text-xs text-ninja-green tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(57,255,20,0.4)' }}>{ar ? 'النتائج النهائية' : 'FINAL RESULTS'}</p>
                       <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.3), transparent)' }} />
                     </div>
                     <div className="space-y-2 relative z-[1]">
@@ -632,7 +634,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}>
                         <Shield size={12} className="text-gray-400" />
                       </div>
-                      <p className="font-ninja text-sm text-gray-400 tracking-[0.15em]">RULES</p>
+                      <p className="font-ninja text-sm text-gray-400 tracking-[0.15em]">{ar ? 'القواعد' : 'RULES'}</p>
                       <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(255,255,255,0.1), transparent)' }} />
                     </div>
                     <p className="font-body text-base text-gray-300 whitespace-pre-wrap leading-relaxed relative z-[1]">{selectedTournament.rules}</p>
@@ -651,7 +653,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(250,204,21,0.1)', border: '1px solid rgba(250,204,21,0.3)', boxShadow: '0 0 8px rgba(250,204,21,0.15)' }}>
                         <Swords size={12} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(250,204,21,0.6))' }} />
                       </div>
-                      <p className="font-ninja text-xs text-yellow-400 tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(250,204,21,0.4)' }}>LIVE BRACKETS</p>
+                      <p className="font-ninja text-xs text-yellow-400 tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(250,204,21,0.4)' }}>{ar ? 'الأقواس المباشرة' : 'LIVE BRACKETS'}</p>
                       <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(250,204,21,0.3), transparent)' }} />
                       <div className="w-1.5 h-1.5 rounded-full bg-yellow-400 animate-pulse" style={{ boxShadow: '0 0 6px rgba(250,204,21,0.6)' }} />
                     </div>
@@ -661,9 +663,9 @@ export function TournamentTab({ player }: Props) {
                           style={{ background: b.status === 'active' ? 'linear-gradient(135deg, rgba(250,204,21,0.08), rgba(250,204,21,0.02))' : b.status === 'completed' ? 'rgba(57,255,20,0.03)' : 'rgba(255,255,255,0.02)', border: `1px solid ${b.status === 'active' ? 'rgba(250,204,21,0.3)' : b.status === 'completed' ? 'rgba(57,255,20,0.15)' : 'rgba(255,255,255,0.05)'}` }}>
                           {b.status === 'active' && <div className="absolute left-0 top-[20%] bottom-[20%] w-[2px]" style={{ background: '#facc15', boxShadow: '0 0 6px #facc15', opacity: 0.6 }} />}
                           <span className="font-body text-xs text-gray-500 w-14">R{b.round} M{b.matchIndex + 1}</span>
-                          <span className={`font-ninja text-sm flex-1 text-right ${b.winner === b.player1 ? 'text-ninja-green' : 'text-gray-300'}`}>{b.player1 || 'TBD'}</span>
-                          <span className="font-body text-xs text-gray-600 px-3">vs</span>
-                          <span className={`font-ninja text-sm flex-1 ${b.winner === b.player2 ? 'text-ninja-green' : 'text-gray-300'}`}>{b.player2 || 'TBD'}</span>
+                          <span className={`font-ninja text-sm flex-1 text-right ${b.winner === b.player1 ? 'text-ninja-green' : 'text-gray-300'}`}>{b.player1 || (ar ? 'قريباً' : 'TBD')}</span>
+                          <span className="font-body text-xs text-gray-600 px-3">{ar ? 'ضد' : 'vs'}</span>
+                          <span className={`font-ninja text-sm flex-1 ${b.winner === b.player2 ? 'text-ninja-green' : 'text-gray-300'}`}>{b.player2 || (ar ? 'قريباً' : 'TBD')}</span>
                           <span className="font-ninja text-xs text-gray-500 w-10 text-right">{b.score1}-{b.score2}</span>
                         </div>
                       ))}
@@ -680,7 +682,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(255,111,0,0.08)', border: '1px solid rgba(255,111,0,0.25)' }}>
                         <Users size={12} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,111,0,0.5))' }} />
                       </div>
-                      <p className="font-ninja text-sm text-orange-400 tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(255,111,0,0.3)' }}>PARTICIPANTS ({selectedTournament.participants.length})</p>
+                      <p className="font-ninja text-sm text-orange-400 tracking-[0.15em]" style={{ textShadow: '0 0 8px rgba(255,111,0,0.3)' }}>{ar ? 'المشاركون' : 'PARTICIPANTS'} ({selectedTournament.participants.length})</p>
                       <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(255,111,0,0.25), transparent)' }} />
                     </div>
                     <div className="flex flex-wrap gap-2 relative z-[1]">
@@ -719,7 +721,7 @@ export function TournamentTab({ player }: Props) {
                       <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(255,255,255,0.6)', borderRight: '2px solid rgba(255,255,255,0.6)' }} />
                       <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.8), transparent)' }} />
                       <span className="relative z-[1] flex items-center gap-2">
-                        {joining ? 'JOINING...' : <><Swords size={20} /> JOIN TOURNAMENT {hasTournamentPass() ? <span className="text-sm font-body ml-1 flex items-center gap-1">(<Ticket size={14} /> Pass)</span> : <span className="text-sm font-body ml-1 flex items-center gap-1">(<Coins size={14} /> {selectedTournament.entryFee})</span>}</>}
+                        {joining ? (ar ? 'جاري الانضمام...' : 'JOINING...') : <><Swords size={20} /> {ar ? 'انضم إلى البطولة' : 'JOIN TOURNAMENT'} {hasTournamentPass() ? <span className="text-sm font-body ml-1 flex items-center gap-1">(<Ticket size={14} /> {ar ? 'تذكرة' : 'Pass'})</span> : <span className="text-sm font-body ml-1 flex items-center gap-1">(<Coins size={14} /> {selectedTournament.entryFee})</span>}</>}
                       </span>
                     </motion.button>
                   </div>
@@ -732,7 +734,7 @@ export function TournamentTab({ player }: Props) {
                     <div className="absolute bottom-0 left-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(57,255,20,0.6)', borderLeft: '2px solid rgba(57,255,20,0.6)' }} />
                     <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(57,255,20,0.6)', borderRight: '2px solid rgba(57,255,20,0.6)' }} />
                     <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, transparent, rgba(57,255,20,0.6), transparent)', boxShadow: '0 0 8px rgba(57,255,20,0.4)' }} />
-                    <p className="font-ninja text-ninja-green flex items-center justify-center gap-2 relative z-[1]" style={{ textShadow: '0 0 10px rgba(57,255,20,0.5)' }}><Check size={18} /> YOU ARE REGISTERED</p>
+                    <p className="font-ninja text-ninja-green flex items-center justify-center gap-2 relative z-[1]" style={{ textShadow: '0 0 10px rgba(57,255,20,0.5)' }}><Check size={18} /> {ar ? 'أنت مسجّل' : 'YOU ARE REGISTERED'}</p>
                   </div>
                 )}
               </div>
@@ -780,7 +782,7 @@ export function TournamentTab({ player }: Props) {
                       <Swords size={22} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 5px rgba(255,111,0,0.7))' }} />
                     </div>
                     <div>
-                      <h2 className="font-ninja text-xl text-white tracking-wider" style={{ textShadow: '0 0 12px rgba(255,111,0,0.35)' }}>HOW DO YOU WANT TO REGISTER?</h2>
+                      <h2 className="font-ninja text-xl text-white tracking-wider" style={{ textShadow: '0 0 12px rgba(255,111,0,0.35)' }}>{ar ? 'كيف تريد التسجيل؟' : 'HOW DO YOU WANT TO REGISTER?'}</h2>
                       <p className="font-body text-[11px] text-gray-500">{regChoiceTournament.name}</p>
                     </div>
                   </div>
@@ -806,10 +808,10 @@ export function TournamentTab({ player }: Props) {
                     <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '2px solid #00BFFF', borderLeft: '2px solid #00BFFF' }} />
                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '2px solid #00BFFF', borderRight: '2px solid #00BFFF' }} />
                     <User size={28} className="text-cyan-300 mb-3" style={{ filter: 'drop-shadow(0 0 5px rgba(0,191,255,0.6))' }} />
-                    <h3 className="font-ninja text-lg text-white mb-1 tracking-wide">SOLO</h3>
-                    <p className="font-body text-[11px] text-gray-400 mb-3">Register just yourself.</p>
+                    <h3 className="font-ninja text-lg text-white mb-1 tracking-wide">{ar ? 'فردي' : 'SOLO'}</h3>
+                    <p className="font-body text-[11px] text-gray-400 mb-3">{ar ? 'سجّل نفسك فقط.' : 'Register just yourself.'}</p>
                     <div className="flex items-center gap-1 text-[11px] text-yellow-400">
-                      <Coins size={12} /> {regChoiceTournament.entryFee} entry fee
+                      <Coins size={12} /> {regChoiceTournament.entryFee} {ar ? 'رسوم الدخول' : 'entry fee'}
                     </div>
                   </button>
 
@@ -830,8 +832,8 @@ export function TournamentTab({ player }: Props) {
                       <Shield size={28} className="text-purple-300" style={{ filter: 'drop-shadow(0 0 5px rgba(168,85,247,0.6))' }} />
                       <span className="text-xl">{club.logo || '⚔️'}</span>
                     </div>
-                    <h3 className="font-ninja text-lg text-white mb-1 tracking-wide">[{club.tag}] CLUB</h3>
-                    <p className="font-body text-[11px] text-gray-400 mb-2">All {club.members.length} members auto-join. Prizes → club treasury.</p>
+                    <h3 className="font-ninja text-lg text-white mb-1 tracking-wide">[{club.tag}] {ar ? 'النادي' : 'CLUB'}</h3>
+                    <p className="font-body text-[11px] text-gray-400 mb-2">{ar ? `جميع الأعضاء (${club.members.length}) ينضمون تلقائياً. الجوائز → خزينة النادي.` : `All ${club.members.length} members auto-join. Prizes → club treasury.`}</p>
                     {(() => {
                       const totalFee = regChoiceTournament.entryFee * club.members.length;
                       // Per-member readiness: each member needs either a voucher or share >= entryFee.
@@ -843,7 +845,7 @@ export function TournamentTab({ player }: Props) {
                       return (
                         <>
                           <div className="flex items-center gap-1 text-[11px] text-yellow-400">
-                            <Coins size={12} /> {regChoiceTournament.entryFee} / member · {totalFee} total
+                            <Coins size={12} /> {regChoiceTournament.entryFee} / {ar ? 'عضو' : 'member'} · {totalFee} {ar ? 'المجموع' : 'total'}
                           </div>
                           <div className="flex items-center gap-1 text-[10px] mt-1" style={{ color: allCoveredByShares ? '#39FF14' : '#F59E0B' }}>
                             {allCoveredByShares
@@ -864,7 +866,7 @@ export function TournamentTab({ player }: Props) {
                   </div>
                 )}
                 {joining && (
-                  <p className="font-body text-xs text-gray-500 text-center mt-4">Processing registration...</p>
+                  <p className="font-body text-xs text-gray-500 text-center mt-4">{ar ? 'جاري معالجة التسجيل...' : 'Processing registration...'}</p>
                 )}
               </div>
             </motion.div>

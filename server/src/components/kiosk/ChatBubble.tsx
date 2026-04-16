@@ -82,10 +82,12 @@ function formatTime(ts: number): string {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function ChatBubble({ player, hideBubble = false }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   // Panel state
   const [isOpen, setIsOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('public');
-  const [tabs, setTabs] = useState<ChatTab[]>([{ id: 'public', name: 'Public', unread: 0, pinned: true }]);
+  const [tabs, setTabs] = useState<ChatTab[]>([{ id: 'public', name: ar ? 'عام' : 'Public', unread: 0, pinned: true }]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
   const [inputText, setInputText] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
@@ -134,7 +136,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
         // Insert right after public
         const publicIdx = prev.findIndex(t => t.id === 'public');
         const newTabs = [...prev];
-        newTabs.splice(publicIdx + 1, 0, { id: 'club', name: 'Club', unread: 0, isClub: true, pinned: true });
+        newTabs.splice(publicIdx + 1, 0, { id: 'club', name: ar ? 'النادي' : 'Club', unread: 0, isClub: true, pinned: true });
         return newTabs;
       } else {
         if (!hasClub) return prev;
@@ -692,7 +694,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                   <button onClick={() => setShowAddToGroup(currentGroup.id)}
                     className="relative w-8 h-8 rounded-md flex items-center justify-center transition-all hover:brightness-125"
                     style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.4)', color: '#C084FC', boxShadow: '0 0 6px rgba(168,85,247,0.18)' }}
-                    title="Add member">
+                    title={ar ? 'إضافة عضو' : 'Add member'}>
                     <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid #A855F7', borderLeft: '1px solid #A855F7' }} />
                     <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid #A855F7', borderRight: '1px solid #A855F7' }} />
                     <UserPlus size={14} />
@@ -708,7 +710,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                   }}
                   className="relative w-8 h-8 rounded-md flex items-center justify-center transition-all hover:brightness-125"
                   style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.4)', color: '#39FF14', boxShadow: '0 0 6px rgba(57,255,20,0.18)' }}
-                  title="Voice call">
+                  title={ar ? 'مكالمة صوتية' : 'Voice call'}>
                     <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid #39FF14', borderLeft: '1px solid #39FF14' }} />
                     <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid #39FF14', borderRight: '1px solid #39FF14' }} />
                     <Phone size={14} />
@@ -719,10 +721,10 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                   <button onClick={() => setShowPlusMenu(!showPlusMenu)}
                     className="relative h-8 px-2.5 rounded-md flex items-center gap-1 font-ninja text-[10px] tracking-wider transition-all hover:brightness-125"
                     style={{ background: 'rgba(0,191,255,0.1)', border: '1px solid rgba(0,191,255,0.4)', color: '#00BFFF', boxShadow: '0 0 6px rgba(0,191,255,0.18)', textShadow: '0 0 4px rgba(0,191,255,0.5)' }}
-                    title="New chat">
+                    title={ar ? 'محادثة جديدة' : 'New chat'}>
                     <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid #00BFFF', borderLeft: '1px solid #00BFFF' }} />
                     <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid #00BFFF', borderRight: '1px solid #00BFFF' }} />
-                    NEW CHAT
+                    {ar ? 'محادثة جديدة' : 'NEW CHAT'}
                   </button>
                   <AnimatePresence>
                     {showPlusMenu && !showNewChatPicker && (
@@ -732,7 +734,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                         <button onClick={() => setShowNewChatPicker(true)}
                           className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-white/[0.05] transition-all">
                           <MessageCircle size={14} className="text-blue-400" />
-                          <span className="font-ninja text-[11px] text-white tracking-wider">NEW CHAT</span>
+                          <span className="font-ninja text-[11px] text-white tracking-wider">{ar ? 'محادثة جديدة' : 'NEW CHAT'}</span>
                         </button>
                         <div className="h-px mx-2" style={{ background: 'rgba(255,255,255,0.05)' }} />
                         <button onClick={() => {
@@ -743,7 +745,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                           setNewGroupName('');
                         }} className="w-full flex items-center gap-2.5 px-3 py-2.5 text-left hover:bg-white/[0.05] transition-all">
                           <Users size={14} className="text-purple-400" />
-                          <span className="font-ninja text-[11px] text-white tracking-wider">NEW GROUP</span>
+                          <span className="font-ninja text-[11px] text-white tracking-wider">{ar ? 'مجموعة جديدة' : 'NEW GROUP'}</span>
                         </button>
                       </motion.div>
                     )}
@@ -752,13 +754,13 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                         className="absolute top-full right-0 mt-1 w-56 rounded-xl overflow-hidden z-30"
                         style={{ background: 'rgba(12,14,18,0.97)', border: `1px solid ${accentColor}20`, backdropFilter: 'blur(16px)', boxShadow: '0 8px 24px rgba(0,0,0,0.5)' }}>
                         <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.05]">
-                          <span className="font-ninja text-[10px] text-gray-400 tracking-wider">SELECT FRIEND</span>
+                          <span className="font-ninja text-[10px] text-gray-400 tracking-wider">{ar ? 'اختر صديق' : 'SELECT FRIEND'}</span>
                           <button onClick={() => { setShowNewChatPicker(false); setShowPlusMenu(false); }}
                             className="w-5 h-5 rounded flex items-center justify-center hover:bg-white/10 text-gray-500"><X size={10} /></button>
                         </div>
                         <div className="max-h-[200px] overflow-y-auto">
                           {friendsList.length === 0 ? (
-                            <p className="text-xs text-gray-500 text-center py-4">No friends yet</p>
+                            <p className="text-xs text-gray-500 text-center py-4">{ar ? 'لا يوجد أصدقاء بعد' : 'No friends yet'}</p>
                           ) : friendsList.map(f => (
                             <button key={f.uid} onClick={() => {
                               setShowPlusMenu(false);
@@ -778,7 +780,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                 <button onClick={() => setIsOpen(false)}
                   className="relative w-8 h-8 rounded-md flex items-center justify-center transition-all hover:brightness-125"
                   style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.15)', color: '#9ca3af' }}
-                  title="Minimize">
+                  title={ar ? 'تصغير' : 'Minimize'}>
                   <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(255,255,255,0.3)', borderLeft: '1px solid rgba(255,255,255,0.3)' }} />
                   <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.3)', borderRight: '1px solid rgba(255,255,255,0.3)' }} />
                   <Minus size={14} />
@@ -830,7 +832,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-ninja text-xs text-white tracking-wider">
-                        {groupStep === 'members' ? 'SELECT MEMBERS' : 'NAME YOUR GROUP'}
+                        {groupStep === 'members' ? (ar ? 'اختر الأعضاء' : 'SELECT MEMBERS') : (ar ? 'اسم المجموعة' : 'NAME YOUR GROUP')}
                       </span>
                       <button onClick={() => { setShowCreateGroup(false); setSelectedMembers([]); setGroupStep('members'); setNewGroupName(''); }}
                         className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 text-gray-500">
@@ -839,7 +841,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                     </div>
                     {groupStep === 'members' ? (
                       <>
-                        <p className="font-body text-[10px] text-gray-500">Choose who to add:</p>
+                        <p className="font-body text-[10px] text-gray-500">{ar ? 'اختر من تريد إضافته:' : 'Choose who to add:'}</p>
                         <div className="max-h-[140px] overflow-y-auto space-y-1">
                           {friendsList.map(f => {
                             const selected = selectedMembers.includes(f.uid);
@@ -874,7 +876,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                         )}
                         <button onClick={() => setGroupStep('name')} disabled={selectedMembers.length === 0}
                           className="w-full ninja-btn ninja-btn-purple ninja-btn-sm font-ninja text-xs tracking-wider py-2">
-                          NEXT — {selectedMembers.length} selected
+                          {ar ? `التالي — ${selectedMembers.length} محدد` : `NEXT — ${selectedMembers.length} selected`}
                         </button>
                       </>
                     ) : (
@@ -892,13 +894,13 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                           })}
                         </div>
                         <NinjaInput icon={<Users size={14} />} type="text" value={newGroupName}
-                          onChange={(e) => setNewGroupName(e.target.value)} placeholder="Enter group name..." maxLength={30} autoFocus />
+                          onChange={(e) => setNewGroupName(e.target.value)} placeholder={ar ? 'أدخل اسم المجموعة...' : 'Enter group name...'} maxLength={30} autoFocus />
                         <div className="flex gap-2">
                           <button onClick={() => setGroupStep('members')}
-                            className="flex-1 ninja-btn ninja-btn-ghost ninja-btn-sm font-ninja text-xs py-2">BACK</button>
+                            className="flex-1 ninja-btn ninja-btn-ghost ninja-btn-sm font-ninja text-xs py-2">{ar ? 'رجوع' : 'BACK'}</button>
                           <button onClick={createGroup} disabled={!newGroupName.trim()}
                             className="flex-1 ninja-btn ninja-btn-green-fill ninja-btn-sm font-ninja text-xs tracking-wider py-2">
-                            CREATE
+                            {ar ? 'إنشاء' : 'CREATE'}
                           </button>
                         </div>
                       </>
@@ -915,7 +917,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                   className="flex-shrink-0 overflow-hidden border-b border-white/5" style={{ background: 'rgba(0,0,0,0.3)' }}>
                   <div className="p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <span className="font-ninja text-xs text-white tracking-wider">ADD MEMBER</span>
+                      <span className="font-ninja text-xs text-white tracking-wider">{ar ? 'إضافة عضو' : 'ADD MEMBER'}</span>
                       <button onClick={() => setShowAddToGroup(null)}
                         className="w-6 h-6 rounded-full flex items-center justify-center hover:bg-white/10 text-gray-500">
                         <X size={12} />
@@ -939,7 +941,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                         const group = groupChats.find(g => g.id === showAddToGroup);
                         return group ? !group.members.includes(f.uid) : true;
                       }).length === 0 && (
-                        <p className="text-xs text-gray-500 text-center py-3">No friends to add</p>
+                        <p className="text-xs text-gray-500 text-center py-3">{ar ? 'لا يوجد أصدقاء للإضافة' : 'No friends to add'}</p>
                       )}
                     </div>
                   </div>
@@ -953,10 +955,10 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
                 style={{ borderBottom: `1px solid ${accentColor}08`, background: 'rgba(255,255,255,0.015)' }}>
                 <div className="flex items-center gap-1.5">
                   <Users size={11} className="text-gray-500" />
-                  <span className="text-[10px] text-gray-500">{currentGroup.members.length} members</span>
+                  <span className="text-[10px] text-gray-500">{ar ? `${currentGroup.members.length} أعضاء` : `${currentGroup.members.length} members`}</span>
                 </div>
                 <button onClick={() => leaveGroup(currentGroup.id)}
-                  className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors">Leave</button>
+                  className="text-[10px] text-red-400/60 hover:text-red-400 transition-colors">{ar ? 'مغادرة' : 'Leave'}</button>
               </div>
             )}
 
@@ -965,8 +967,8 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
               {currentMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center h-full text-gray-500">
                   <MessageCircle size={32} className="mb-2 opacity-30" />
-                  <span className="text-sm opacity-50">No messages yet</span>
-                  <span className="text-xs opacity-30 mt-1">Be the first to say something!</span>
+                  <span className="text-sm opacity-50">{ar ? 'لا توجد رسائل بعد' : 'No messages yet'}</span>
+                  <span className="text-xs opacity-30 mt-1">{ar ? 'كن أول من يكتب!' : 'Be the first to say something!'}</span>
                 </div>
               ) : (
                 currentMessages.map(renderMessage)
@@ -996,17 +998,17 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
               style={{ borderTop: `1px solid ${accentColor}12`, background: `linear-gradient(0deg, ${accentColor}05 0%, transparent 100%)` }}>
               <button onClick={() => setShowEmojiPicker(!showEmojiPicker)}
                 className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${showEmojiPicker ? 'bg-white/10 text-yellow-400' : 'text-gray-400 hover:text-gray-200 hover:bg-white/5'}`}
-                title="Emojis">
+                title={ar ? 'رموز تعبيرية' : 'Emojis'}>
                 <Smile size={18} />
               </button>
               <button onClick={() => fileInputRef.current?.click()}
-                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" title="Upload Image">
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-colors" title={ar ? 'إرفاق صورة' : 'Upload Image'}>
                 <ImageIcon size={18} />
               </button>
               <input ref={fileInputRef} type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               <NinjaInput ref={inputRef} type="text" value={inputText}
                 onChange={(e) => setInputText(e.target.value)} onKeyDown={handleKeyDown}
-                placeholder={activeTabIsGroup ? `Message ${currentGroup?.name || 'group'}...` : activeTab === 'public' ? 'Message public chat...' : 'Type a message...'}
+                placeholder={activeTabIsGroup ? (ar ? `رسالة إلى ${currentGroup?.name || 'المجموعة'}...` : `Message ${currentGroup?.name || 'group'}...`) : activeTab === 'public' ? (ar ? 'رسالة إلى الدردشة العامة...' : 'Message public chat...') : (ar ? 'اكتب رسالة...' : 'Type a message...')}
                 icon={<MessageCircle size={14} />} maxLength={500} />
               <button onClick={() => sendMessage()} disabled={!inputText.trim()}
                 className="ninja-btn ninja-btn-green-fill ninja-btn-sm ninja-btn-icon">

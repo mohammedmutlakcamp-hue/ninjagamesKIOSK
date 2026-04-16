@@ -24,6 +24,8 @@ interface Props {
 const TIER_ORDER = ['free', 'rare', 'epic', 'legendary', 'mythic'] as const;
 
 export function ProfileTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   // --- State ---
   const [showSendCoins, setShowSendCoins] = useState(false);
   const [sendUsername, setSendUsername] = useState('');
@@ -116,11 +118,11 @@ export function ProfileTab({ player }: Props) {
 
   const handleChangePin = async () => {
     if (!oldPin || oldPin !== String(player.pin)) {
-      setPinError('Current PIN is incorrect');
+      setPinError(ar ? 'الرقم السري الحالي غير صحيح' : 'Current PIN is incorrect');
       return;
     }
     if (!newPin || newPin.length < 6) {
-      setPinError('New PIN must be at least 6 digits');
+      setPinError(ar ? 'يجب أن يكون الرقم السري الجديد 6 أرقام على الأقل' : 'New PIN must be at least 6 digits');
       return;
     }
     setPinSaving(true);
@@ -131,7 +133,7 @@ export function ProfileTab({ player }: Props) {
       setOldPin('');
       setNewPin('');
     } catch {
-      setPinError('Failed to update PIN');
+      setPinError(ar ? 'فشل تحديث الرقم السري' : 'Failed to update PIN');
     }
     setPinSaving(false);
   };
@@ -153,39 +155,39 @@ export function ProfileTab({ player }: Props) {
       const q = query(collection(db, 'players'), where('username', '==', sendUsername.toLowerCase().trim()));
       const snap = await getDocs(q);
       if (snap.empty) {
-        setSendError('Player not found');
+        setSendError(ar ? 'لم يتم العثور على اللاعب' : 'Player not found');
         return;
       }
       const p = snap.docs[0];
       if (p.id === player.uid) {
-        setSendError("You can't send tokens to yourself");
+        setSendError(ar ? 'لا يمكنك إرسال توكنز لنفسك' : "You can't send tokens to yourself");
         return;
       }
       setFoundPlayer({ uid: p.id, ...p.data() });
     } catch {
-      setSendError('Search failed');
+      setSendError(ar ? 'فشل البحث' : 'Search failed');
     }
   };
 
   const sendCoins = async () => {
     const amount = parseInt(sendAmount);
-    if (!amount || amount <= 0) { setSendError('Enter a valid amount'); return; }
-    if (Math.ceil(amount * 1.1) > (player.coins || 0)) { setSendError('Not enough tokens (includes 10% fee)'); return; }
-    if (!foundPlayer) { setSendError('Search for a player first'); return; }
+    if (!amount || amount <= 0) { setSendError(ar ? 'أدخل مبلغاً صالحاً' : 'Enter a valid amount'); return; }
+    if (Math.ceil(amount * 1.1) > (player.coins || 0)) { setSendError(ar ? 'توكنز غير كافية (تشمل 10% رسوم)' : 'Not enough tokens (includes 10% fee)'); return; }
+    if (!foundPlayer) { setSendError(ar ? 'ابحث عن لاعب أولاً' : 'Search for a player first'); return; }
 
     setSendLoading(true);
     try {
       const fee = Math.ceil(amount * 0.1);
       await updateDoc(doc(db, 'players', player.uid), { coins: increment(-(amount + fee)) });
       await updateDoc(doc(db, 'players', foundPlayer.uid), { coins: increment(amount) });
-      setSendSuccess(`Sent ${amount} tokens to ${foundPlayer.username.toUpperCase()} (${fee} fee burned)`);
+      setSendSuccess(ar ? `تم إرسال ${amount} توكنز إلى ${foundPlayer.username.toUpperCase()} (${fee} رسوم)` : `Sent ${amount} tokens to ${foundPlayer.username.toUpperCase()} (${fee} fee burned)`);
       setSendAmount('');
       setFoundPlayer(null);
       setSendUsername('');
       trackDailyTask(player.uid, 'send_coins').catch(() => {});
       setTimeout(() => { setSendSuccess(''); setShowSendCoins(false); }, 2000);
     } catch {
-      setSendError('Transfer failed');
+      setSendError(ar ? 'فشل التحويل' : 'Transfer failed');
     }
     setSendLoading(false);
   };
@@ -196,12 +198,12 @@ export function ProfileTab({ player }: Props) {
   const friendsCount = (player.friends || []).length;
 
   const quickStats = [
-    { label: 'Playtime', value: `${Math.floor((player.totalPlaytime || 0) / 60)}h`, icon: <Clock size={16} /> },
-    { label: 'Games', value: stats.gamesPlayed || 0, icon: <Gamepad2 size={16} /> },
-    { label: 'Inventory', value: inventoryCount, icon: <Gift size={16} /> },
-    { label: 'Skins', value: skinsOwned, icon: <Award size={16} /> },
-    { label: 'Friends', value: friendsCount, icon: <MessageSquare size={16} /> },
-    { label: 'Tokens Spent', value: (player.totalCoinsSpent || 0).toLocaleString(), icon: <Coins size={16} /> },
+    { label: ar ? 'وقت اللعب' : 'Playtime', value: `${Math.floor((player.totalPlaytime || 0) / 60)}h`, icon: <Clock size={16} /> },
+    { label: ar ? 'الألعاب' : 'Games', value: stats.gamesPlayed || 0, icon: <Gamepad2 size={16} /> },
+    { label: ar ? 'المخزون' : 'Inventory', value: inventoryCount, icon: <Gift size={16} /> },
+    { label: ar ? 'السكنز' : 'Skins', value: skinsOwned, icon: <Award size={16} /> },
+    { label: ar ? 'الأصدقاء' : 'Friends', value: friendsCount, icon: <MessageSquare size={16} /> },
+    { label: ar ? 'توكنز مصروفة' : 'Tokens Spent', value: (player.totalCoinsSpent || 0).toLocaleString(), icon: <Coins size={16} /> },
   ];
 
   // --- Load profile comments ---
@@ -288,14 +290,14 @@ export function ProfileTab({ player }: Props) {
 
   const handleChangeUsernameWithCost = async () => {
     const trimmed = newUsername.trim().toLowerCase();
-    if (!trimmed) { setUsernameError('Username cannot be empty'); return; }
+    if (!trimmed) { setUsernameError(ar ? 'اسم المستخدم لا يمكن أن يكون فارغاً' : 'Username cannot be empty'); return; }
     if (trimmed === player.username) { setEditingUsername(false); return; }
     if (!usernamePin || usernamePin !== String(player.pin)) {
-      setUsernameError('Incorrect PIN');
+      setUsernameError(ar ? 'رقم سري خاطئ' : 'Incorrect PIN');
       return;
     }
     if (usernameChangeCost > 0 && (player.coins || 0) < usernameChangeCost) {
-      setUsernameError(`Need ${usernameChangeCost} coins to change username`);
+      setUsernameError(ar ? `تحتاج ${usernameChangeCost} عملات لتغيير اسم المستخدم` : `Need ${usernameChangeCost} coins to change username`);
       return;
     }
     setUsernameSaving(true);
@@ -304,7 +306,7 @@ export function ProfileTab({ player }: Props) {
       const q2 = query(collection(db, 'players'), where('username', '==', trimmed));
       const snap = await getDocs(q2);
       if (!snap.empty) {
-        setUsernameError('Username is already taken');
+        setUsernameError(ar ? 'اسم المستخدم مستخدم بالفعل' : 'Username is already taken');
         setUsernameSaving(false);
         return;
       }
@@ -318,7 +320,7 @@ export function ProfileTab({ player }: Props) {
       setEditingUsername(false);
       setUsernamePin('');
     } catch {
-      setUsernameError('Failed to update username');
+      setUsernameError(ar ? 'فشل تحديث اسم المستخدم' : 'Failed to update username');
     }
     setUsernameSaving(false);
   };
@@ -465,7 +467,7 @@ export function ProfileTab({ player }: Props) {
               style={{ background: 'rgba(255,255,255,0.03)' }}
             >
               {uploadingPhoto ? <Loader2 size={10} className="animate-spin" /> : <Camera size={10} />}
-              {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+              {uploadingPhoto ? (ar ? 'جاري الرفع...' : 'Uploading...') : (ar ? 'تغيير الصورة' : 'Change Photo')}
             </button>
             <input ref={photoInputRef} type="file" accept="image/*,.webp,.avif,.svg,.heic,.heif" onChange={handlePhotoUpload} className="hidden" />
           </div>
@@ -565,7 +567,7 @@ export function ProfileTab({ player }: Props) {
               className="px-4 py-2 rounded-lg font-ninja text-sm flex items-center gap-2"
               style={{ background: 'linear-gradient(135deg, #d4a017, #eab308)', color: '#000', boxShadow: '0 0 10px rgba(234,179,8,0.2)' }}
             >
-              <Send size={14} /> Send Coins
+              <Send size={14} /> {ar ? 'إرسال توكنز' : 'Send Coins'}
             </motion.button>
           </div>
         </div>
@@ -591,7 +593,7 @@ export function ProfileTab({ player }: Props) {
           <div className="absolute bottom-0 right-0 w-5 h-5 z-10" style={{ borderBottom: '2px solid #39FF14', borderRight: '2px solid #39FF14' }} />
           <div className="p-4">
             <p className="font-ninja text-xs text-white mb-3 flex items-center gap-2">
-              <Shield size={14} style={{ color: ninjaColor }} /> YOUR NINJAS <span className="font-body text-[10px] text-gray-500">({ownedSkins.length})</span>
+              <Shield size={14} style={{ color: ninjaColor }} /> {ar ? 'النينجا الخاصة بك' : 'YOUR NINJAS'} <span className="font-body text-[10px] text-gray-500">({ownedSkins.length})</span>
             </p>
             <div className="grid grid-cols-7 gap-2">
               {ownedSkins.map(skin => {
@@ -649,12 +651,12 @@ export function ProfileTab({ player }: Props) {
           <div className="absolute top-0 left-5 right-5 h-[2px] z-10" style={{ background: 'linear-gradient(90deg, rgba(0,200,255,0.3), rgba(57,255,20,0.2), rgba(0,200,255,0.3))' }} />
           <div className="p-5">
             <h3 className="font-ninja text-lg text-white mb-4 flex items-center gap-2">
-              <Settings size={18} style={{ color: ninjaColor }} /> SETTINGS
+              <Settings size={18} style={{ color: ninjaColor }} /> {ar ? 'الإعدادات' : 'SETTINGS'}
             </h3>
 
             {/* Online Status Toggle */}
             <SettingRow
-              label={isAppearOffline ? 'Appear Offline' : 'Online'}
+              label={isAppearOffline ? (ar ? 'ظهور كغير متصل' : 'Appear Offline') : (ar ? 'متصل' : 'Online')}
               icon={
                 <div className={`w-2.5 h-2.5 rounded-full ${isAppearOffline ? 'bg-gray-500' : 'bg-green-500'}`}
                   style={!isAppearOffline ? { boxShadow: '0 0 8px rgba(34,197,94,0.5)' } : {}}
@@ -666,7 +668,7 @@ export function ProfileTab({ player }: Props) {
 
             {/* Sound Toggle */}
             <SettingRow
-              label={soundEnabled ? 'Sound On' : 'Sound Off'}
+              label={soundEnabled ? (ar ? 'الصوت مفعل' : 'Sound On') : (ar ? 'الصوت مكتوم' : 'Sound Off')}
               icon={soundEnabled ? <Volume2 size={14} style={{ color: ninjaColor }} /> : <VolumeX size={14} className="text-gray-500" />}
             >
               <ToggleSwitch active={soundEnabled} onToggle={() => setSoundEnabled(!soundEnabled)} color={ninjaColor} />
@@ -678,7 +680,7 @@ export function ProfileTab({ player }: Props) {
                 <div className="flex items-center gap-2">
                   <User size={14} style={{ color: ninjaColor }} />
                   <div>
-                    <p className="font-body text-[10px] text-gray-500 uppercase">Username</p>
+                    <p className="font-body text-[10px] text-gray-500 uppercase">{ar ? 'اسم المستخدم' : 'Username'}</p>
                     <p className="font-ninja text-sm text-white">{player.username?.toUpperCase()}</p>
                   </div>
                 </div>
@@ -689,7 +691,7 @@ export function ProfileTab({ player }: Props) {
                     onClick={() => { setEditingUsername(true); setNewUsername(player.username || ''); setUsernameError(''); setUsernamePin(''); }}
                     className="ninja-btn ninja-btn-ghost ninja-btn-sm flex items-center gap-1 text-xs"
                   >
-                    <Pencil size={12} /> Edit {usernameChangeCost > 0 ? <>({usernameChangeCost} <Coins size={10} className="inline text-yellow-400" />)</> : <>(Free — {2 - usernameChangesUsed} left)</>}
+                    <Pencil size={12} /> {ar ? 'تعديل' : 'Edit'} {usernameChangeCost > 0 ? <>({usernameChangeCost} <Coins size={10} className="inline text-yellow-400" />)</> : <>({ar ? `مجاني — ${2 - usernameChangesUsed} متبقي` : `Free — ${2 - usernameChangesUsed} left`})</>}
                   </motion.button>
                 )}
               </div>
@@ -706,14 +708,14 @@ export function ProfileTab({ player }: Props) {
                       icon={<User size={14} />}
                       value={newUsername}
                       onChange={(e) => { setNewUsername(e.target.value); setUsernameError(''); }}
-                      placeholder="New username"
+                      placeholder={ar ? 'اسم المستخدم الجديد' : 'New username'}
                     />
                     <NinjaInput
                       type="password"
                       icon={<Lock size={14} />}
                       value={usernamePin}
                       onChange={(e) => { setUsernamePin(e.target.value); setUsernameError(''); }}
-                      placeholder="Enter PIN to confirm"
+                      placeholder={ar ? 'أدخل الرقم السري للتأكيد' : 'Enter PIN to confirm'}
                       maxLength={6}
                     />
                     {usernameError && (
@@ -730,13 +732,13 @@ export function ProfileTab({ player }: Props) {
                         className="ninja-btn ninja-btn-green ninja-btn-sm flex-1 flex items-center justify-center gap-1"
                       >
                         {usernameSaving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                        {usernameSaving ? 'Saving...' : 'Save'}
+                        {usernameSaving ? (ar ? 'جاري الحفظ...' : 'Saving...') : (ar ? 'حفظ' : 'Save')}
                       </motion.button>
                       <button
                         onClick={() => { setEditingUsername(false); setUsernameError(''); setUsernamePin(''); }}
                         className="ninja-btn ninja-btn-ghost ninja-btn-sm"
                       >
-                        Cancel
+                        {ar ? 'إلغاء' : 'Cancel'}
                       </button>
                     </div>
                   </motion.div>
@@ -750,7 +752,7 @@ export function ProfileTab({ player }: Props) {
                 <div className="flex items-center gap-2">
                   <Lock size={14} style={{ color: ninjaColor }} />
                   <div>
-                    <p className="font-body text-[10px] text-gray-500 uppercase">PIN Code</p>
+                    <p className="font-body text-[10px] text-gray-500 uppercase">{ar ? 'الرقم السري' : 'PIN Code'}</p>
                     <p className="font-body text-sm text-gray-400">****</p>
                   </div>
                 </div>
@@ -761,7 +763,7 @@ export function ProfileTab({ player }: Props) {
                     onClick={() => { setChangingPin(true); setPinError(''); setOldPin(''); setNewPin(''); }}
                     className="ninja-btn ninja-btn-ghost ninja-btn-sm flex items-center gap-1 text-xs"
                   >
-                    <Pencil size={12} /> Change
+                    <Pencil size={12} /> {ar ? 'تغيير' : 'Change'}
                   </motion.button>
                 )}
               </div>
@@ -778,7 +780,7 @@ export function ProfileTab({ player }: Props) {
                       icon={<Lock size={14} />}
                       value={oldPin}
                       onChange={(e) => { setOldPin(e.target.value); setPinError(''); }}
-                      placeholder="Current PIN"
+                      placeholder={ar ? 'الرقم السري الحالي' : 'Current PIN'}
                       maxLength={6}
                     />
                     <NinjaInput
@@ -786,7 +788,7 @@ export function ProfileTab({ player }: Props) {
                       icon={<Lock size={14} />}
                       value={newPin}
                       onChange={(e) => { setNewPin(e.target.value); setPinError(''); }}
-                      placeholder="New PIN"
+                      placeholder={ar ? 'الرقم السري الجديد' : 'New PIN'}
                       maxLength={6}
                     />
                     {pinError && (
@@ -803,13 +805,13 @@ export function ProfileTab({ player }: Props) {
                         className="ninja-btn ninja-btn-green ninja-btn-sm flex-1 flex items-center justify-center gap-1"
                       >
                         {pinSaving ? <Loader2 size={12} className="animate-spin" /> : <CheckCircle2 size={12} />}
-                        {pinSaving ? 'Saving...' : 'Save PIN'}
+                        {pinSaving ? (ar ? 'جاري الحفظ...' : 'Saving...') : (ar ? 'حفظ الرقم السري' : 'Save PIN')}
                       </motion.button>
                       <button
                         onClick={() => { setChangingPin(false); setPinError(''); }}
                         className="ninja-btn ninja-btn-ghost ninja-btn-sm"
                       >
-                        Cancel
+                        {ar ? 'إلغاء' : 'Cancel'}
                       </button>
                     </div>
                   </motion.div>
@@ -820,25 +822,25 @@ export function ProfileTab({ player }: Props) {
             {/* Account info */}
             <div className="pt-3 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="font-body text-[10px] text-gray-500 uppercase">Joined</span>
+                <span className="font-body text-[10px] text-gray-500 uppercase">{ar ? 'تاريخ الانضمام' : 'Joined'}</span>
                 <span className="font-body text-xs text-gray-300">
                   {player.createdAt
                     ? new Date(
                         player.createdAt?.seconds
                           ? player.createdAt.seconds * 1000
                           : player.createdAt
-                      ).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-                    : 'Unknown'}
+                      ).toLocaleDateString(ar ? 'ar-EG' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+                    : (ar ? 'غير معروف' : 'Unknown')}
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-body text-[10px] text-gray-500 uppercase">Total XP</span>
+                <span className="font-body text-[10px] text-gray-500 uppercase">{ar ? 'إجمالي الخبرة' : 'Total XP'}</span>
                 <span className="font-ninja text-xs" style={{ color: levelInfo.color }}>
                   {totalXP.toLocaleString()} XP
                 </span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="font-body text-[10px] text-gray-500 uppercase">Tokens Spent</span>
+                <span className="font-body text-[10px] text-gray-500 uppercase">{ar ? 'توكنز مصروفة' : 'Tokens Spent'}</span>
                 <span className="font-ninja text-xs text-yellow-400">
                   {(player.totalCoinsSpent || 0).toLocaleString()}
                 </span>
@@ -859,34 +861,34 @@ export function ProfileTab({ player }: Props) {
             {/* ── Bio ── */}
             <div className="py-3 border-b border-white/5">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5"><Pencil size={12} style={{ color: ninjaColor }} /> Bio</span>
+                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5"><Pencil size={12} style={{ color: ninjaColor }} /> {ar ? 'نبذة' : 'Bio'}</span>
                 {!editingBio ? (
-                  <button onClick={() => { setEditingBio(true); setBioText(player.bio || ''); }} className="font-body text-[10px] text-gray-500 hover:text-white transition-all">Edit</button>
+                  <button onClick={() => { setEditingBio(true); setBioText(player.bio || ''); }} className="font-body text-[10px] text-gray-500 hover:text-white transition-all">{ar ? 'تعديل' : 'Edit'}</button>
                 ) : (
                   <div className="flex gap-2">
-                    <button onClick={saveBio} disabled={bioSaving} className="font-body text-[10px] text-ninja-green">{bioSaving ? '...' : 'Save'}</button>
-                    <button onClick={() => setEditingBio(false)} className="font-body text-[10px] text-gray-500">Cancel</button>
+                    <button onClick={saveBio} disabled={bioSaving} className="font-body text-[10px] text-ninja-green">{bioSaving ? '...' : (ar ? 'حفظ' : 'Save')}</button>
+                    <button onClick={() => setEditingBio(false)} className="font-body text-[10px] text-gray-500">{ar ? 'إلغاء' : 'Cancel'}</button>
                   </div>
                 )}
               </div>
               {editingBio ? (
-                <textarea value={bioText} onChange={(e) => setBioText(e.target.value)} maxLength={200} placeholder="Tell everyone about yourself..."
+                <textarea value={bioText} onChange={(e) => setBioText(e.target.value)} maxLength={200} placeholder={ar ? 'أخبر الجميع عن نفسك...' : 'Tell everyone about yourself...'}
                   className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white font-body resize-none focus:outline-none focus:border-ninja-green/40" rows={2} />
               ) : (
-                <p className="font-body text-xs text-gray-500 italic">{player.bio || 'No bio set'}</p>
+                <p className="font-body text-xs text-gray-500 italic">{player.bio || (ar ? 'لا توجد نبذة' : 'No bio set')}</p>
               )}
             </div>
 
             {/* ── Social Links ── */}
             <div className="py-3 border-b border-white/5">
               <div className="flex items-center justify-between mb-2">
-                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5"><Link2 size={12} style={{ color: ninjaColor }} /> Socials</span>
+                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5"><Link2 size={12} style={{ color: ninjaColor }} /> {ar ? 'وسائل التواصل' : 'Socials'}</span>
                 {!editingSocials ? (
-                  <button onClick={() => { setEditingSocials(true); setSocialLinks(player.socialLinks || {}); }} className="font-body text-[10px] text-gray-500 hover:text-white transition-all">Edit</button>
+                  <button onClick={() => { setEditingSocials(true); setSocialLinks(player.socialLinks || {}); }} className="font-body text-[10px] text-gray-500 hover:text-white transition-all">{ar ? 'تعديل' : 'Edit'}</button>
                 ) : (
                   <div className="flex gap-2">
-                    <button onClick={saveSocialLinks} className="font-body text-[10px] text-ninja-green">Save</button>
-                    <button onClick={() => setEditingSocials(false)} className="font-body text-[10px] text-gray-500">Cancel</button>
+                    <button onClick={saveSocialLinks} className="font-body text-[10px] text-ninja-green">{ar ? 'حفظ' : 'Save'}</button>
+                    <button onClick={() => setEditingSocials(false)} className="font-body text-[10px] text-gray-500">{ar ? 'إلغاء' : 'Cancel'}</button>
                   </div>
                 )}
               </div>
@@ -900,7 +902,7 @@ export function ProfileTab({ player }: Props) {
               ) : (
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(player.socialLinks || {}).filter(([, v]) => v).length === 0 ? (
-                    <span className="font-body text-xs text-gray-600">None set</span>
+                    <span className="font-body text-xs text-gray-600">{ar ? 'لم يتم تعيين' : 'None set'}</span>
                   ) : Object.entries(player.socialLinks || {}).filter(([, v]) => v).map(([k, v]) => (
                     <span key={k} className="font-body text-[10px] px-2 py-0.5 rounded bg-black/30 border border-white/5 text-gray-300 capitalize">{k}: <span style={{ color: ninjaColor }}>{v as string}</span></span>
                   ))}
@@ -910,23 +912,23 @@ export function ProfileTab({ player }: Props) {
 
             {/* ── Country ── */}
             <div className="py-3 border-b border-white/5 flex items-center justify-between">
-              <span className="font-body text-xs text-gray-400 flex items-center gap-1.5"><Flag size={12} style={{ color: ninjaColor }} /> Country</span>
+              <span className="font-body text-xs text-gray-400 flex items-center gap-1.5"><Flag size={12} style={{ color: ninjaColor }} /> {ar ? 'الدولة' : 'Country'}</span>
               {playerCountryFlag ? (
                 <span className="flex items-center gap-1.5"><span className="text-lg">{playerCountryFlag.flag}</span><span className="font-body text-xs text-gray-300">{playerCountryFlag.name}</span></span>
-              ) : <span className="font-body text-xs text-gray-600">Not set</span>}
+              ) : <span className="font-body text-xs text-gray-600">{ar ? 'غير محدد' : 'Not set'}</span>}
             </div>
 
             {/* ── Privacy ── */}
             <div className="py-3 border-b border-white/5">
-              <span className="font-body text-xs text-gray-400 flex items-center gap-1.5 mb-2"><Shield size={12} style={{ color: ninjaColor }} /> Privacy</span>
+              <span className="font-body text-xs text-gray-400 flex items-center gap-1.5 mb-2"><Shield size={12} style={{ color: ninjaColor }} /> {ar ? 'الخصوصية' : 'Privacy'}</span>
               {['profileVisibility', 'inventoryVisibility'].map(key => (
                 <div key={key} className="flex items-center justify-between mb-1.5">
-                  <span className="font-body text-[10px] text-gray-500 capitalize">{key.replace('Visibility', '')}</span>
+                  <span className="font-body text-[10px] text-gray-500 capitalize">{ar ? (key === 'profileVisibility' ? 'الملف الشخصي' : 'المخزون') : key.replace('Visibility', '')}</span>
                   <div className="flex gap-1">
                     {['public', 'friends', 'private'].map(v => (
                       <button key={v} onClick={() => updatePrivacy(key, v)}
                         className={`px-1.5 py-0.5 rounded font-ninja text-[8px] uppercase transition-all ${(privacySettings as any)[key] === v ? 'bg-ninja-green/20 text-ninja-green border border-ninja-green/30' : 'text-gray-600 border border-white/5'}`}>
-                        {v}
+                        {ar ? (v === 'public' ? 'عام' : v === 'friends' ? 'أصدقاء' : 'خاص') : v}
                       </button>
                     ))}
                   </div>
@@ -936,17 +938,17 @@ export function ProfileTab({ player }: Props) {
 
             {/* ── Referral ── */}
             <div className="py-3 border-b border-white/5">
-              <span className="font-body text-xs text-gray-400 flex items-center gap-1.5 mb-2"><UserPlus size={12} style={{ color: ninjaColor }} /> Referral</span>
+              <span className="font-body text-xs text-gray-400 flex items-center gap-1.5 mb-2"><UserPlus size={12} style={{ color: ninjaColor }} /> {ar ? 'كود الإحالة' : 'Referral'}</span>
               <div className="flex items-center gap-1.5">
                 <div className="flex-1 bg-black/40 border border-white/10 rounded px-2 py-1 font-ninja text-xs tracking-wider" style={{ color: ninjaColor }}>{player.referralCode || '...'}</div>
-                <button onClick={copyReferral} className="font-body text-[10px] text-gray-500 hover:text-white">{referralCopied ? 'Copied!' : 'Copy'}</button>
+                <button onClick={copyReferral} className="font-body text-[10px] text-gray-500 hover:text-white">{referralCopied ? (ar ? 'تم النسخ!' : 'Copied!') : (ar ? 'نسخ' : 'Copy')}</button>
               </div>
             </div>
 
             {/* ── Most Played ── */}
             {Object.keys(player.gamePlaytime || {}).length > 0 && (
               <div className="py-3">
-                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5 mb-2"><Gamepad2 size={12} style={{ color: ninjaColor }} /> Top Games</span>
+                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5 mb-2"><Gamepad2 size={12} style={{ color: ninjaColor }} /> {ar ? 'أكثر الألعاب' : 'Top Games'}</span>
                 <div className="space-y-1.5">
                   {Object.entries(player.gamePlaytime || {}).sort(([, a], [, b]) => (b as number) - (a as number)).slice(0, 5).map(([gameId, minutes]) => {
                     const hrs = Math.floor((minutes as number) / 60);
@@ -978,14 +980,14 @@ export function ProfileTab({ player }: Props) {
         <div className="px-4 py-3">
           <div className="flex items-center gap-2 mb-2">
             <MessageSquare size={13} style={{ color: ninjaColor }} />
-            <span className="font-ninja text-xs text-white">COMMENTS</span>
+            <span className="font-ninja text-xs text-white">{ar ? 'التعليقات' : 'COMMENTS'}</span>
           </div>
           <div className="flex gap-2 mb-2">
             <input
               type="text"
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
-              placeholder="Write a comment..."
+              placeholder={ar ? 'اكتب تعليقاً...' : 'Write a comment...'}
               maxLength={300}
               onKeyDown={(e) => e.key === 'Enter' && postComment()}
               className="flex-1 bg-black/40 border border-white/10 rounded-lg px-3 py-1.5 text-xs text-white font-body focus:outline-none focus:border-ninja-green/40"
@@ -998,7 +1000,7 @@ export function ProfileTab({ player }: Props) {
           {/* Comment list */}
           <div className="flex gap-2 overflow-x-auto pb-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#333 transparent' }}>
             {comments.length === 0 ? (
-              <p className="text-gray-500 font-body text-sm text-center py-4">No comments yet. Be the first!</p>
+              <p className="text-gray-500 font-body text-sm text-center py-4">{ar ? 'لا توجد تعليقات بعد. كن الأول!' : 'No comments yet. Be the first!'}</p>
             ) : (
               comments.map((c: any) => (
                 <div key={c.id} className="flex gap-2 p-2 rounded-lg bg-black/20 border border-white/5 flex-shrink-0 min-w-[200px] max-w-[260px]">
@@ -1046,7 +1048,7 @@ export function ProfileTab({ player }: Props) {
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
               <div className="flex items-center justify-between mb-6">
                 <h2 className="font-ninja text-2xl text-yellow-400 flex items-center gap-2">
-                  <Send size={22} /> SEND COINS
+                  <Send size={22} /> {ar ? 'إرسال توكنز' : 'SEND COINS'}
                 </h2>
                 <button
                   onClick={() => { setShowSendCoins(false); setSendError(''); setSendSuccess(''); setFoundPlayer(null); }}
@@ -1057,12 +1059,12 @@ export function ProfileTab({ player }: Props) {
               </div>
 
               <p className="font-body text-sm text-gray-400 mb-4">
-                Your balance: <span className="text-yellow-400 font-ninja">{Math.floor(player.coins || 0)} tokens</span>
+                {ar ? 'رصيدك:' : 'Your balance:'} <span className="text-yellow-400 font-ninja">{Math.floor(player.coins || 0)} {ar ? 'توكنز' : 'tokens'}</span>
               </p>
 
               {/* Search Player */}
               <div className="mb-4">
-                <label className="text-gray-400 text-[11px] font-body mb-1 block uppercase">Find Player</label>
+                <label className="text-gray-400 text-[11px] font-body mb-1 block uppercase">{ar ? 'ابحث عن لاعب' : 'Find Player'}</label>
                 <div className="flex gap-2">
                   <div className="flex-1">
                     <NinjaInput
@@ -1070,7 +1072,7 @@ export function ProfileTab({ player }: Props) {
                       icon={<User size={16} />}
                       value={sendUsername}
                       onChange={(e) => { setSendUsername(e.target.value); setFoundPlayer(null); setSendError(''); }}
-                      placeholder="Enter username"
+                      placeholder={ar ? 'أدخل اسم المستخدم' : 'Enter username'}
                       onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && searchPlayer()}
                     />
                   </div>
@@ -1096,20 +1098,20 @@ export function ProfileTab({ player }: Props) {
                   <CheckCircle2 size={20} style={{ color: ninjaColor }} />
                   <div>
                     <p className="font-ninja" style={{ color: ninjaColor }}>{foundPlayer.username?.toUpperCase()}</p>
-                    <p className="font-body text-xs text-gray-400">{foundPlayer.activeTitle || 'Newcomer'}</p>
+                    <p className="font-body text-xs text-gray-400">{foundPlayer.activeTitle || (ar ? 'وافد جديد' : 'Newcomer')}</p>
                   </div>
                 </motion.div>
               )}
 
               {/* Amount */}
               <div className="mb-4">
-                <label className="text-gray-400 text-[11px] font-body mb-1 block uppercase">Amount</label>
+                <label className="text-gray-400 text-[11px] font-body mb-1 block uppercase">{ar ? 'المبلغ' : 'Amount'}</label>
                 <NinjaInput
                   type="number"
                   icon={<Coins size={16} />}
                   value={sendAmount}
                   onChange={(e) => { setSendAmount(e.target.value); setSendError(''); }}
-                  placeholder="How many tokens?"
+                  placeholder={ar ? 'كم عدد التوكنز؟' : 'How many tokens?'}
                   min="1"
                   max={player.coins || 0}
                 />
@@ -1127,17 +1129,17 @@ export function ProfileTab({ player }: Props) {
                 {sendAmount && parseInt(sendAmount) > 0 && (
                   <div className="mt-2 p-2 bg-black/30 rounded-lg border border-white/5 space-y-1">
                     <div className="flex justify-between text-[11px] font-body">
-                      <span className="text-gray-500">Send amount</span>
-                      <span className="text-white">{parseInt(sendAmount)} tokens</span>
+                      <span className="text-gray-500">{ar ? 'مبلغ الإرسال' : 'Send amount'}</span>
+                      <span className="text-white">{parseInt(sendAmount)} {ar ? 'توكنز' : 'tokens'}</span>
                     </div>
                     <div className="flex justify-between text-[11px] font-body">
-                      <span className="text-gray-500">Fee (10%)</span>
-                      <span className="text-red-400">+{Math.ceil(parseInt(sendAmount) * 0.1)} tokens</span>
+                      <span className="text-gray-500">{ar ? 'الرسوم (10%)' : 'Fee (10%)'}</span>
+                      <span className="text-red-400">+{Math.ceil(parseInt(sendAmount) * 0.1)} {ar ? 'توكنز' : 'tokens'}</span>
                     </div>
                     <div className="border-t border-white/10 pt-1 flex justify-between text-[11px] font-body">
-                      <span className="text-gray-400">Balance after</span>
+                      <span className="text-gray-400">{ar ? 'الرصيد بعد' : 'Balance after'}</span>
                       <span className={`font-ninja ${(player.coins - Math.ceil(parseInt(sendAmount) * 1.1)) < 0 ? 'text-red-400' : 'text-yellow-400'}`}>
-                        {Math.floor(player.coins - Math.ceil(parseInt(sendAmount) * 1.1))} tokens
+                        {Math.floor(player.coins - Math.ceil(parseInt(sendAmount) * 1.1))} {ar ? 'توكنز' : 'tokens'}
                       </span>
                     </div>
                   </div>
@@ -1177,7 +1179,7 @@ export function ProfileTab({ player }: Props) {
                   </motion.div>
                 ) : (
                   <>
-                    <Send size={18} /> SEND COINS
+                    <Send size={18} /> {ar ? 'إرسال توكنز' : 'SEND COINS'}
                   </>
                 )}
               </motion.button>

@@ -14,6 +14,8 @@ interface Props {
 }
 
 export function MatchReportModal({ player, onClose }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [gameId, setGameId] = useState('');
   const [kills, setKills] = useState('');
   const [deaths, setDeaths] = useState('');
@@ -67,7 +69,7 @@ export function MatchReportModal({ player, onClose }: Props) {
           <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none z-[2]" style={{ borderBottom: '2px solid rgba(0,200,255,0.25)', borderRight: '2px solid rgba(0,200,255,0.25)' }} />
           <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
           <CheckCircle2 size={56} className="text-ninja-green mx-auto mb-4" />
-          <p className="font-ninja text-xl text-ninja-green">MATCH RECORDED!</p>
+          <p className="font-ninja text-xl text-ninja-green">{ar ? 'تم تسجيل المباراة!' : 'MATCH RECORDED!'}</p>
         </motion.div>
       </div>
     );
@@ -92,7 +94,7 @@ export function MatchReportModal({ player, onClose }: Props) {
         <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
 
         <div className="flex items-center justify-between mb-6">
-          <h2 className="font-ninja text-2xl text-ninja-green">REPORT MATCH</h2>
+          <h2 className="font-ninja text-2xl text-ninja-green">{ar ? 'تقرير المباراة' : 'REPORT MATCH'}</h2>
           <button onClick={onClose} className="ninja-btn ninja-btn-ghost ninja-btn-icon">
             <X size={28} />
           </button>
@@ -100,13 +102,13 @@ export function MatchReportModal({ player, onClose }: Props) {
 
         {/* Game Select */}
         <div className="mb-4">
-          <label className="text-gray-400 text-sm font-body mb-1 block">GAME</label>
+          <label className="text-gray-400 text-sm font-body mb-1 block">{ar ? 'اللعبة' : 'GAME'}</label>
           <select
             value={gameId}
             onChange={(e) => setGameId(e.target.value)}
             className="w-full bg-black/50 border-2 border-ninja-green/30 rounded-lg px-4 py-3 text-white font-body focus:border-ninja-green outline-none"
           >
-            <option value="">Select game...</option>
+            <option value="">{ar ? 'اختر اللعبة...' : 'Select game...'}</option>
             {GAMES_CATALOG.map(g => (
               <option key={g.id} value={g.id}>{g.name}</option>
             ))}
@@ -117,7 +119,7 @@ export function MatchReportModal({ player, onClose }: Props) {
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div>
             <label className="text-gray-400 text-xs font-body mb-1 flex items-center justify-center gap-1">
-              <Crosshair size={12} /> KILLS
+              <Crosshair size={12} /> {ar ? 'قتلات' : 'KILLS'}
             </label>
             <NinjaInput
               type="number"
@@ -131,7 +133,7 @@ export function MatchReportModal({ player, onClose }: Props) {
           </div>
           <div>
             <label className="text-gray-400 text-xs font-body mb-1 flex items-center justify-center gap-1">
-              <Skull size={12} /> DEATHS
+              <Skull size={12} /> {ar ? 'وفيات' : 'DEATHS'}
             </label>
             <NinjaInput
               type="number"
@@ -145,7 +147,7 @@ export function MatchReportModal({ player, onClose }: Props) {
           </div>
           <div>
             <label className="text-gray-400 text-xs font-body mb-1 flex items-center justify-center gap-1">
-              <Target size={12} /> HEADSHOTS
+              <Target size={12} /> {ar ? 'إصابات الرأس' : 'HEADSHOTS'}
             </label>
             <NinjaInput
               type="number"
@@ -170,7 +172,7 @@ export function MatchReportModal({ player, onClose }: Props) {
             }`}
           >
             <Trophy size={18} />
-            {won ? 'WON!' : 'Did you win?'}
+            {won ? (ar ? 'فزت!' : 'WON!') : (ar ? 'هل فزت؟' : 'Did you win?')}
           </button>
         </div>
 
@@ -180,7 +182,7 @@ export function MatchReportModal({ player, onClose }: Props) {
             onClick={onClose}
             className="ninja-btn ninja-btn-ghost flex-1"
           >
-            CANCEL
+            {ar ? 'إلغاء' : 'CANCEL'}
           </button>
           <motion.button
             whileHover={{ scale: 1.02 }}
@@ -189,7 +191,7 @@ export function MatchReportModal({ player, onClose }: Props) {
             disabled={!gameId}
             className="ninja-btn ninja-btn-green-fill flex-1 flex items-center justify-center gap-2"
           >
-            <Send size={16} /> SUBMIT
+            <Send size={16} /> {ar ? 'إرسال' : 'SUBMIT'}
           </motion.button>
         </div>
       </motion.div>

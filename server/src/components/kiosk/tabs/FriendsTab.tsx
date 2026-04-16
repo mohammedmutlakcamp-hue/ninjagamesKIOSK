@@ -66,6 +66,8 @@ const NAV_BUTTONS: { id: FriendsView; label: string; icon: React.ReactNode; colo
 ];
 
 export function FriendsTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [view, setView] = useState<FriendsView>('friends');
   const [friends, setFriends] = useState<FriendData[]>([]);
   const [requests, setRequests] = useState<any[]>([]);
@@ -166,7 +168,7 @@ export function FriendsTab({ player }: Props) {
             const entry = {
               friendId: fid,
               friendName: latest.senderId === player.uid ? '' : latest.senderName,
-              lastMessage: latest.type === 'image' ? '📷 Image' : latest.type === 'emoji' ? latest.text : (latest.text || '').slice(0, 50),
+              lastMessage: latest.type === 'image' ? (ar ? '📷 صورة' : '📷 Image') : latest.type === 'emoji' ? latest.text : (latest.text || '').slice(0, 50),
               time: latest.createdAt,
             };
             if (idx >= 0) { const u = [...prev]; u[idx] = entry; return u; }
@@ -298,11 +300,11 @@ export function FriendsTab({ player }: Props) {
   const formatLastSeen = (ts: number) => {
     const diff = Date.now() - ts;
     const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'Just now';
-    if (mins < 60) return `${mins}m ago`;
+    if (mins < 1) return ar ? 'الآن' : 'Just now';
+    if (mins < 60) return ar ? `منذ ${mins}د` : `${mins}m ago`;
     const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    return `${Math.floor(hours / 24)}d ago`;
+    if (hours < 24) return ar ? `منذ ${hours}س` : `${hours}h ago`;
+    return ar ? `منذ ${Math.floor(hours / 24)}ي` : `${Math.floor(hours / 24)}d ago`;
   };
 
   const formatTimeAgo = (ts: number) => {
@@ -352,11 +354,11 @@ export function FriendsTab({ player }: Props) {
           </div>
           <div>
             <h1 className="font-ninja text-3xl tracking-wider bg-gradient-to-r from-green-400 to-cyan-400 bg-clip-text text-transparent">
-              SOCIAL HUB
+              {ar ? 'المركز الاجتماعي' : 'SOCIAL HUB'}
             </h1>
             <p className="text-gray-500 font-body mt-1 text-xs tracking-wider">
-              {friends.length} FRIENDS {onlineFriends.length > 0 && `· ${onlineFriends.length} ONLINE`}
-              {groupChats.length > 0 && ` · ${groupChats.length} GROUPS`}
+              {friends.length} {ar ? 'صديق' : 'FRIENDS'} {onlineFriends.length > 0 && `· ${onlineFriends.length} ${ar ? 'متصل' : 'ONLINE'}`}
+              {groupChats.length > 0 && ` · ${groupChats.length} ${ar ? 'مجموعات' : 'GROUPS'}`}
             </p>
           </div>
         </div>
@@ -371,7 +373,7 @@ export function FriendsTab({ player }: Props) {
           }}>
           <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid rgba(57,255,20,0.5)', borderLeft: '1.5px solid rgba(57,255,20,0.5)' }} />
           <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid rgba(0,200,255,0.3)', borderRight: '1.5px solid rgba(0,200,255,0.3)' }} />
-          <UserPlus size={16} style={{ filter: view === 'add' ? 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' : 'none' }} /> ADD FRIEND
+          <UserPlus size={16} style={{ filter: view === 'add' ? 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' : 'none' }} /> {ar ? 'إضافة صديق' : 'ADD FRIEND'}
         </motion.button>
       </div>
 
@@ -448,8 +450,8 @@ export function FriendsTab({ player }: Props) {
                 </div>
                 {/* Info */}
                 <div className="flex-1 min-w-0 relative z-10">
-                  <p className="font-ninja text-xs text-white truncate tracking-wider">{req.fromPlayer?.username || 'Someone'}</p>
-                  <p className="font-body text-[10px] text-gray-500">wants to be your friend</p>
+                  <p className="font-ninja text-xs text-white truncate tracking-wider">{req.fromPlayer?.username || (ar ? 'شخص ما' : 'Someone')}</p>
+                  <p className="font-body text-[10px] text-gray-500">{ar ? 'يريد أن يكون صديقك' : 'wants to be your friend'}</p>
                 </div>
                 {/* Accept / Decline */}
                 <div className="flex gap-1.5 flex-shrink-0 relative z-10">
@@ -492,7 +494,7 @@ export function FriendsTab({ player }: Props) {
                   <NinjaInput icon={<Search size={16} />} type="text" value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value.replace(/[^a-zA-Z0-9_]/g, ''))}
                     onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleSearch()}
-                    placeholder="Search by username..." autoFocus />
+                    placeholder={ar ? 'بحث باسم المستخدم...' : 'Search by username...'} autoFocus />
                 </div>
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={handleSearch} disabled={searching}
@@ -505,7 +507,7 @@ export function FriendsTab({ player }: Props) {
                   }}>
                   <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid rgba(57,255,20,0.7)', borderLeft: '1.5px solid rgba(57,255,20,0.7)' }} />
                   <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid rgba(0,200,255,0.4)', borderRight: '1.5px solid rgba(0,200,255,0.4)' }} />
-                  {searching ? <Loader2 size={18} className="animate-spin" /> : <span style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }}>SEARCH</span>}
+                  {searching ? <Loader2 size={18} className="animate-spin" /> : <span style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }}>{ar ? 'بحث' : 'SEARCH'}</span>}
                 </motion.button>
               </div>
             </div>
@@ -535,17 +537,17 @@ export function FriendsTab({ player }: Props) {
                       </div>
                       <div className="flex-1 relative z-10">
                         <p className="font-ninja text-sm text-white tracking-wider">{result.username}</p>
-                        <p className="text-gray-500 font-body text-xs">{result.activeTitle || 'Newcomer'}</p>
+                        <p className="text-gray-500 font-body text-xs">{result.activeTitle || (ar ? 'قادم جديد' : 'Newcomer')}</p>
                       </div>
                       {alreadyFriend ? (
                         <span className="text-gray-500 font-body text-xs flex items-center gap-1 relative z-10 px-3 py-1.5 rounded-lg"
                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)' }}>
-                          <CheckCircle2 size={14} /> Already friends
+                          <CheckCircle2 size={14} /> {ar ? 'أصدقاء بالفعل' : 'Already friends'}
                         </span>
                       ) : result.requestSent ? (
                         <span className="text-ninja-green font-body text-xs flex items-center gap-1 relative z-10 px-3 py-1.5 rounded-lg"
                           style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', boxShadow: '0 0 10px rgba(57,255,20,0.12)' }}>
-                          <Check size={14} style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} /> Request sent
+                          <Check size={14} style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} /> {ar ? 'تم إرسال الطلب' : 'Request sent'}
                         </span>
                       ) : (
                         <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
@@ -571,7 +573,7 @@ export function FriendsTab({ player }: Props) {
                 <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(57,255,20,0.3)', borderLeft: '2px solid rgba(57,255,20,0.3)' }} />
                 <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,200,255,0.2)', borderRight: '2px solid rgba(0,200,255,0.2)' }} />
                 <Search size={40} className="text-gray-700 mx-auto mb-3" />
-                <p className="text-gray-500 font-body">No players found with that username</p>
+                <p className="text-gray-500 font-body">{ar ? 'لا يوجد لاعبون بهذا الاسم' : 'No players found with that username'}</p>
               </div>
             )}
           </motion.div>
@@ -591,8 +593,8 @@ export function FriendsTab({ player }: Props) {
                 <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(0,200,255,0.4)', borderLeft: '2px solid rgba(0,200,255,0.4)' }} />
                 <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(57,255,20,0.25)', borderRight: '2px solid rgba(57,255,20,0.25)' }} />
                 <MessageSquare size={48} className="text-cyan-400/40 mx-auto mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(0,200,255,0.3))' }} />
-                <p className="font-ninja text-gray-400 tracking-wider">NO MESSAGES YET</p>
-                <p className="text-gray-600 font-body text-sm mt-1">Add friends and start chatting!</p>
+                <p className="font-ninja text-gray-400 tracking-wider">{ar ? 'لا توجد رسائل بعد' : 'NO MESSAGES YET'}</p>
+                <p className="text-gray-600 font-body text-sm mt-1">{ar ? 'أضف أصدقاء وابدأ المحادثة!' : 'Add friends and start chatting!'}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -639,7 +641,7 @@ export function FriendsTab({ player }: Props) {
                           )}
                         </div>
                         <p className="text-gray-500 font-body text-xs truncate">
-                          {friend.lastMessage || (friend.onlineStatus?.isOnline ? 'Online' : 'Start a conversation')}
+                          {friend.lastMessage || (friend.onlineStatus?.isOnline ? (ar ? 'متصل' : 'Online') : (ar ? 'ابدأ محادثة' : 'Start a conversation'))}
                         </p>
                       </div>
                       <ChevronRight size={14} className="text-cyan-400/40 group-hover:text-cyan-400 flex-shrink-0 relative z-10 transition-colors" />
@@ -667,7 +669,7 @@ export function FriendsTab({ player }: Props) {
               <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(168,85,247,0.35), transparent 60%)' }} />
               <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(168,85,247,0.4)', borderLeft: '2px solid rgba(168,85,247,0.4)' }} />
               <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,200,255,0.3)', borderRight: '2px solid rgba(0,200,255,0.3)' }} />
-              <Plus size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.6))' }} /> CREATE NEW GROUP
+              <Plus size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.6))' }} /> {ar ? 'إنشاء مجموعة جديدة' : 'CREATE NEW GROUP'}
             </motion.button>
 
             {/* Create group form */}
@@ -685,10 +687,10 @@ export function FriendsTab({ player }: Props) {
                     <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(168,85,247,0.45)', borderLeft: '2px solid rgba(168,85,247,0.45)' }} />
                     <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,200,255,0.3)', borderRight: '2px solid rgba(0,200,255,0.3)' }} />
                     <NinjaInput icon={<Hash size={14} />} type="text" value={newGroupName}
-                      onChange={(e) => setNewGroupName(e.target.value)} placeholder="Group name..." maxLength={30} autoFocus />
+                      onChange={(e) => setNewGroupName(e.target.value)} placeholder={ar ? 'اسم المجموعة...' : 'Group name...'} maxLength={30} autoFocus />
                     <p className="text-purple-400/70 font-body text-xs tracking-wider flex items-center gap-2 relative z-10">
                       <span className="w-1 h-1 rounded-full bg-purple-400" style={{ boxShadow: '0 0 4px rgba(168,85,247,0.8)' }} />
-                      SELECT MEMBERS
+                      {ar ? 'اختر الأعضاء' : 'SELECT MEMBERS'}
                     </p>
                     <div className="max-h-[180px] overflow-y-auto space-y-1.5 relative z-10 scrollbar-thin scrollbar-thumb-white/10">
                       {friends.map(f => {
@@ -723,7 +725,7 @@ export function FriendsTab({ player }: Props) {
                           color: '#888',
                         }}>
                         <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid rgba(255,255,255,0.15)', borderLeft: '1.5px solid rgba(255,255,255,0.15)' }} />
-                        CANCEL
+                        {ar ? 'إلغاء' : 'CANCEL'}
                       </button>
                       <button onClick={createGroup} disabled={!newGroupName.trim() || selectedMembers.length === 0}
                         className="relative flex-1 py-2.5 rounded-lg font-ninja text-xs tracking-wider overflow-hidden disabled:opacity-50"
@@ -735,7 +737,7 @@ export function FriendsTab({ player }: Props) {
                         }}>
                         <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1.5px solid rgba(168,85,247,0.7)', borderLeft: '1.5px solid rgba(168,85,247,0.7)' }} />
                         <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid rgba(0,200,255,0.4)', borderRight: '1.5px solid rgba(0,200,255,0.4)' }} />
-                        <span style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.6))' }}>CREATE ({selectedMembers.length})</span>
+                        <span style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.6))' }}>{ar ? `إنشاء (${selectedMembers.length})` : `CREATE (${selectedMembers.length})`}</span>
                       </button>
                     </div>
                   </div>
@@ -753,8 +755,8 @@ export function FriendsTab({ player }: Props) {
                 <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(168,85,247,0.35)', borderLeft: '2px solid rgba(168,85,247,0.35)' }} />
                 <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,200,255,0.25)', borderRight: '2px solid rgba(0,200,255,0.25)' }} />
                 <Users size={48} className="text-purple-400/40 mx-auto mb-4" style={{ filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.3))' }} />
-                <p className="font-ninja text-gray-400 tracking-wider">NO GROUPS YET</p>
-                <p className="text-gray-600 font-body text-sm mt-1">Create a group to chat with multiple friends</p>
+                <p className="font-ninja text-gray-400 tracking-wider">{ar ? 'لا توجد مجموعات بعد' : 'NO GROUPS YET'}</p>
+                <p className="text-gray-600 font-body text-sm mt-1">{ar ? 'أنشئ مجموعة للدردشة مع عدة أصدقاء' : 'Create a group to chat with multiple friends'}</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -825,7 +827,7 @@ export function FriendsTab({ player }: Props) {
                 <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '1.5px solid rgba(57,255,20,0.35)', borderLeft: '1.5px solid rgba(57,255,20,0.35)' }} />
                 <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '1.5px solid rgba(0,200,255,0.25)', borderRight: '1.5px solid rgba(0,200,255,0.25)' }} />
                 <NinjaInput icon={<Search size={14} />} type="text" value={friendFilter}
-                  onChange={(e) => setFriendFilter(e.target.value)} placeholder="Filter friends..." />
+                  onChange={(e) => setFriendFilter(e.target.value)} placeholder={ar ? 'تصفية الأصدقاء...' : 'Filter friends...'} />
               </div>
             )}
 
@@ -840,8 +842,8 @@ export function FriendsTab({ player }: Props) {
                 <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(57,255,20,0.4)', borderLeft: '2px solid rgba(57,255,20,0.4)' }} />
                 <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,200,255,0.25)', borderRight: '2px solid rgba(0,200,255,0.25)' }} />
                 <Users size={56} className="text-ninja-green/40 mx-auto mb-4" style={{ filter: 'drop-shadow(0 0 10px rgba(57,255,20,0.4))' }} />
-                <p className="font-ninja text-lg text-gray-400 tracking-wider">NO FRIENDS YET</p>
-                <p className="text-gray-600 font-body text-sm mt-1 mb-4">Add friends to see them here</p>
+                <p className="font-ninja text-lg text-gray-400 tracking-wider">{ar ? 'لا يوجد أصدقاء بعد' : 'NO FRIENDS YET'}</p>
+                <p className="text-gray-600 font-body text-sm mt-1 mb-4">{ar ? 'أضف أصدقاء لتراهم هنا' : 'Add friends to see them here'}</p>
                 <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                   onClick={() => setView('add')}
                   className="relative px-6 py-3 rounded-xl font-ninja text-sm tracking-wider inline-flex items-center gap-2 overflow-hidden"
@@ -1036,7 +1038,7 @@ export function FriendsTab({ player }: Props) {
                     className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
                     style={{ background: 'rgba(0,200,255,0.1)', border: '1px solid rgba(0,200,255,0.35)', boxShadow: '0 0 14px rgba(0,200,255,0.15)' }}>
                     <MessageSquare size={22} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 6px rgba(0,200,255,0.7))' }} />
-                    <span className="font-ninja text-xs text-cyan-300 tracking-wider">MESSAGE</span>
+                    <span className="font-ninja text-xs text-cyan-300 tracking-wider">{ar ? 'رسالة' : 'MESSAGE'}</span>
                   </motion.button>
                   {actionFriend.onlineStatus?.isOnline && (
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -1049,7 +1051,7 @@ export function FriendsTab({ player }: Props) {
                       className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
                       style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.35)', boxShadow: '0 0 14px rgba(168,85,247,0.15)' }}>
                       <Phone size={22} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 6px rgba(168,85,247,0.7))' }} />
-                      <span className="font-ninja text-xs text-purple-300 tracking-wider">VOICE CALL</span>
+                      <span className="font-ninja text-xs text-purple-300 tracking-wider">{ar ? 'مكالمة صوتية' : 'VOICE CALL'}</span>
                     </motion.button>
                   )}
                   <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -1061,7 +1063,7 @@ export function FriendsTab({ player }: Props) {
                     className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
                     style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.4)', boxShadow: '0 0 14px rgba(57,255,20,0.18)' }}>
                     <Send size={22} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.8))' }} />
-                    <span className="font-ninja text-xs text-ninja-green tracking-wider">SEND COINS</span>
+                    <span className="font-ninja text-xs text-ninja-green tracking-wider">{ar ? 'إرسال عملات' : 'SEND COINS'}</span>
                   </motion.button>
                   <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                     onClick={() => {
@@ -1072,7 +1074,7 @@ export function FriendsTab({ player }: Props) {
                     className="relative py-4 rounded-xl flex flex-col items-center justify-center gap-1.5 overflow-hidden"
                     style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.15)' }}>
                     <User size={22} className="text-gray-300" />
-                    <span className="font-ninja text-xs text-gray-300 tracking-wider">VIEW PROFILE</span>
+                    <span className="font-ninja text-xs text-gray-300 tracking-wider">{ar ? 'عرض الملف' : 'VIEW PROFILE'}</span>
                   </motion.button>
                 </div>
               </div>
@@ -1108,22 +1110,22 @@ export function FriendsTab({ player }: Props) {
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1.5px solid rgba(0,200,255,0.4)', borderRight: '1.5px solid rgba(0,200,255,0.4)' }} />
                     <Send size={24} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.8))' }} />
                   </div>
-                  <h3 className="font-ninja text-lg text-white tracking-wider">SEND COINS</h3>
-                  <p className="text-gray-500 font-body text-sm mt-1">To: <span className="text-ninja-green font-ninja tracking-wider" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.5))' }}>{sendCoinsTo?.username}</span></p>
+                  <h3 className="font-ninja text-lg text-white tracking-wider">{ar ? 'إرسال عملات' : 'SEND COINS'}</h3>
+                  <p className="text-gray-500 font-body text-sm mt-1">{ar ? 'إلى:' : 'To:'} <span className="text-ninja-green font-ninja tracking-wider" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.5))' }}>{sendCoinsTo?.username}</span></p>
                 </div>
                 <div className="mb-4">
                   <label className="text-ninja-green text-[10px] font-ninja tracking-widest mb-1.5 block flex items-center gap-1.5">
                     <span className="w-1 h-1 rounded-full bg-ninja-green" style={{ boxShadow: '0 0 4px rgba(57,255,20,0.8)' }} />
-                    AMOUNT
+                    {ar ? 'المبلغ' : 'AMOUNT'}
                   </label>
                   <NinjaInput icon={<Coins size={16} />} type="number" value={sendAmount}
                     onChange={(e) => setSendAmount(e.target.value)}
                     onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleSendCoins()}
                     className="font-ninja text-lg" placeholder="0" min={1} autoFocus />
                   <p className="text-gray-600 font-body text-xs mt-1.5 flex items-center gap-1.5">
-                    <span>Your balance:</span>
+                    <span>{ar ? 'رصيدك:' : 'Your balance:'}</span>
                     <span className="text-yellow-400 font-ninja px-1.5 py-0.5 rounded"
-                      style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)' }}>{Math.floor(player.coins || 0)} coins</span>
+                      style={{ background: 'rgba(250,204,21,0.08)', border: '1px solid rgba(250,204,21,0.2)' }}>{Math.floor(player.coins || 0)} {ar ? 'عملات' : 'coins'}</span>
                   </p>
                   {sendAmount && parseInt(sendAmount) > 0 && (
                     <div className="relative mt-2 p-3 rounded-lg space-y-1 overflow-hidden"
@@ -1132,17 +1134,17 @@ export function FriendsTab({ player }: Props) {
                       <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(57,255,20,0.3)', borderLeft: '1px solid rgba(57,255,20,0.3)' }} />
                       <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(0,200,255,0.25)', borderRight: '1px solid rgba(0,200,255,0.25)' }} />
                       <div className="flex justify-between text-[11px] font-body relative z-10">
-                        <span className="text-gray-500">Send amount</span>
-                        <span className="text-white font-ninja">{parseInt(sendAmount)} tokens</span>
+                        <span className="text-gray-500">{ar ? 'مبلغ الإرسال' : 'Send amount'}</span>
+                        <span className="text-white font-ninja">{parseInt(sendAmount)} {ar ? 'توكنز' : 'tokens'}</span>
                       </div>
                       <div className="flex justify-between text-[11px] font-body relative z-10">
-                        <span className="text-gray-500">Fee (10%)</span>
-                        <span className="text-red-400 font-ninja">+{Math.ceil(parseInt(sendAmount) * 0.1)} tokens</span>
+                        <span className="text-gray-500">{ar ? 'الرسوم (10%)' : 'Fee (10%)'}</span>
+                        <span className="text-red-400 font-ninja">+{Math.ceil(parseInt(sendAmount) * 0.1)} {ar ? 'توكنز' : 'tokens'}</span>
                       </div>
                       <div className="border-t border-ninja-green/15 pt-1 flex justify-between text-[11px] font-body relative z-10">
-                        <span className="text-gray-400">Balance after</span>
+                        <span className="text-gray-400">{ar ? 'الرصيد بعد' : 'Balance after'}</span>
                         <span className={`font-ninja ${(player.coins - Math.ceil(parseInt(sendAmount) * 1.1)) < 0 ? 'text-red-400' : 'text-yellow-400'}`}>
-                          {Math.floor(player.coins - Math.ceil(parseInt(sendAmount) * 1.1))} tokens
+                          {Math.floor(player.coins - Math.ceil(parseInt(sendAmount) * 1.1))} {ar ? 'توكنز' : 'tokens'}
                         </span>
                       </div>
                     </div>
@@ -1366,7 +1368,7 @@ export function FriendsTab({ player }: Props) {
                 <Gift size={18} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 5px rgba(168,85,247,0.8))' }} />
               </div>
               <div className="flex-1 min-w-0 relative z-10">
-                <p className="font-ninja text-xs text-purple-400 truncate tracking-wider" style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.5))' }}>GIFT RECEIVED</p>
+                <p className="font-ninja text-xs text-purple-400 truncate tracking-wider" style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.5))' }}>{ar ? 'تم استلام هدية' : 'GIFT RECEIVED'}</p>
                 <p className="text-gray-400 font-body text-xs truncate">from <span className="text-white">{toast.senderName}</span></p>
               </div>
               <button onClick={() => dismissGiftToast(toast.id)}

@@ -45,6 +45,8 @@ function formatDuration(s: number): string {
 // ─── Component ──────────────────────────────────────────────────────────────
 
 export function KioskVoiceCall({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [activeCall, setActiveCall] = useState<CallDoc | null>(null);
   const [incomingCall, setIncomingCall] = useState<CallDoc | null>(null);
   const [duration, setDuration] = useState(0);
@@ -560,7 +562,7 @@ export function KioskVoiceCall({ player }: Props) {
                   <motion.div animate={{ rotate: [0, 15, -15, 0] }} transition={{ duration: 0.6, repeat: Infinity }}>
                     <PhoneIncoming size={14} className="text-green-400" />
                   </motion.div>
-                  <span className="text-sm text-gray-400">Incoming voice call...</span>
+                  <span className="text-sm text-gray-400">{ar ? 'مكالمة صوتية واردة...' : 'Incoming voice call...'}</span>
                 </div>
               </div>
 
@@ -580,8 +582,8 @@ export function KioskVoiceCall({ player }: Props) {
                 </button>
               </div>
               <div className="flex items-center gap-10 -mt-1">
-                <span className="text-[10px] text-red-400/60 uppercase tracking-wider">Decline</span>
-                <span className="text-[10px] text-green-400/60 uppercase tracking-wider">Answer</span>
+                <span className="text-[10px] text-red-400/60 uppercase tracking-wider">{ar ? 'رفض' : 'Decline'}</span>
+                <span className="text-[10px] text-green-400/60 uppercase tracking-wider">{ar ? 'رد' : 'Answer'}</span>
               </div>
             </div>
           </motion.div>
@@ -646,11 +648,11 @@ export function KioskVoiceCall({ player }: Props) {
               <Phone size={16} className="text-blue-400" />
             </motion.div>
             <span className="text-sm text-blue-300">
-              Calling <span className="font-medium">{activeCall.receiverName || 'Player'}</span>...
+              {ar ? 'جاري الاتصال بـ ' : 'Calling '}<span className="font-medium">{activeCall.receiverName || (ar ? 'اللاعب' : 'Player')}</span>...
             </span>
             <button onClick={endCall}
               className="ml-2 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/30 transition-colors border border-red-500/30">
-              Cancel
+              {ar ? 'إلغاء' : 'Cancel'}
             </button>
           </motion.div>
         )}

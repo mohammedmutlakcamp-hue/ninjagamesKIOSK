@@ -1225,15 +1225,15 @@ export default function KioskPage() {
                 <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-red-500/10 flex items-center justify-center border border-red-500/30">
                   <Shield size={32} className="text-red-400" />
                 </div>
-                <h1 className="font-ninja text-2xl text-red-400 mb-1">KIOSK EXIT</h1>
-                <p className="font-body text-gray-600 text-sm">Enter the exit phrase to close the kiosk</p>
+                <h1 className="font-ninja text-2xl text-red-400 mb-1">{lang === 'ar' ? 'الخروج من الكشك' : 'KIOSK EXIT'}</h1>
+                <p className="font-body text-gray-600 text-sm">{lang === 'ar' ? 'أدخل عبارة الخروج لإغلاق الكشك' : 'Enter the exit phrase to close the kiosk'}</p>
               </div>
               <input
                 type="password"
                 value={killPhrase}
                 onChange={(e) => setKillPhrase(e.target.value)}
                 className="w-full bg-black/50 border-2 border-red-500/30 rounded-lg px-4 py-3 text-white font-body mb-4 focus:border-red-400 outline-none transition-all"
-                placeholder="Enter exit phrase..."
+                placeholder={lang === 'ar' ? 'أدخل عبارة الخروج...' : 'Enter exit phrase...'}
                 autoFocus
                 onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleKillSwitch()}
               />

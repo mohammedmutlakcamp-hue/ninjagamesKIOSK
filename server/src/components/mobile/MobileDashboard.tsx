@@ -77,24 +77,24 @@ const ROULETTE_ITEMS = [
 // ─── Drawer menu items ──────────────────────────────────────
 const ADMIN_USERS = ['مالبورو', 'zzzz'];
 
-const DRAWER_ITEMS: { id: Screen; icon: typeof Monitor; label: string; color: string }[] = [
+const DRAWER_ITEMS: { id: Screen; icon: typeof Monitor; label: string; labelAr: string; color: string }[] = [
   // Core features
-  { id: 'games',       icon: Gamepad2,       label: 'Games Library',     color: '#39FF14' },
-  { id: 'store',       icon: ShoppingBag,    label: 'Store',             color: '#FF6F00' },
-  { id: 'tournaments', icon: Trophy,         label: 'Tournaments',       color: '#FFD700' },
+  { id: 'games',       icon: Gamepad2,       label: 'Games Library',     labelAr: 'مكتبة الألعاب',    color: '#39FF14' },
+  { id: 'store',       icon: ShoppingBag,    label: 'Store',             labelAr: 'المتجر',            color: '#FF6F00' },
+  { id: 'tournaments', icon: Trophy,         label: 'Tournaments',       labelAr: 'البطولات',          color: '#FFD700' },
 
   // Social & Progress
-  { id: 'friends',     icon: Users,          label: 'Friends',           color: '#3B82F6' },
-  { id: 'leaderboard', icon: Trophy,         label: 'Leaderboard',       color: '#FFD700' },
-  { id: 'tasks',       icon: ClipboardCheck, label: 'Daily Tasks',       color: '#39FF14' },
+  { id: 'friends',     icon: Users,          label: 'Friends',           labelAr: 'الأصدقاء',          color: '#3B82F6' },
+  { id: 'leaderboard', icon: Trophy,         label: 'Leaderboard',       labelAr: 'المتصدرون',         color: '#FFD700' },
+  { id: 'tasks',       icon: ClipboardCheck, label: 'Daily Tasks',       labelAr: 'المهام اليومية',    color: '#39FF14' },
 
   // Management
-  { id: 'inventory',   icon: Package,        label: 'Inventory',         color: '#A855F7' },
-  { id: 'reserve',     icon: Monitor,        label: 'Reserve a PC',      color: '#39FF14' },
-  { id: 'software',    icon: Monitor,        label: 'Software',          color: '#06B6D4' },
-  { id: 'food',        icon: UtensilsCrossed, label: 'Food & Drinks',    color: '#F97316' },
-  { id: 'vip',         icon: Crown,          label: 'VIP Benefits',      color: '#FFD700' },
-  { id: 'profile',     icon: User,           label: 'Profile & Settings', color: '#FFFFFF' },
+  { id: 'inventory',   icon: Package,        label: 'Inventory',         labelAr: 'الحقيبة',           color: '#A855F7' },
+  { id: 'reserve',     icon: Monitor,        label: 'Reserve a PC',      labelAr: 'احجز جهاز',         color: '#39FF14' },
+  { id: 'software',    icon: Monitor,        label: 'Software',          labelAr: 'البرامج',           color: '#06B6D4' },
+  { id: 'food',        icon: UtensilsCrossed, label: 'Food & Drinks',    labelAr: 'الطعام والشراب',    color: '#F97316' },
+  { id: 'vip',         icon: Crown,          label: 'VIP Benefits',      labelAr: 'مزايا VIP',         color: '#FFD700' },
+  { id: 'profile',     icon: User,           label: 'Profile & Settings', labelAr: 'الملف والإعدادات', color: '#FFFFFF' },
 ];
 
 // ─── Animation variants ─────────────────────────────────────
@@ -493,9 +493,9 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         {/* Quick actions */}
         <motion.div variants={fadeUp} className="flex gap-3 w-full max-w-sm">
           {[
-            { label: 'Open Chest', icon: Gift,           screen: 'chests' as Screen,  color: '#A855F7', bg: 'rgba(168,85,247,0.08)' },
-            { label: 'Daily Tasks', icon: ClipboardCheck, screen: 'tasks' as Screen,   color: '#39FF14', bg: 'rgba(57,255,20,0.08)' },
-            { label: 'Reserve PC', icon: Monitor,         screen: 'reserve' as Screen, color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
+            { label: lang === 'ar' ? 'فتح صندوق' : 'Open Chest', icon: Gift,           screen: 'chests' as Screen,  color: '#A855F7', bg: 'rgba(168,85,247,0.08)' },
+            { label: lang === 'ar' ? 'المهام اليومية' : 'Daily Tasks', icon: ClipboardCheck, screen: 'tasks' as Screen,   color: '#39FF14', bg: 'rgba(57,255,20,0.08)' },
+            { label: lang === 'ar' ? 'احجز جهاز' : 'Reserve PC', icon: Monitor,         screen: 'reserve' as Screen, color: '#3B82F6', bg: 'rgba(59,130,246,0.08)' },
           ].map((action) => (
             <button
               key={action.label}
@@ -512,7 +512,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         {/* Slogan */}
         <motion.div variants={fadeUp} className="w-full max-w-sm text-center">
           <p className="font-ninja text-[10px] tracking-[0.3em]" style={{ color: '#39FF14', opacity: 0.5 }}>
-            PLAY MORE, PAY LESS
+            {lang === 'ar' ? 'العب أكثر، ادفع أقل' : 'PLAY MORE, PAY LESS'}
           </p>
         </motion.div>
 
@@ -529,11 +529,11 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               <div className="flex-1 min-w-0">
                 <p className="font-ninja text-sm text-yellow-400">VIP {livePlayer.vip.tier?.toUpperCase() || 'BASIC'}</p>
                 <p className="text-[10px] text-white/50 font-body">
-                  {livePlayer.vip.trialUsed ? '7-Day Trial Active' : 'VIP Active'}
-                  {livePlayer.vip.expiresAt && ` · Expires ${new Date(livePlayer.vip.expiresAt).toLocaleDateString()}`}
+                  {livePlayer.vip.trialUsed ? (lang === 'ar' ? 'تجربة 7 أيام نشطة' : '7-Day Trial Active') : (lang === 'ar' ? 'VIP نشط' : 'VIP Active')}
+                  {livePlayer.vip.expiresAt && ` · ${lang === 'ar' ? 'ينتهي' : 'Expires'} ${new Date(livePlayer.vip.expiresAt).toLocaleDateString()}`}
                 </p>
               </div>
-              <div className="text-yellow-400/60 text-xs font-body">Perks Active</div>
+              <div className="text-yellow-400/60 text-xs font-body">{lang === 'ar' ? 'المزايا مفعلة' : 'Perks Active'}</div>
             </motion.div>
           </motion.div>
         )}
@@ -549,8 +549,8 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               <ShoppingBag className="w-5 h-5" style={{ color: '#FF6F00' }} />
             </div>
             <div className="flex-1 text-left">
-              <p className="font-ninja text-sm text-white">NINJA STORE</p>
-              <p className="font-body text-[10px] text-white/40">Skins, boosts & more</p>
+              <p className="font-ninja text-sm text-white">{lang === 'ar' ? 'متجر النينجا' : 'NINJA STORE'}</p>
+              <p className="font-body text-[10px] text-white/40">{lang === 'ar' ? 'ستايلات وتعزيزات والمزيد' : 'Skins, boosts & more'}</p>
             </div>
             <ChevronRight className="w-4 h-4 text-white/20" />
           </button>
@@ -567,7 +567,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               onClick={() => navigate('leaderboard')}
               className="text-[10px] text-[#39FF14] font-ninja flex items-center gap-0.5 active:scale-95 transition-transform"
             >
-              View All <ChevronRight className="w-3 h-3" />
+              {lang === 'ar' ? 'عرض الكل' : 'View All'} <ChevronRight className="w-3 h-3" />
             </button>
           </div>
 
@@ -599,13 +599,13 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-sm text-white font-body truncate">
-                      {p.username} {isMe && <span className="text-[#39FF14] text-[10px]">(you)</span>}
+                      {p.username} {isMe && <span className="text-[#39FF14] text-[10px]">{lang === 'ar' ? '(أنت)' : '(you)'}</span>}
                     </p>
                     <p className="text-[10px] font-body" style={{ color: info.color }}>
-                      Lvl {info.level} &middot; {info.title}
+                      {lang === 'ar' ? 'المستوى' : 'Lvl'} {info.level} &middot; {info.title}
                     </p>
                   </div>
-                  <p className="text-xs text-white/40 font-body">{(p.totalPlaytime || 0).toLocaleString()}m</p>
+                  <p className="text-xs text-white/40 font-body">{(p.totalPlaytime || 0).toLocaleString()}{lang === 'ar' ? 'د' : 'm'}</p>
                 </motion.div>
               );
             })}
@@ -633,12 +633,12 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         </div>
 
         <p className="text-white/40 font-body text-xs -mt-2">
-          Open chests to win tokens, vouchers, free play & more!
+          {lang === 'ar' ? 'افتح الصناديق للفوز بالتوكنز والقسائم واللعب المجاني والمزيد!' : 'Open chests to win tokens, vouchers, free play & more!'}
         </p>
 
         {chestDiscount > 0 && (
           <div className="px-3 py-2 rounded-xl bg-[#39FF14]/10 border border-[#39FF14]/20">
-            <p className="text-[#39FF14] text-xs font-ninja">Level {levelInfo.level} Perk: {chestDiscount}% chest discount!</p>
+            <p className="text-[#39FF14] text-xs font-ninja">{lang === 'ar' ? `ميزة المستوى ${levelInfo.level}: خصم ${chestDiscount}% على الصناديق!` : `Level ${levelInfo.level} Perk: ${chestDiscount}% chest discount!`}</p>
           </div>
         )}
 
@@ -696,7 +696,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
 
         {/* Instant open toggle */}
         <div className="flex items-center justify-between px-1">
-          <span className="text-white/50 font-body text-xs">Instant Open (skip animation)</span>
+          <span className="text-white/50 font-body text-xs">{lang === 'ar' ? 'فتح فوري (تخطي الحركة)' : 'Instant Open (skip animation)'}</span>
           <button
             onClick={() => setInstantOpen(!instantOpen)}
             className={`w-11 h-6 rounded-full transition-all relative ${instantOpen ? 'bg-[#39FF14]' : 'bg-white/10'}`}
@@ -713,7 +713,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         <div className="mt-2">
           <h3 className="font-ninja text-sm text-white/80 mb-3 flex items-center gap-2">
             <Zap className="w-4 h-4 text-yellow-400" />
-            Bundle Deals — Open 3 at once!
+            {lang === 'ar' ? 'عروض الباقات — افتح 3 دفعة واحدة!' : 'Bundle Deals — Open 3 at once!'}
           </h3>
           <div className="flex flex-col gap-3">
             {CHESTS.map((chest) => {
@@ -736,7 +736,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-ninja text-xs text-white">{chest.name} x3</p>
-                      <p className="text-[10px] text-white/40 font-body">3 rewards at once</p>
+                      <p className="text-[10px] text-white/40 font-body">{lang === 'ar' ? '3 مكافآت دفعة واحدة' : '3 rewards at once'}</p>
                     </div>
                     <button
                       onClick={() => canAfford ? handleOpenBundle(chest) : undefined}
@@ -858,7 +858,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               animate={{ opacity: [0.3, 1, 0.3] }}
               transition={{ duration: 1.2, repeat: Infinity }}
             >
-              Spinning...
+              {lang === 'ar' ? 'جاري الدوران...' : 'Spinning...'}
             </motion.p>
           </>
         )}
@@ -899,7 +899,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.4 }}
             >
-              AWESOME!
+              {lang === 'ar' ? 'رائع!' : 'AWESOME!'}
             </motion.button>
           </motion.div>
         )}
@@ -912,7 +912,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', damping: 10, stiffness: 200 }}
           >
-            <p className="font-ninja text-lg text-white/80">You got 3 rewards!</p>
+            <p className="font-ninja text-lg text-white/80">{lang === 'ar' ? 'حصلت على 3 مكافآت!' : 'You got 3 rewards!'}</p>
             <div className="flex gap-3 w-full">
               {bundleResults.map((reward: any, i: number) => (
                 <motion.div
@@ -941,7 +941,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.8 }}
             >
-              AWESOME!
+              {lang === 'ar' ? 'رائع!' : 'AWESOME!'}
             </motion.button>
           </motion.div>
         )}
@@ -969,8 +969,8 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
             <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center">
               <ClipboardCheck className="w-8 h-8 text-white/10" />
             </div>
-            <p className="text-white/40 font-body text-sm">No tasks available</p>
-            <p className="text-white/25 font-body text-xs">Check back tomorrow for new challenges!</p>
+            <p className="text-white/40 font-body text-sm">{lang === 'ar' ? 'لا توجد مهام متاحة' : 'No tasks available'}</p>
+            <p className="text-white/25 font-body text-xs">{lang === 'ar' ? 'تحقق غداً لتحديات جديدة!' : 'Check back tomorrow for new challenges!'}</p>
           </div>
         ) : (
           <motion.div
@@ -1143,13 +1143,13 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                 </div>
                 <div className="flex-1 min-w-0">
                   <p className="text-sm text-white font-body truncate">
-                    {p.username} {isMe && <span className="text-[#39FF14] text-[10px]">(you)</span>}
+                    {p.username} {isMe && <span className="text-[#39FF14] text-[10px]">{lang === 'ar' ? '(أنت)' : '(you)'}</span>}
                   </p>
                   <p className="text-[10px] font-body" style={{ color: info.color }}>
-                    Lvl {info.level} &middot; {info.title}
+                    {lang === 'ar' ? 'المستوى' : 'Lvl'} {info.level} &middot; {info.title}
                   </p>
                 </div>
-                <p className="text-xs text-white/40 font-body">{(p.totalPlaytime || 0).toLocaleString()}m</p>
+                <p className="text-xs text-white/40 font-body">{(p.totalPlaytime || 0).toLocaleString()}{lang === 'ar' ? 'د' : 'm'}</p>
               </motion.div>
             );
           })}
@@ -1193,10 +1193,10 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         <motion.div variants={fadeUp} className="text-center">
           <h2 className="font-ninja text-xl text-white">{livePlayer.username}</h2>
           <p className="text-xs font-body" style={{ color: levelInfo.color }}>
-            {levelInfo.title} &middot; Level {levelInfo.level}
+            {levelInfo.title} &middot; {lang === 'ar' ? 'المستوى' : 'Level'} {levelInfo.level}
           </p>
           <p className="text-[10px] text-white/30 font-body mt-1">
-            {totalXP.toLocaleString()} Total XP
+            {totalXP.toLocaleString()} {lang === 'ar' ? 'إجمالي النقاط' : 'Total XP'}
           </p>
         </motion.div>
 
@@ -1230,7 +1230,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
 
         {/* Ninja type selector */}
         <motion.div variants={fadeUp} className="w-full max-w-sm">
-          <p className="font-ninja text-xs text-white/50 mb-3">NINJA TYPE</p>
+          <p className="font-ninja text-xs text-white/50 mb-3">{lang === 'ar' ? 'نوع النينجا' : 'NINJA TYPE'}</p>
           <div className="grid grid-cols-5 gap-2">
             {NINJA_TYPES.map((ninja) => (
               <button
@@ -1269,7 +1269,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
           </div>
           {savingNinja && (
             <p className="text-center mt-2 text-[10px] text-white/30 font-body">
-              <Loader2 className="w-3 h-3 inline animate-spin mr-1" /> Saving...
+              <Loader2 className="w-3 h-3 inline animate-spin mr-1" /> {lang === 'ar' ? 'جاري الحفظ...' : 'Saving...'}
             </p>
           )}
         </motion.div>
@@ -1336,17 +1336,17 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
     if (!livePlayer || !livePlayer.uid) {
       return (
         <div className="flex items-center justify-center h-64">
-          <div className="text-white/60">Loading marketplace...</div>
+          <div className="text-white/60">{lang === 'ar' ? 'جاري تحميل المتجر...' : 'Loading marketplace...'}</div>
         </div>
       );
     }
 
     const NINJA_SKINS = [
-      { id: 'neon', name: 'Neon Ninja', tier: 'free', price: 0, color: '#39FF14' },
-      { id: 'fire', name: 'Fire Ninja', tier: 'rare', price: 150, color: '#FF4500' },
-      { id: 'ice', name: 'Ice Ninja', tier: 'rare', price: 150, color: '#00BFFF' },
-      { id: 'golden', name: 'Golden Ninja', tier: 'epic', price: 500, color: '#FFD700' },
-      { id: 'dragon', name: 'Dragon Ninja', tier: 'legendary', price: 1200, color: '#FF2D00' },
+      { id: 'neon', name: lang === 'ar' ? 'نينجا نيون' : 'Neon Ninja', tier: 'free', price: 0, color: '#39FF14' },
+      { id: 'fire', name: lang === 'ar' ? 'نينجا النار' : 'Fire Ninja', tier: 'rare', price: 150, color: '#FF4500' },
+      { id: 'ice', name: lang === 'ar' ? 'نينجا الجليد' : 'Ice Ninja', tier: 'rare', price: 150, color: '#00BFFF' },
+      { id: 'golden', name: lang === 'ar' ? 'نينجا ذهبي' : 'Golden Ninja', tier: 'epic', price: 500, color: '#FFD700' },
+      { id: 'dragon', name: lang === 'ar' ? 'نينجا التنين' : 'Dragon Ninja', tier: 'legendary', price: 1200, color: '#FF2D00' },
     ];
 
     const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => ({ id: p.id, label: p.label, hours: p.hours, coins: p.coins }));
@@ -1409,7 +1409,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         <div className="flex items-center justify-between">
           <h2 className="font-ninja text-lg text-white flex items-center gap-2">
             <ShoppingBag className="w-5 h-5" style={{ color: '#FF6F00' }} />
-            NINJA STORE
+            {lang === 'ar' ? 'متجر النينجا' : 'NINJA STORE'}
           </h2>
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-yellow-500/10 border border-yellow-500/20">
             <Coins className="w-3.5 h-3.5 text-yellow-400" />
@@ -1420,9 +1420,9 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         {/* Store tabs */}
         <div className="flex gap-2">
           {[
-            { id: 'skins', label: 'Skins', icon: Star, color: '#A855F7' },
-            { id: 'time', label: 'Time', icon: Timer, color: '#39FF14' },
-            { id: 'coins', label: 'Coins', icon: Coins, color: '#FFD700' },
+            { id: 'skins', label: lang === 'ar' ? 'ستايلات' : 'Skins', icon: Star, color: '#A855F7' },
+            { id: 'time', label: lang === 'ar' ? 'وقت' : 'Time', icon: Timer, color: '#39FF14' },
+            { id: 'coins', label: lang === 'ar' ? 'توكنز' : 'Coins', icon: Coins, color: '#FFD700' },
           ].map((tab: any) => (
             <motion.button
               key={tab.id}
@@ -1488,9 +1488,9 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                     
                     <div className="text-center">
                       {skin.tier === 'free' ? (
-                        <span className="text-green-400 font-ninja text-xs">FREE</span>
+                        <span className="text-green-400 font-ninja text-xs">{lang === 'ar' ? 'مجاني' : 'FREE'}</span>
                       ) : owned ? (
-                        <span className="text-green-400 font-ninja text-xs">OWNED</span>
+                        <span className="text-green-400 font-ninja text-xs">{lang === 'ar' ? 'مملوك' : 'OWNED'}</span>
                       ) : (
                         <div className="flex items-center justify-center gap-1">
                           <Coins size={12} className="text-yellow-400" />
@@ -1532,7 +1532,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                       </div>
                       <div>
                         <h3 className="font-ninja text-white">{pkg.label}</h3>
-                        <p className="text-xs text-white/50">{pkg.hours * 60} minutes</p>
+                        <p className="text-xs text-white/50">{pkg.hours * 60} {lang === 'ar' ? 'دقيقة' : 'minutes'}</p>
                       </div>
                     </div>
                     
@@ -1555,7 +1555,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               className="space-y-3"
             >
               <p className="text-white/50 text-sm text-center mb-4">
-                Purchase coins with Jordanian Dinar (JOD)
+                {lang === 'ar' ? 'اشترِ التوكنز بالدينار الأردني (JOD)' : 'Purchase coins with Jordanian Dinar (JOD)'}
               </p>
               
               {JOD_PACKAGES.map((pkg) => (
@@ -1575,17 +1575,17 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                     </div>
                     <div>
                       <h3 className="font-ninja text-yellow-400">{pkg.jod} JOD</h3>
-                      <p className="text-xs text-white/50">{pkg.coins} coins</p>
+                      <p className="text-xs text-white/50">{pkg.coins} {lang === 'ar' ? 'توكنز' : 'coins'}</p>
                     </div>
                   </div>
-                  
-                  <span className="font-ninja text-xs text-yellow-400">REQUEST</span>
+
+                  <span className="font-ninja text-xs text-yellow-400">{lang === 'ar' ? 'طلب' : 'REQUEST'}</span>
                 </motion.div>
               ))}
               
               <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-xs text-white/40">
-                  Staff will process your request and collect payment in person.
+                  {lang === 'ar' ? 'سيقوم الموظفون بمعالجة طلبك وتحصيل الدفعة شخصياً.' : 'Staff will process your request and collect payment in person.'}
                 </p>
               </div>
             </motion.div>
@@ -1622,7 +1622,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                   <h3 className="font-ninja text-xl mb-2" style={{ color: selectedSkin.color }}>
                     {selectedSkin.name}
                   </h3>
-                  <p className="text-white/50 text-sm capitalize">{selectedSkin.tier} Tier</p>
+                  <p className="text-white/50 text-sm capitalize">{selectedSkin.tier} {lang === 'ar' ? 'مستوى' : 'Tier'}</p>
                 </div>
 
                 <div className="flex gap-3">
@@ -1630,7 +1630,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                     onClick={() => setSelectedSkin(null)}
                     className="flex-1 py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 font-ninja"
                   >
-                    CANCEL
+                    {lang === 'ar' ? 'إلغاء' : 'CANCEL'}
                   </button>
                   <motion.button
                     whileTap={{ scale: 0.95 }}
@@ -1647,7 +1647,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                     ) : (
                       <>
                         <Coins size={16} />
-                        BUY {selectedSkin.price}
+                        {lang === 'ar' ? 'شراء' : 'BUY'} {selectedSkin.price}
                       </>
                     )}
                   </motion.button>
@@ -1729,7 +1729,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                   <div className="min-w-0">
                     <h3 className="font-ninja text-base text-white truncate">{livePlayer.username}</h3>
                     <p className="text-xs font-body" style={{ color: levelInfo.color }}>
-                      {levelInfo.title} &middot; Lvl {levelInfo.level}
+                      {levelInfo.title} &middot; {lang === 'ar' ? 'المستوى' : 'Lvl'} {levelInfo.level}
                     </p>
                   </div>
                 </div>
@@ -1769,7 +1769,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                         <Icon className="w-4.5 h-4.5" style={{ color: item.color }} />
                       </div>
                       <span className={`font-body text-sm ${isActive ? 'text-white' : 'text-white/70'}`}>
-                        {item.label}
+                        {lang === 'ar' ? item.labelAr : item.label}
                       </span>
                       <ChevronRight className="w-4 h-4 text-white/20 ml-auto" />
                     </button>
@@ -1787,7 +1787,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 bg-orange-500/10">
                       <Crown className="w-4.5 h-4.5 text-orange-400" />
                     </div>
-                    <span className="font-body text-sm text-orange-400">Admin Panel</span>
+                    <span className="font-body text-sm text-orange-400">{lang === 'ar' ? 'لوحة الإدارة' : 'Admin Panel'}</span>
                   </button>
                 )}
                 <button
@@ -1942,7 +1942,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
             className="text-[9px] font-body transition-colors"
             style={{ color: activeBottomTab === 'chat' ? '#39FF14' : 'rgba(255,255,255,0.35)' }}
           >
-            Chat
+            {lang === 'ar' ? 'الدردشة' : 'Chat'}
           </span>
         </button>
 
@@ -1959,7 +1959,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
             className="text-[9px] font-body transition-colors"
             style={{ color: activeBottomTab === 'more' ? '#39FF14' : 'rgba(255,255,255,0.35)' }}
           >
-            More
+            {lang === 'ar' ? 'المزيد' : 'More'}
           </span>
         </button>
       </nav>

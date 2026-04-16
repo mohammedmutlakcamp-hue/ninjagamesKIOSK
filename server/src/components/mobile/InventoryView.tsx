@@ -282,7 +282,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
       const snap = await getDocs(q);
       
       if (snap.empty) {
-        setSendError('Player not found');
+        setSendError(lang === 'ar' ? 'اللاعب غير موجود' : 'Player not found');
         setSendLoading(false);
         return;
       }
@@ -312,7 +312,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
       setSendToUsername('');
       
     } catch (error) {
-      setSendError('Failed to send item');
+      setSendError(lang === 'ar' ? 'فشل إرسال العنصر' : 'Failed to send item');
     }
     
     setSendLoading(false);
@@ -627,7 +627,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
                 {selectedItem.sentBy && (
                   <p className="text-purple-400 text-xs mt-1">
                     <Gift size={12} className="inline mr-1" />
-                    Gift from {selectedItem.sentBy}
+                    {lang === 'ar' ? `هدية من ${selectedItem.sentBy}` : `Gift from ${selectedItem.sentBy}`}
                   </p>
                 )}
               </div>

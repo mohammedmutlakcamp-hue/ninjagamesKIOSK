@@ -63,6 +63,8 @@ const TIERS_ORDER: Tier[] = ['free', 'rare', 'epic', 'legendary', 'mythic'];
 type SubTab = 'skins' | 'chests' | 'time' | 'coins';
 
 export function StoreView({ player, onBack }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('app-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [subTab, setSubTab] = useState<SubTab>('skins');
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all');
   const [selectedSkin, setSelectedSkin] = useState<typeof NINJA_SKINS[number] | null>(null);
@@ -165,9 +167,9 @@ export function StoreView({ player, onBack }: Props) {
           </button>
         )}
         <div className="flex-1">
-          <h1 className="font-ninja text-xl text-ninja-green">STORE</h1>
+          <h1 className="font-ninja text-xl text-ninja-green">{ar ? 'المتجر' : 'STORE'}</h1>
           <p className="font-body text-xs text-gray-500 flex items-center gap-1">
-            <Coins size={11} className="text-yellow-400" /> {Math.floor(player.coins)} coins
+            <Coins size={11} className="text-yellow-400" /> {Math.floor(player.coins)} {ar ? 'عملات' : 'coins'}
           </p>
         </div>
         <ShoppingBag size={20} className="text-gray-500" />
@@ -284,7 +286,7 @@ export function StoreView({ player, onBack }: Props) {
                           {skin.tier === 'free' ? (
                             <span className="font-body text-[11px] text-green-400">FREE</span>
                           ) : isMythic ? (
-                            <span className="font-body text-[11px] text-pink-400">LOCKED</span>
+                            <span className="font-body text-[11px] text-pink-400">{ar ? 'مقفل' : 'LOCKED'}</span>
                           ) : (
                             <span className="font-body text-[11px] text-yellow-300 flex items-center gap-0.5">
                               <Coins size={9} /> {skin.price}
@@ -334,14 +336,14 @@ export function StoreView({ player, onBack }: Props) {
                   );
                 })}
               </div>
-              <p className="font-body text-gray-600 text-xs text-center mt-4">Open chests from the Home tab for the full spin experience!</p>
+              <p className="font-body text-gray-600 text-xs text-center mt-4">{ar ? 'افتح الصناديق من صفحة الرئيسية للحصول على تجربة اللف الكاملة!' : 'Open chests from the Home tab for the full spin experience!'}</p>
             </motion.div>
           )}
 
           {/* ── TIME ── */}
           {subTab === 'time' && (
             <motion.div key="time" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4 pb-6 pt-2">
-              <p className="font-body text-gray-500 text-xs mb-4 text-center">Add playtime using your coins</p>
+              <p className="font-body text-gray-500 text-xs mb-4 text-center">{ar ? 'أضف وقت لعب باستخدام عملاتك' : 'Add playtime using your coins'}</p>
               <div className="space-y-3">
                 {TIME_PACKAGES.map((pkg, i) => {
                   const canAfford = player.coins >= pkg.coins;
@@ -402,7 +404,7 @@ export function StoreView({ player, onBack }: Props) {
           {/* ── COINS ── */}
           {subTab === 'coins' && (
             <motion.div key="coins" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4 pb-6 pt-2">
-              <p className="font-body text-gray-500 text-xs mb-4 text-center">Purchase coins with Jordanian Dinar</p>
+              <p className="font-body text-gray-500 text-xs mb-4 text-center">{ar ? 'اشترِ العملات بالدينار الأردني' : 'Purchase coins with Jordanian Dinar'}</p>
               <div className="space-y-3">
                 {JOD_PACKAGES.map((pkg, i) => (
                   <motion.div key={pkg.id}
@@ -449,7 +451,7 @@ export function StoreView({ player, onBack }: Props) {
               <div className="mt-4 p-3 rounded-xl flex items-start gap-2"
                 style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
                 <Info size={14} className="text-gray-600 mt-0.5 shrink-0" />
-                <p className="font-body text-[11px] text-gray-600">A staff member will come to you to collect payment and add coins to your account.</p>
+                <p className="font-body text-[11px] text-gray-600">{ar ? 'سيأتي إليك أحد الموظفين لاستلام الدفعة وإضافة العملات إلى حسابك.' : 'A staff member will come to you to collect payment and add coins to your account.'}</p>
               </div>
             </motion.div>
           )}
@@ -518,7 +520,7 @@ export function StoreView({ player, onBack }: Props) {
                 <p className="font-body text-sm text-gray-400 mb-4">{selectedSkin.description}</p>
 
                 {/* Perks */}
-                <p className="font-ninja text-xs text-gray-600 mb-2">PERKS</p>
+                <p className="font-ninja text-xs text-gray-600 mb-2">{ar ? 'المزايا' : 'PERKS'}</p>
                 <div className="space-y-2 mb-6">
                   {selectedSkin.perks.map((perk, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -534,7 +536,7 @@ export function StoreView({ player, onBack }: Props) {
                 {ownedNinjas.includes(selectedSkin.id) ? (
                   <div className="py-3.5 rounded-2xl border border-ninja-green/30 bg-ninja-green/10 flex items-center justify-center gap-2">
                     <Check size={16} className="text-ninja-green" />
-                    <span className="font-ninja text-sm text-ninja-green">ALREADY OWNED</span>
+                    <span className="font-ninja text-sm text-ninja-green">{ar ? 'مملوكة بالفعل' : 'ALREADY OWNED'}</span>
                   </div>
                 ) : (
                   <motion.button

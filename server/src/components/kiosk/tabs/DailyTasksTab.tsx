@@ -137,6 +137,8 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
 ];
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [claiming, setClaimingId] = useState<string | null>(null);
   const [showReward, setShowReward] = useState<{ amount: number; x: number; y: number } | null>(null);
   const [taskProgress, setTaskProgress] = useState<Record<string, { progress: number; claimed: boolean }>>({});
@@ -413,11 +415,11 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
             <motion.h1 initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
               className="font-ninja text-5xl tracking-wider mb-2"
               style={{ color: '#39FF14', textShadow: '0 0 30px rgba(57,255,20,0.3), 0 0 60px rgba(57,255,20,0.1)' }}>
-              DAILY TASKS
+              {ar ? 'المهام اليومية' : 'DAILY TASKS'}
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
               className="font-body text-gray-500 text-sm">
-              Finish ALL tasks to unlock bonus coins + your FREE DAILY CHEST
+              {ar ? 'أنجز كل المهام لفتح عملات إضافية + صندوقك اليومي المجاني' : 'Finish ALL tasks to unlock bonus coins + your FREE DAILY CHEST'}
             </motion.p>
           </div>
 
@@ -446,7 +448,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
               <div className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
                 <span className="font-ninja text-[8px] tracking-[0.25em] text-orange-300 px-2 py-0.5 rounded"
                   style={{ background: 'rgba(249,115,22,0.2)', border: '1px solid rgba(249,115,22,0.3)' }}>
-                  STREAK
+                  {ar ? 'سلسلة' : 'STREAK'}
                 </span>
               </div>
             </div>
@@ -479,11 +481,11 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
             <div className="flex items-center gap-2">
               <Flame size={18} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.8))' }} />
               <span className="font-ninja text-base text-orange-300 tracking-wider">
-                LOGIN STREAK — DAY {streakDay || 1}/7
+                {ar ? `سلسلة الدخول — اليوم ${streakDay || 1}/7` : `LOGIN STREAK — DAY ${streakDay || 1}/7`}
               </span>
             </div>
             {!checkinClaimed && (
-              <span className="font-body text-xs text-gray-500">Claim check-in first</span>
+              <span className="font-body text-xs text-gray-500">{ar ? 'استلم تسجيل الدخول أولاً' : 'Claim check-in first'}</span>
             )}
           </div>
 
@@ -704,7 +706,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                     {chestRevealed.name}
                   </span>
                 </div>
-                <span className="font-body text-xs text-gray-400">Bonus reward for 7-day streak!</span>
+                <span className="font-body text-xs text-gray-400">{ar ? 'مكافأة إضافية على سلسلة 7 أيام!' : 'Bonus reward for 7-day streak!'}</span>
               </div>
             </motion.div>
           )}
@@ -1145,7 +1147,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                       background: `linear-gradient(135deg, rgba(${socialOpen.glow},0.12), rgba(${socialOpen.glow},0.04))`,
                       border: `1px solid rgba(${socialOpen.glow},0.35)`,
                     }}>
-                    <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1">Tag us</p>
+                    <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1">{ar ? 'ضع إشارة' : 'Tag us'}</p>
                     <p className="font-ninja text-2xl tracking-wider" style={{ color: socialOpen.color, textShadow: `0 0 12px rgba(${socialOpen.glow},0.5)` }}>
                       {socialOpen.highlightHandle}
                     </p>

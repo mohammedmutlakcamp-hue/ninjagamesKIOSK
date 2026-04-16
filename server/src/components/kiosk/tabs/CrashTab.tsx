@@ -60,6 +60,8 @@ interface CrashTabProps {
 }
 
 export function CrashTab({ player }: CrashTabProps) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const animRef = useRef<number>(0);
 
@@ -455,7 +457,7 @@ export function CrashTab({ player }: CrashTabProps) {
 
         {/* Bet Amount */}
         <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Bet Amount</div>
+          <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">{ar ? 'قيمة الرهان' : 'Bet Amount'}</div>
 
           <div className="flex items-center gap-1.5 mb-2.5">
             <button onClick={halfBet} disabled={!isWaiting} className="px-2.5 py-1.5 rounded-lg text-[10px] font-bold text-gray-400 transition-all hover:text-white disabled:opacity-30" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)' }}>½</button>
@@ -494,13 +496,13 @@ export function CrashTab({ player }: CrashTabProps) {
 
           <div className="flex items-center gap-2 mt-2.5">
             <Coins size={12} className="text-yellow-400" />
-            <span className="text-[11px] text-gray-500">Balance: <span className="text-white font-bold">{Math.floor(playerCoins).toLocaleString()}</span></span>
+            <span className="text-[11px] text-gray-500">{ar ? 'الرصيد:' : 'Balance:'} <span className="text-white font-bold">{Math.floor(playerCoins).toLocaleString()}</span></span>
           </div>
         </div>
 
         {/* Auto Cashout */}
         <div className="rounded-xl p-3.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-          <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">Auto Cashout</div>
+          <div className="text-[10px] text-gray-500 mb-2 font-mono uppercase tracking-wider">{ar ? 'سحب تلقائي' : 'Auto Cashout'}</div>
           <div className="relative">
             <input
               type="number"
@@ -532,7 +534,7 @@ export function CrashTab({ player }: CrashTabProps) {
               </button>
             ))}
           </div>
-          <div className="text-[9px] text-gray-600 mt-1.5">Leave empty for manual cashout only</div>
+          <div className="text-[9px] text-gray-600 mt-1.5">{ar ? 'اتركها فارغة للسحب اليدوي فقط' : 'Leave empty for manual cashout only'}</div>
         </div>
 
         {/* Action Button */}
@@ -550,7 +552,7 @@ export function CrashTab({ player }: CrashTabProps) {
             }}
           >
             <Rocket size={16} className="inline mr-2" />
-            Bet
+            {ar ? 'راهن' : 'Bet'}
           </button>
         )}
 
@@ -564,15 +566,15 @@ export function CrashTab({ player }: CrashTabProps) {
               boxShadow: '0 0 30px rgba(255,107,0,0.35)',
             }}
           >
-            Cash Out {currentMult.toFixed(2)}×
+            {ar ? 'اسحب' : 'Cash Out'} {currentMult.toFixed(2)}×
           </button>
         )}
 
         {isRunning && cashedOut && (
           <div className="w-full py-4 rounded-xl text-center text-sm font-bold uppercase tracking-wider"
             style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
-            Cashed Out @ {cashoutMult.toFixed(2)}×
-            <div className="text-xs mt-1 text-green-400/70">+{(Math.floor(betAmount * cashoutMult) - betAmount).toLocaleString()} profit</div>
+            {ar ? 'تم السحب @' : 'Cashed Out @'} {cashoutMult.toFixed(2)}×
+            <div className="text-xs mt-1 text-green-400/70">+{(Math.floor(betAmount * cashoutMult) - betAmount).toLocaleString()} {ar ? 'ربح' : 'profit'}</div>
           </div>
         )}
 
@@ -583,25 +585,25 @@ export function CrashTab({ player }: CrashTabProps) {
               border: `1px solid ${cashedOut ? 'rgba(57,255,20,0.3)' : 'rgba(255,0,64,0.3)'}`,
               color: cashedOut ? '#39FF14' : '#FF0040',
             }}>
-            {cashedOut ? `Won +${(Math.floor(betAmount * cashoutMult) - betAmount).toLocaleString()}` : `Crashed @ ${crashPoint.toFixed(2)}×`}
-            <div className="text-[10px] mt-1 text-gray-500">Next round starting...</div>
+            {cashedOut ? `${ar ? 'فزت +' : 'Won +'}${(Math.floor(betAmount * cashoutMult) - betAmount).toLocaleString()}` : `${ar ? 'تحطم @' : 'Crashed @'} ${crashPoint.toFixed(2)}×`}
+            <div className="text-[10px] mt-1 text-gray-500">{ar ? 'الجولة التالية تبدأ...' : 'Next round starting...'}</div>
           </div>
         )}
 
         {/* Session Stats */}
         <div className="rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
           <div className="flex justify-between text-[11px]">
-            <span className="text-gray-500">Profit</span>
+            <span className="text-gray-500">{ar ? 'الربح' : 'Profit'}</span>
             <span className={`font-bold ${totalProfit >= 0 ? 'text-green-400' : 'text-red-400'}`}>
               {totalProfit >= 0 ? '+' : ''}{totalProfit.toLocaleString()}
             </span>
           </div>
           <div className="flex justify-between text-[11px] mt-1">
-            <span className="text-gray-500">Rounds</span>
+            <span className="text-gray-500">{ar ? 'الجولات' : 'Rounds'}</span>
             <span className="text-white font-bold">{totalRounds}</span>
           </div>
           <div className="flex justify-between text-[11px] mt-1">
-            <span className="text-gray-500">Wins</span>
+            <span className="text-gray-500">{ar ? 'الانتصارات' : 'Wins'}</span>
             <span className="text-white font-bold">{lastWins.filter(w => w.profit > 0).length}</span>
           </div>
         </div>
@@ -658,11 +660,11 @@ export function CrashTab({ player }: CrashTabProps) {
       {/* ═══ Right Panel — History ═══ */}
       <div className="w-[180px] flex-shrink-0 flex flex-col gap-1.5">
         <div className="text-[10px] text-gray-500 font-mono uppercase tracking-wider mb-1 flex items-center gap-1.5">
-          <Trophy size={10} className="text-yellow-400" /> Round History
+          <Trophy size={10} className="text-yellow-400" /> {ar ? 'سجل الجولات' : 'Round History'}
         </div>
         <div className="flex-1 overflow-y-auto space-y-1 pr-0.5" style={{ scrollbarWidth: 'thin', scrollbarColor: '#222 transparent' }}>
           {lastWins.length === 0 && (
-            <div className="text-[10px] text-gray-700 text-center mt-8">No rounds yet</div>
+            <div className="text-[10px] text-gray-700 text-center mt-8">{ar ? 'لا توجد جولات بعد' : 'No rounds yet'}</div>
           )}
           {lastWins.map((win, i) => {
             const won = win.profit > 0;
@@ -685,7 +687,7 @@ export function CrashTab({ player }: CrashTabProps) {
                 </div>
                 {win.cashout > 0 && (
                   <div className="text-[9px] text-gray-600 mt-0.5">
-                    Cashed @ {win.cashout.toFixed(2)}×
+                    {ar ? 'سُحب @' : 'Cashed @'} {win.cashout.toFixed(2)}×
                   </div>
                 )}
               </motion.div>

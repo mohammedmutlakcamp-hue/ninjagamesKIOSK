@@ -13,6 +13,7 @@ import { useEscapeKey } from '@/lib/useEscapeKey';
 interface Props {
   clubId: string;
   onClose: () => void;
+  lang?: 'en' | 'ar';
 }
 
 type MemberInfo = {
@@ -22,7 +23,8 @@ type MemberInfo = {
   profilePhoto?: string;
 };
 
-export function ClubInfoCard({ clubId, onClose }: Props) {
+export function ClubInfoCard({ clubId, onClose, lang = 'en' }: Props) {
+  const ar = lang === 'ar';
   const [club, setClub] = useState<Club | null>(null);
   const [members, setMembers] = useState<MemberInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -124,7 +126,7 @@ export function ClubInfoCard({ clubId, onClose }: Props) {
               <Loader2 size={28} className="text-purple-400 animate-spin" />
             </div>
           ) : !club ? (
-            <div className="text-center py-24 text-gray-500 font-body">Club not found</div>
+            <div className="text-center py-24 text-gray-500 font-body">{ar ? 'النادي غير موجود' : 'Club not found'}</div>
           ) : (
             <>
               {/* Header */}
@@ -143,7 +145,7 @@ export function ClubInfoCard({ clubId, onClose }: Props) {
                 <h2 className="font-ninja text-3xl text-white tracking-wide mb-1" style={{ textShadow: '0 0 14px rgba(168,85,247,0.45)' }}>
                   {club.name}
                 </h2>
-                <p className="font-body text-xs text-gray-500">Club of {club.members?.length || 0} / {CLUB_MAX_MEMBERS}</p>
+                <p className="font-body text-xs text-gray-500">{ar ? 'نادٍ من' : 'Club of'} {club.members?.length || 0} / {CLUB_MAX_MEMBERS}</p>
               </div>
 
               {/* Stats grid */}
@@ -152,19 +154,19 @@ export function ClubInfoCard({ clubId, onClose }: Props) {
                   style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.35)', boxShadow: '0 0 10px rgba(234,179,8,0.1)' }}>
                   <Coins size={18} className="text-yellow-400 mx-auto mb-1" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.7))' }} />
                   <p className="font-ninja text-lg text-yellow-400" style={{ textShadow: '0 0 6px rgba(234,179,8,0.5)' }}>{totalBalance}</p>
-                  <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider">Treasury</p>
+                  <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider">{ar ? 'الخزينة' : 'Treasury'}</p>
                 </div>
                 <div className="rounded-lg py-3 px-2 text-center"
                   style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.35)', boxShadow: '0 0 10px rgba(57,255,20,0.1)' }}>
                   <Trophy size={18} className="text-green-400 mx-auto mb-1" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.7))' }} />
                   <p className="font-ninja text-lg text-green-400" style={{ textShadow: '0 0 6px rgba(57,255,20,0.5)' }}>{wins}</p>
-                  <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider">Wins</p>
+                  <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider">{ar ? 'الانتصارات' : 'Wins'}</p>
                 </div>
                 <div className="rounded-lg py-3 px-2 text-center"
                   style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.35)', boxShadow: '0 0 10px rgba(239,68,68,0.1)' }}>
                   <Swords size={18} className="text-red-400 mx-auto mb-1" style={{ filter: 'drop-shadow(0 0 4px rgba(239,68,68,0.7))' }} />
                   <p className="font-ninja text-lg text-red-400" style={{ textShadow: '0 0 6px rgba(239,68,68,0.5)' }}>{losses}</p>
-                  <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider">Losses</p>
+                  <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider">{ar ? 'الخسائر' : 'Losses'}</p>
                 </div>
               </div>
 
@@ -173,14 +175,14 @@ export function ClubInfoCard({ clubId, onClose }: Props) {
                 <div className="flex items-center gap-2 px-3 py-2 rounded-lg"
                   style={{ background: 'rgba(0,191,255,0.06)', border: '1px solid rgba(0,191,255,0.3)' }}>
                   <Ticket size={14} className="text-cyan-300" style={{ filter: 'drop-shadow(0 0 3px rgba(0,191,255,0.6))' }} />
-                  <span className="font-ninja text-[11px] text-cyan-300 tracking-wider flex-1">VOUCHER POOL</span>
+                  <span className="font-ninja text-[11px] text-cyan-300 tracking-wider flex-1">{ar ? 'مجمع القسائم' : 'VOUCHER POOL'}</span>
                   <span className="font-ninja text-sm text-cyan-300">{vouchers}</span>
                 </div>
               </div>
 
               {/* Members */}
               <div className="px-6 pb-6">
-                <h4 className="font-ninja text-[10px] text-purple-300/80 tracking-[0.2em] mb-2">ROSTER</h4>
+                <h4 className="font-ninja text-[10px] text-purple-300/80 tracking-[0.2em] mb-2">{ar ? 'القائمة' : 'ROSTER'}</h4>
                 <div className="space-y-1.5">
                   {members.map(m => {
                     const isLeader = m.uid === club.leaderUid;
@@ -202,7 +204,7 @@ export function ClubInfoCard({ clubId, onClose }: Props) {
                             {isLeader && (
                               <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[8px] font-ninja text-yellow-400 tracking-wider"
                                 style={{ background: 'rgba(234,179,8,0.15)', border: '1px solid rgba(234,179,8,0.3)' }}>
-                                <Crown size={8} /> LEADER
+                                <Crown size={8} /> {ar ? 'القائد' : 'LEADER'}
                               </span>
                             )}
                           </div>

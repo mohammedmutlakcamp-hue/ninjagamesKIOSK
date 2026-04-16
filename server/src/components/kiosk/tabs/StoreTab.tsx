@@ -400,6 +400,8 @@ function BrandLogo({ logos, alt, className, style }: { logos: string[]; alt: str
 }
 
 export function StoreTab({ player, onClose, initialSubTab }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [subTab, setSubTab] = useState<SubTab>((initialSubTab as SubTab) || 'skins');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('rare');
   const [selectedSkin, setSelectedSkin] = useState<NinjaSkin | null>(null);
@@ -480,17 +482,17 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   // ─── Skin purchase ────────────────────────────────────────────────────────
   const buySkin = async (skin: NinjaSkin) => {
     if (buying) return;
-    if (ownedNinjas.includes(skin.id)) return showToast('You already own this skin!', false);
-    if (skin.tier === 'mythic') return showToast('Mythic skins cannot be purchased!', false);
-    if (skin.unlockLevel && playerLevel < skin.unlockLevel) return showToast(`Need Level ${skin.unlockLevel}!`, false);
-    if (skin.price > 0 && player.coins < skin.price) return showToast('Not enough coins!', false);
+    if (ownedNinjas.includes(skin.id)) return showToast(ar ? 'تمتلك هذا السكن بالفعل!' : 'You already own this skin!', false);
+    if (skin.tier === 'mythic') return showToast(ar ? 'لا يمكن شراء السكنز الأسطورية الخرافية!' : 'Mythic skins cannot be purchased!', false);
+    if (skin.unlockLevel && playerLevel < skin.unlockLevel) return showToast(ar ? `تحتاج المستوى ${skin.unlockLevel}!` : `Need Level ${skin.unlockLevel}!`, false);
+    if (skin.price > 0 && player.coins < skin.price) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     if (skin.tier === 'free' && skin.price === 0) {
       setBuying(true);
       try {
         await updateDoc(doc(db, 'players', player.uid), { ownedNinjas: arrayUnion(skin.id) });
-        setBuySuccess(true); showToast(`${skin.name} unlocked!`, true);
+        setBuySuccess(true); showToast(ar ? `تم فتح ${skin.name}!` : `${skin.name} unlocked!`, true);
         setTimeout(() => { setBuySuccess(false); setSelectedSkin(null); }, 1600);
-      } catch { showToast('Failed to unlock.', false); }
+      } catch { showToast(ar ? 'فشل فتح القفل.' : 'Failed to unlock.', false); }
       finally { setBuying(false); }
       return;
     }
@@ -506,16 +508,16 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         coins: increment(-skin.price), ownedNinjas: arrayUnion(skin.id),
         totalCoinsSpent: increment(skin.price), inventory: currentInventory,
       });
-      setBuySuccess(true); showToast(`${skin.name} unlocked!`, true);
+      setBuySuccess(true); showToast(ar ? `تم فتح ${skin.name}!` : `${skin.name} unlocked!`, true);
       setTimeout(() => { setBuySuccess(false); setSelectedSkin(null); }, 1600);
-    } catch { showToast('Purchase failed.', false); }
+    } catch { showToast(ar ? 'فشل الشراء.' : 'Purchase failed.', false); }
     finally { setBuying(false); }
   };
 
   // ─── Buy Time ─────────────────────────────────────────────────────────────
   const buyTime = async (pkg: typeof TIME_PACKAGES[number]) => {
     if (buying) return;
-    if (player.coins < pkg.coins) return showToast('Not enough coins!', false);
+    if (player.coins < pkg.coins) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuying(true);
     try {
       // Buy time = deduct coins and add playtime (hours converted to minutes)
@@ -525,8 +527,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         totalCoinsSpent: increment(pkg.coins),
         totalPlaytime: increment(playtimeMinutes),
       });
-      showToast(`${pkg.label} of playtime added! (-${pkg.coins} coins)`, true);
-    } catch { showToast('Purchase failed.', false); }
+      showToast(ar ? `تمت إضافة ${pkg.label} من وقت اللعب! (-${pkg.coins} توكنز)` : `${pkg.label} of playtime added! (-${pkg.coins} coins)`, true);
+    } catch { showToast(ar ? 'فشل الشراء.' : 'Purchase failed.', false); }
     finally { setBuying(false); }
   };
 
@@ -542,7 +544,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         status: 'pending', createdAt: Date.now(),
       });
       setTopUpSent(true);
-    } catch { showToast('Request failed.', false); }
+    } catch { showToast(ar ? 'فشل الطلب.' : 'Request failed.', false); }
     setTopUpLoading(false);
   };
 
@@ -552,7 +554,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
   const buyVip = async () => {
     if (buyingVip) return;
-    if (player.coins < VIP_CONFIG.priceCoins) return showToast('Not enough coins!', false);
+    if (player.coins < VIP_CONFIG.priceCoins) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuyingVip(true);
     try {
       const vipItem = {
@@ -571,8 +573,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         totalCoinsSpent: increment(VIP_CONFIG.priceCoins),
         inventory: currentInventory,
       });
-      showToast('VIP Pass added to your inventory! Go to Inventory to activate it.', true);
-    } catch { showToast('Purchase failed.', false); }
+      showToast(ar ? 'تمت إضافة VIP Pass إلى مخزونك! اذهب إلى المخزون لتفعيله.' : 'VIP Pass added to your inventory! Go to Inventory to activate it.', true);
+    } catch { showToast(ar ? 'فشل الشراء.' : 'Purchase failed.', false); }
     finally { setBuyingVip(false); }
   };
 
@@ -580,7 +582,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const buyChestToInventory = async (chest: Chest) => {
     const cost = getDiscountedCost(chest.cost);
     if (buying) return;
-    if (player.coins < cost) return showToast('Not enough coins!', false);
+    if (player.coins < cost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuying(true);
     try {
       const chestItem = {
@@ -599,15 +601,15 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         totalCoinsSpent: increment(cost),
         inventory: arrayUnion(chestItem),
       });
-      showToast(`${chest.name} chest added to inventory!`, true);
-    } catch { showToast('Purchase failed.', false); }
+      showToast(ar ? `تمت إضافة صندوق ${chest.name} إلى المخزون!` : `${chest.name} chest added to inventory!`, true);
+    } catch { showToast(ar ? 'فشل الشراء.' : 'Purchase failed.', false); }
     finally { setBuying(false); }
   };
 
   // ─── Buy bundle ───────────────────────────────────────────────────────────
   const buyBundle = async (bundle: typeof BUNDLES[number]) => {
     if (buying) return;
-    if (player.coins < bundle.price) return showToast('Not enough coins!', false);
+    if (player.coins < bundle.price) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuying(true);
     try {
       const bundleItem = {
@@ -626,17 +628,17 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         totalCoinsSpent: increment(bundle.price),
         inventory: arrayUnion(bundleItem),
       });
-      showToast(`${bundle.name} purchased! Open it from inventory.`, true);
-    } catch { showToast('Purchase failed.', false); }
+      showToast(ar ? `تم شراء ${bundle.name}! افتحه من المخزون.` : `${bundle.name} purchased! Open it from inventory.`, true);
+    } catch { showToast(ar ? 'فشل الشراء.' : 'Purchase failed.', false); }
     finally { setBuying(false); }
   };
 
   // ─── Request gift card from admin ─────────────────────────────────────────
   const requestGiftCard = async () => {
     if (gcSending) return;
-    if (!gcModal || !gcAmount) return showToast('Select an amount!', false);
+    if (!gcModal || !gcAmount) return showToast(ar ? 'اختر المبلغ!' : 'Select an amount!', false);
     const costCoins = gcAmount * USD_TO_COINS;
-    if (player.coins < costCoins) return showToast('Not enough coins!', false);
+    if (player.coins < costCoins) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
 
     setGcSending(true);
     try {
@@ -656,10 +658,10 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         totalCoinsSpent: increment(costCoins),
       });
       setGcRequestSent(true);
-      showToast(`${gcModal.name} $${gcAmount} requested!`, true);
+      showToast(ar ? `تم طلب ${gcModal.name} $${gcAmount}!` : `${gcModal.name} $${gcAmount} requested!`, true);
     } catch (err) {
       console.error(err);
-      showToast('Failed to request gift card.', false);
+      showToast(ar ? 'فشل طلب بطاقة الهدية.' : 'Failed to request gift card.', false);
     }
     finally { setGcSending(false); }
   };
@@ -818,7 +820,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
           <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid rgba(57,255,20,0.4)', borderLeft: '2px solid rgba(57,255,20,0.4)' }} />
           <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid rgba(57,255,20,0.4)', borderRight: '2px solid rgba(57,255,20,0.4)' }} />
           <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.3), transparent)' }} />
-          <h2 className="font-ninja text-lg text-center tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 15px rgba(57,255,20,0.5)' }}>NINJA SHOP</h2>
+          <h2 className="font-ninja text-lg text-center tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 15px rgba(57,255,20,0.5)' }}>{ar ? 'متجر النينجا' : 'NINJA SHOP'}</h2>
         </div>
 
         {/* Balance — HUD card */}
@@ -829,7 +831,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
             <Coins size={15} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.6))' }} />
           </div>
           <div className="flex flex-col flex-1 min-w-0">
-            <span className="font-body text-[9px] text-gray-500 uppercase tracking-wider">Balance</span>
+            <span className="font-body text-[9px] text-gray-500 uppercase tracking-wider">{ar ? 'الرصيد' : 'Balance'}</span>
             <span className="font-ninja text-base text-yellow-400 leading-tight" style={{ textShadow: '0 0 8px rgba(234,179,8,0.3)' }}>{Math.floor(player.coins)}</span>
           </div>
         </div>
@@ -858,7 +860,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 <div className="w-7 h-7 rounded flex items-center justify-center" style={{ background: active ? 'rgba(57,255,20,0.15)' : 'rgba(57,255,20,0.06)', border: active ? '1px solid rgba(57,255,20,0.35)' : '1px solid rgba(57,255,20,0.12)' }}>
                   <span style={{ color: active ? '#39FF14' : '#39FF1480', filter: active ? 'drop-shadow(0 0 4px #39FF14)' : 'none' }}>{tab.icon}</span>
                 </div>
-                <span className="font-ninja text-xs tracking-wider" style={{ color: active ? '#39FF14' : 'rgba(200,200,200,0.6)', textShadow: active ? '0 0 8px rgba(57,255,20,0.4)' : 'none' }}>{tab.label}</span>
+                <span className="font-ninja text-xs tracking-wider" style={{ color: active ? '#39FF14' : 'rgba(200,200,200,0.6)', textShadow: active ? '0 0 8px rgba(57,255,20,0.4)' : 'none' }}>{ar ? (tab.id === 'skins' ? 'السكنز' : tab.id === 'chests' ? 'الصناديق' : tab.id === 'giftcards' ? 'بطاقات الهدايا' : tab.id === 'time' ? 'الوقت' : tab.id === 'coins' ? 'التوكنز' : tab.label) : tab.label}</span>
               </motion.button>
             );
           })}
@@ -869,7 +871,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
           <div className="relative px-3 py-3 rounded-lg text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(0,200,255,0.06), rgba(0,200,255,0.02))', border: '1px solid rgba(0,200,255,0.15)' }}>
             <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(0,200,255,0.4)', borderLeft: '1px solid rgba(0,200,255,0.4)' }} />
             <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(0,200,255,0.4)', borderRight: '1px solid rgba(0,200,255,0.4)' }} />
-            <p className="font-body text-[9px] text-gray-500 uppercase tracking-wider">Level</p>
+            <p className="font-body text-[9px] text-gray-500 uppercase tracking-wider">{ar ? 'المستوى' : 'Level'}</p>
             <p className="font-ninja text-xl text-cyan-300" style={{ textShadow: '0 0 10px rgba(0,200,255,0.5)' }}>{playerLevel}</p>
           </div>
         </div>
@@ -933,7 +935,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         <div className="mt-auto">
                           <div className="flex items-center justify-between mb-1.5">
                             <span className="font-ninja text-xs text-gray-400">{ownedCount}/{totalCount}</span>
-                            <span className="font-body text-[9px] text-gray-600 uppercase tracking-wider">owned</span>
+                            <span className="font-body text-[9px] text-gray-600 uppercase tracking-wider">{ar ? 'مملوكة' : 'owned'}</span>
                           </div>
                           {/* Progress bar */}
                           <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${cat.color}15` }}>
@@ -958,7 +960,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         border: `1px solid ${active ? 'rgba(57,255,20,0.35)' : 'rgba(255,255,255,0.06)'}`,
                         color: active ? '#39FF14' : '#777',
                       }}>
-                      {id.toUpperCase()} ({categoryCounts[id] || 0})
+                      {(ar ? ((id as string) === 'all' ? 'الكل' : (id as string) === 'starter' ? 'مبتدئ' : (id as string) === 'country' ? 'دولة' : String(id).toUpperCase()) : String(id).toUpperCase())} ({categoryCounts[id] || 0})
                     </button>
                   );
                 })}
@@ -1010,9 +1012,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         {/* HUD price badge */}
                         <div className="absolute bottom-3 left-3 right-3 z-[2]">
                           <div className="flex items-center justify-center gap-1 py-1.5 rounded" style={{ background: `linear-gradient(135deg, ${tierCfg.color}10, transparent)`, border: `1px solid ${tierCfg.color}20` }}>
-                            {status === 'owned' ? <span className="font-ninja text-[10px] text-ninja-green flex items-center gap-1"><Check size={10} /> OWNED</span>
-                              : status === 'free' ? <span className="font-ninja text-[10px] text-green-400">FREE</span>
-                              : status === 'locked' || status === 'level-locked' ? <span className="font-ninja text-[10px] flex items-center gap-1" style={{ color: tierCfg.color }}><Lock size={10} /> LVL {skin.unlockLevel}</span>
+                            {status === 'owned' ? <span className="font-ninja text-[10px] text-ninja-green flex items-center gap-1"><Check size={10} /> {ar ? 'مملوك' : 'OWNED'}</span>
+                              : status === 'free' ? <span className="font-ninja text-[10px] text-green-400">{ar ? 'مجاني' : 'FREE'}</span>
+                              : status === 'locked' || status === 'level-locked' ? <span className="font-ninja text-[10px] flex items-center gap-1" style={{ color: tierCfg.color }}><Lock size={10} /> {ar ? `مستوى ${skin.unlockLevel}` : `LVL ${skin.unlockLevel}`}</span>
                               : <span className="font-ninja text-[10px] text-yellow-300 flex items-center gap-1"><Coins size={10} className="text-yellow-400" /> {skin.price}</span>}
                           </div>
                         </div>
@@ -1029,7 +1031,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <div className="w-7 h-7 rounded flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.2)', boxShadow: '0 0 8px rgba(57,255,20,0.15)' }}>
                       <Check size={14} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
                     </div>
-                    <h3 className="font-ninja text-sm text-ninja-green tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>YOUR COLLECTION — {ownedSkins.length}/{NINJA_SKINS.length}</h3>
+                    <h3 className="font-ninja text-sm text-ninja-green tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>{ar ? `مجموعتك — ${ownedSkins.length}/${NINJA_SKINS.length}` : `YOUR COLLECTION — ${ownedSkins.length}/${NINJA_SKINS.length}`}</h3>
                     <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.2), transparent)' }} />
                   </div>
                   <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
@@ -1055,7 +1057,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                           {equipped && (
                             <div className="absolute top-2 right-2 z-10 flex items-center gap-0.5 bg-ninja-green/25 border border-ninja-green/40 rounded-md px-1.5 py-0.5">
                               <ShieldCheck size={9} className="text-ninja-green" />
-                              <span className="font-ninja text-[7px] text-ninja-green">IN USE</span>
+                              <span className="font-ninja text-[7px] text-ninja-green">{ar ? 'مفعّل' : 'IN USE'}</span>
                             </div>
                           )}
                           {/* Big profile image */}
@@ -1083,7 +1085,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   <div className="w-7 h-7 rounded flex items-center justify-center" style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.2)', boxShadow: '0 0 8px rgba(255,215,0,0.15)' }}>
                     <Trophy size={14} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))' }} />
                   </div>
-                  <h3 className="font-ninja text-sm text-yellow-400 tracking-wider" style={{ textShadow: '0 0 8px rgba(255,215,0,0.3)' }}>COLLECTION REWARDS</h3>
+                  <h3 className="font-ninja text-sm text-yellow-400 tracking-wider" style={{ textShadow: '0 0 8px rgba(255,215,0,0.3)' }}>{ar ? 'مكافآت المجموعة' : 'COLLECTION REWARDS'}</h3>
                   <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(255,215,0,0.2), transparent)' }} />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -1108,7 +1110,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                           <p className="font-ninja text-xs" style={{ color: cr.color, textShadow: `0 0 6px ${cr.color}30` }}>{cr.tier.toUpperCase()} ({ownedCount}/{cr.required})</p>
                           <p className="font-body text-[10px] text-gray-500 truncate">{cr.reward}</p>
                         </div>
-                        {complete && <span className="font-ninja text-[9px] text-ninja-green px-2 py-1 rounded relative z-10" style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.3)', boxShadow: '0 0 6px rgba(57,255,20,0.15)' }}>CLAIM</span>}
+                        {complete && <span className="font-ninja text-[9px] text-ninja-green px-2 py-1 rounded relative z-10" style={{ background: 'rgba(57,255,20,0.12)', border: '1px solid rgba(57,255,20,0.3)', boxShadow: '0 0 6px rgba(57,255,20,0.15)' }}>{ar ? 'استلام' : 'CLAIM'}</span>}
                       </div>
                     );
                   })}
@@ -1127,8 +1129,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   <Package size={16} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
                 </div>
                 <div>
-                  <h3 className="font-ninja text-xl tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 12px rgba(57,255,20,0.4)' }}>TREASURE CHESTS</h3>
-                  <p className="font-body text-xs text-gray-500">Tap a chest to open it — or save it for later</p>
+                  <h3 className="font-ninja text-xl tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 12px rgba(57,255,20,0.4)' }}>{ar ? 'صناديق الكنز' : 'TREASURE CHESTS'}</h3>
+                  <p className="font-body text-xs text-gray-500">{ar ? 'اضغط على صندوق لفتحه — أو احفظه لوقت لاحق' : 'Tap a chest to open it — or save it for later'}</p>
                 </div>
                 <div className="flex-1 h-[1px] ml-3" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.2), transparent)' }} />
               </div>
@@ -1166,7 +1168,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                           animate={canAfford ? { y: [0, -5, 0] } : {}} transition={{ duration: 2.5, repeat: Infinity }} />
                       </div>
                       <p className="font-ninja text-sm text-center tracking-wider relative z-[1]" style={{ color: chest.color, textShadow: `0 0 8px ${chest.color}40` }}>{chest.name.toUpperCase()}</p>
-                      <p className="font-body text-[10px] text-center text-gray-500 mb-2 relative z-[1]">{chest.rewards.length} rewards</p>
+                      <p className="font-body text-[10px] text-center text-gray-500 mb-2 relative z-[1]">{chest.rewards.length} {ar ? 'مكافأة' : 'rewards'}</p>
                       <div className="absolute bottom-3 left-3 right-3 z-[1]">
                         <button onClick={() => canAfford && setConfirmChest(chest)} disabled={!canAfford || buying}
                           className="relative w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-ninja text-xs tracking-wider transition-all disabled:opacity-40"
@@ -1193,8 +1195,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   <CreditCard size={16} className="text-pink-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,20,147,0.6))' }} />
                 </div>
                 <div>
-                  <h3 className="font-ninja text-xl tracking-[0.15em]" style={{ color: '#FF1493', textShadow: '0 0 12px rgba(255,20,147,0.4)' }}>DIGITAL GIFT CARDS</h3>
-                  <p className="font-body text-xs text-gray-500">Redeem instantly — codes delivered to your account by staff</p>
+                  <h3 className="font-ninja text-xl tracking-[0.15em]" style={{ color: '#FF1493', textShadow: '0 0 12px rgba(255,20,147,0.4)' }}>{ar ? 'بطاقات هدايا رقمية' : 'DIGITAL GIFT CARDS'}</h3>
+                  <p className="font-body text-xs text-gray-500">{ar ? 'استرداد فوري — يتم تسليم الأكواد إلى حسابك عن طريق الموظفين' : 'Redeem instantly — codes delivered to your account by staff'}</p>
                 </div>
                 <div className="flex-1 h-[1px] ml-3" style={{ background: 'linear-gradient(90deg, rgba(255,20,147,0.2), transparent)' }} />
               </div>
@@ -1218,7 +1220,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         <div className="absolute bottom-0 right-0 w-1.5 h-1.5" style={{ borderBottom: `2px solid ${cat.color}`, borderRight: `2px solid ${cat.color}` }} />
                       </>}
                       <span style={{ color: active ? cat.color : '#555', filter: active ? `drop-shadow(0 0 4px ${cat.color})` : 'none' }}>{cat.icon}</span>
-                      {cat.label}
+                      {ar ? (cat.id === 'all' ? 'الكل' : cat.id === 'gaming' ? 'الألعاب' : cat.id === 'apps' ? 'تطبيقات' : cat.id === 'mobile' ? 'جوال' : cat.id === 'shopping' ? 'تسوق' : cat.label) : cat.label}
                     </motion.button>
                   );
                 })}
@@ -1252,7 +1254,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
                     {/* Top corner: GIFT CARD label */}
                     <div className="absolute top-3 left-4 z-10">
-                      <p className="font-ninja text-[9px] text-white/50 tracking-[0.25em] uppercase">Gift Card</p>
+                      <p className="font-ninja text-[9px] text-white/50 tracking-[0.25em] uppercase">{ar ? 'بطاقة هدية' : 'Gift Card'}</p>
                     </div>
 
                     {/* Top-right OPTIONS badge */}
@@ -1287,7 +1289,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                           <p className="font-body text-[8px] text-white/60 tracking-[0.15em] uppercase truncate">{brand.tagline}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <p className="font-body text-[7px] text-white/50 tracking-wider leading-none">FROM</p>
+                          <p className="font-body text-[7px] text-white/50 tracking-wider leading-none">{ar ? 'من' : 'FROM'}</p>
                           <p className="font-ninja text-base leading-none mt-0.5" style={{ color: brand.accent, textShadow: `0 0 10px ${brand.accent}, 0 1px 3px rgba(0,0,0,0.9)` }}>
                             {brand.currency}{brand.denominations[0]}
                           </p>
@@ -1309,7 +1311,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(255,20,147,0.4)', borderRight: '1px solid rgba(255,20,147,0.4)' }} />
                 <div className="flex items-center gap-2">
                   <Info size={12} className="text-pink-400 flex-shrink-0" />
-                  <p className="font-body text-[11px] text-gray-400">Pay with tokens. Staff will deliver your code within minutes via chat or printout. 1 USD ≈ {USD_TO_COINS} tokens.</p>
+                  <p className="font-body text-[11px] text-gray-400">{ar ? `ادفع بالتوكنز. سيقوم الموظفون بتسليم الكود خلال دقائق عبر الدردشة أو مطبوع. 1 دولار ≈ ${USD_TO_COINS} توكنز.` : `Pay with tokens. Staff will deliver your code within minutes via chat or printout. 1 USD ≈ ${USD_TO_COINS} tokens.`}</p>
                 </div>
               </div>
             </motion.div>
@@ -1325,9 +1327,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-3" style={{ background: 'rgba(57,255,20,0.08)', border: '2px solid rgba(57,255,20,0.2)' }}>
                     <Timer size={32} className="text-ninja-green" />
                   </div>
-                  <h3 className="font-ninja text-2xl text-ninja-green mb-1" style={{ textShadow: '0 0 20px rgba(57,255,20,0.3)' }}>BUY PLAY TIME</h3>
+                  <h3 className="font-ninja text-2xl text-ninja-green mb-1" style={{ textShadow: '0 0 20px rgba(57,255,20,0.3)' }}>{ar ? 'شراء وقت اللعب' : 'BUY PLAY TIME'}</h3>
                   <p className="font-body text-gray-400 text-sm">
-                    Balance: <span className="text-yellow-400 font-ninja">{Math.floor(player.coins)} coins</span>
+                    {ar ? 'الرصيد:' : 'Balance:'} <span className="text-yellow-400 font-ninja">{Math.floor(player.coins)} {ar ? 'توكنز' : 'coins'}</span>
                   </p>
                 </div>
 
@@ -1350,12 +1352,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                             </div>
                             <div>
                               <span className="font-ninja text-white">{pkg.label}</span>
-                              <span className="font-body text-gray-500 text-xs ml-2">({pkg.coins} coins)</span>
+                              <span className="font-body text-gray-500 text-xs ml-2">({pkg.coins} {ar ? 'توكنز' : 'coins'})</span>
                             </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            {pkg.popular && <span className="px-2 py-0.5 rounded-full bg-ninja-green/20 text-ninja-green font-ninja text-[9px]">BEST</span>}
-                            {pkg.savings && <span className="font-body text-[10px] text-ninja-green">{pkg.savings}</span>}
+                            {pkg.popular && <span className="px-2 py-0.5 rounded-full bg-ninja-green/20 text-ninja-green font-ninja text-[9px]">{ar ? 'الأفضل' : 'BEST'}</span>}
+                            {pkg.savings && <span className="font-body text-[10px] text-ninja-green">{ar ? pkg.savings.replace('Save', 'وفر') : pkg.savings}</span>}
                           </div>
                         </div>
                       </motion.button>
@@ -1372,10 +1374,10 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   }}
                   className="ninja-btn ninja-btn-green-fill ninja-btn-lg w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-ninja text-base">
                   {buying ? <span className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" /> : <Timer size={18} />}
-                  {buying ? 'PURCHASING...' : 'BUY TIME'}
+                  {buying ? (ar ? 'جاري الشراء...' : 'PURCHASING...') : (ar ? 'شراء الوقت' : 'BUY TIME')}
                 </motion.button>
 
-                <p className="font-body text-gray-600 text-[10px] text-center mt-3">Time is added instantly to your session. Coin deduction pauses during free play.</p>
+                <p className="font-body text-gray-600 text-[10px] text-center mt-3">{ar ? 'يُضاف الوقت فوراً إلى جلستك. يتوقف خصم العملات أثناء اللعب المجاني.' : 'Time is added instantly to your session. Coin deduction pauses during free play.'}</p>
               </div>
             </motion.div>
           )}
@@ -1396,8 +1398,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     style={{ background: 'rgba(255,215,0,0.12)', border: '2px solid rgba(255,215,0,0.4)', boxShadow: '0 0 40px rgba(255,215,0,0.2)' }}>
                     <Crown size={38} className="text-yellow-400" />
                   </motion.div>
-                  <h3 className="font-ninja text-3xl text-yellow-400 mb-2" style={{ textShadow: '0 0 20px rgba(255,215,0,0.3)' }}>VIP PASS</h3>
-                  <p className="font-body text-gray-400 text-sm">Purchase a 30-day VIP pass. Activate from your inventory or gift it to a friend.</p>
+                  <h3 className="font-ninja text-3xl text-yellow-400 mb-2" style={{ textShadow: '0 0 20px rgba(255,215,0,0.3)' }}>{ar ? 'VIP PASS' : 'VIP PASS'}</h3>
+                  <p className="font-body text-gray-400 text-sm">{ar ? 'اشترِ VIP Pass لمدة 30 يوماً. فعّله من المخزون أو أهدِه لصديق.' : 'Purchase a 30-day VIP pass. Activate from your inventory or gift it to a friend.'}</p>
                 </div>
 
                 {/* VIP Card */}
@@ -1411,24 +1413,24 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   <div className="p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div>
-                        <p className="font-ninja text-xl text-yellow-400">VIP PASS</p>
-                        <p className="font-body text-xs text-gray-500">30 days of premium benefits</p>
+                        <p className="font-ninja text-xl text-yellow-400">{ar ? 'بطاقة VIP' : 'VIP PASS'}</p>
+                        <p className="font-body text-xs text-gray-500">{ar ? '30 يوماً من المزايا المميزة' : '30 days of premium benefits'}</p>
                       </div>
                       <div className="text-right">
                         <p className="font-ninja text-3xl text-yellow-400">{VIP_CONFIG.priceCoins.toLocaleString()}</p>
-                        <p className="font-ninja text-sm text-gray-500">coins</p>
+                        <p className="font-ninja text-sm text-gray-500">{ar ? 'توكنز' : 'coins'}</p>
                       </div>
                     </div>
 
                     {/* Benefits grid */}
                     <div className="grid grid-cols-2 gap-2 mb-6">
                       {[
-                        { icon: <Coffee size={14} />, label: `${VIP_CONFIG.cafeDiscountPercent}% Café Discount`, color: '#00BFFF' },
-                        { icon: <Coins size={14} />, label: '+1 Coin Per Task', color: '#FFD700' },
-                        { icon: <Sparkles size={14} />, label: 'Exclusive VIP Skins', color: '#FF1493' },
-                        { icon: <Crown size={14} />, label: 'VIP Badge & UI', color: '#9B59B6' },
-                        { icon: <Gift size={14} />, label: '30min Daily Invite', color: '#39FF14' },
-                        { icon: <Coins size={14} />, label: '50 Coins Daily Gift', color: '#FF6F00' },
+                        { icon: <Coffee size={14} />, label: ar ? `${VIP_CONFIG.cafeDiscountPercent}% خصم الكافيه` : `${VIP_CONFIG.cafeDiscountPercent}% Café Discount`, color: '#00BFFF' },
+                        { icon: <Coins size={14} />, label: ar ? '+1 عملة لكل مهمة' : '+1 Coin Per Task', color: '#FFD700' },
+                        { icon: <Sparkles size={14} />, label: ar ? 'سكنز VIP حصرية' : 'Exclusive VIP Skins', color: '#FF1493' },
+                        { icon: <Crown size={14} />, label: ar ? 'شارة وواجهة VIP' : 'VIP Badge & UI', color: '#9B59B6' },
+                        { icon: <Gift size={14} />, label: ar ? '30 دقيقة دعوة يومية' : '30min Daily Invite', color: '#39FF14' },
+                        { icon: <Coins size={14} />, label: ar ? 'هدية يومية 50 توكن' : '50 Coins Daily Gift', color: '#FF6F00' },
                       ].map((perk, i) => (
                         <div key={i} className="flex items-center gap-2 px-3 py-2 rounded-lg"
                           style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1442,7 +1444,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     {isVIP ? (
                       <div className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-yellow-400/30 bg-yellow-400/10 mb-3">
                         <Crown size={17} className="text-yellow-400" />
-                        <span className="font-ninja text-sm text-yellow-400">VIP ACTIVE</span>
+                        <span className="font-ninja text-sm text-yellow-400">{ar ? 'VIP مفعّل' : 'VIP ACTIVE'}</span>
                       </div>
                     ) : null}
 
@@ -1459,14 +1461,14 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                       {buyingVip ? (
                         <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
                       ) : player.coins < VIP_CONFIG.priceCoins ? (
-                        <><Lock size={16} /> NOT ENOUGH COINS ({Math.floor(player.coins).toLocaleString()}/{VIP_CONFIG.priceCoins.toLocaleString()})</>
+                        <><Lock size={16} /> {ar ? `توكنز غير كافية (${Math.floor(player.coins).toLocaleString()}/${VIP_CONFIG.priceCoins.toLocaleString()})` : `NOT ENOUGH COINS (${Math.floor(player.coins).toLocaleString()}/${VIP_CONFIG.priceCoins.toLocaleString()})`}</>
                       ) : (
-                        <><ShoppingBag size={16} /> BUY VIP PASS — {VIP_CONFIG.priceCoins.toLocaleString()} COINS</>
+                        <><ShoppingBag size={16} /> {ar ? `اشترِ VIP PASS — ${VIP_CONFIG.priceCoins.toLocaleString()} توكن` : `BUY VIP PASS — ${VIP_CONFIG.priceCoins.toLocaleString()} COINS`}</>
                       )}
                     </motion.button>
 
                     <p className="font-body text-[10px] text-gray-600 text-center mt-3">
-                      VIP Pass goes to your inventory. Use it to activate, or gift it to a friend.
+                      {ar ? 'يذهب VIP Pass إلى مخزونك. استخدمه للتفعيل، أو أهدِه لصديق.' : 'VIP Pass goes to your inventory. Use it to activate, or gift it to a friend.'}
                     </p>
                   </div>
                 </motion.div>
@@ -1474,12 +1476,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 {/* How it works */}
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.25 }}
                   className="rounded-xl p-5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                  <p className="font-ninja text-xs text-gray-500 mb-3">HOW IT WORKS</p>
+                  <p className="font-ninja text-xs text-gray-500 mb-3">{ar ? 'كيف يعمل' : 'HOW IT WORKS'}</p>
                   <div className="grid grid-cols-3 gap-4">
                     {[
-                      { step: '1', title: 'Buy', desc: 'Purchase VIP Pass from this store', icon: <ShoppingBag size={18} />, color: '#FFD700' },
-                      { step: '2', title: 'Inventory', desc: 'VIP Pass appears in your inventory', icon: <Package size={18} />, color: '#39FF14' },
-                      { step: '3', title: 'Activate or Gift', desc: 'Use it yourself or gift to a friend', icon: <Gift size={18} />, color: '#FF6F00' },
+                      { step: '1', title: ar ? 'اشترِ' : 'Buy', desc: ar ? 'اشترِ VIP Pass من هذا المتجر' : 'Purchase VIP Pass from this store', icon: <ShoppingBag size={18} />, color: '#FFD700' },
+                      { step: '2', title: ar ? 'المخزون' : 'Inventory', desc: ar ? 'يظهر VIP Pass في مخزونك' : 'VIP Pass appears in your inventory', icon: <Package size={18} />, color: '#39FF14' },
+                      { step: '3', title: ar ? 'فعّل أو أهدِ' : 'Activate or Gift', desc: ar ? 'استخدمه بنفسك أو أهدِه لصديق' : 'Use it yourself or gift to a friend', icon: <Gift size={18} />, color: '#FF6F00' },
                     ].map(s => (
                       <div key={s.step} className="text-center">
                         <div className="w-10 h-10 rounded-full flex items-center justify-center mx-auto mb-2"
@@ -1506,10 +1508,10 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         <Check size={36} className="text-ninja-green" />
                       </div>
                     </motion.div>
-                    <h3 className="font-ninja text-2xl text-ninja-green mb-2">REQUEST SENT!</h3>
-                    <p className="font-body text-gray-400 text-sm mb-6">A staff member will come to process your payment.</p>
+                    <h3 className="font-ninja text-2xl text-ninja-green mb-2">{ar ? 'تم إرسال الطلب!' : 'REQUEST SENT!'}</h3>
+                    <p className="font-body text-gray-400 text-sm mb-6">{ar ? 'سيأتي موظف لمعالجة دفعتك.' : 'A staff member will come to process your payment.'}</p>
                     <button onClick={() => { setTopUpSent(false); setTopUpSelected(null); }}
-                      className="ninja-btn ninja-btn-green px-8 py-2.5 rounded-xl font-ninja">OK</button>
+                      className="ninja-btn ninja-btn-green px-8 py-2.5 rounded-xl font-ninja">{ar ? 'موافق' : 'OK'}</button>
                   </div>
                 ) : (
                   <>
@@ -1519,9 +1521,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(234,179,8,0.6)', borderRight: '2px solid rgba(234,179,8,0.6)' }} />
                         <Coins size={32} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 10px rgba(234,179,8,0.6))' }} />
                       </div>
-                      <h3 className="font-ninja text-2xl text-yellow-400 mb-1 tracking-[0.15em]" style={{ textShadow: '0 0 20px rgba(255,215,0,0.4)' }}>BUY COINS</h3>
+                      <h3 className="font-ninja text-2xl text-yellow-400 mb-1 tracking-[0.15em]" style={{ textShadow: '0 0 20px rgba(255,215,0,0.4)' }}>{ar ? 'شراء التوكنز' : 'BUY COINS'}</h3>
                       <p className="font-body text-gray-400 text-sm">
-                        Balance: <span className="text-yellow-400 font-ninja">{Math.floor(player.coins)} coins</span>
+                        {ar ? 'الرصيد:' : 'Balance:'} <span className="text-yellow-400 font-ninja">{Math.floor(player.coins)} {ar ? 'توكنز' : 'coins'}</span>
                       </p>
                     </div>
 
@@ -1551,12 +1553,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                                   {selected && <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" style={{ boxShadow: '0 0 4px #eab308' }} />}
                                 </div>
                                 <div>
-                                  <span className="font-ninja text-white" style={{ textShadow: selected ? '0 0 8px rgba(234,179,8,0.3)' : 'none' }}>{pkg.coins.toLocaleString()} tokens</span>
+                                  <span className="font-ninja text-white" style={{ textShadow: selected ? '0 0 8px rgba(234,179,8,0.3)' : 'none' }}>{pkg.coins.toLocaleString()} {ar ? 'توكنز' : 'tokens'}</span>
                                   <span className="font-body text-gray-500 text-xs ml-2">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
-                                {pkg.popular && <span className="px-2 py-0.5 rounded font-ninja text-[9px]" style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }}>BEST</span>}
+                                {pkg.popular && <span className="px-2 py-0.5 rounded font-ninja text-[9px]" style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }}>{ar ? 'الأفضل' : 'BEST'}</span>}
                                 <span className="font-ninja text-lg text-white" style={{ textShadow: '0 0 8px rgba(234,179,8,0.2)' }}>{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
                               </div>
                             </div>
@@ -1572,16 +1574,16 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                       className="w-full ninja-btn ninja-btn-green-fill ninja-btn-lg flex items-center justify-center gap-2 py-3.5 rounded-xl font-ninja text-base"
                       style={{ background: topUpSelected ? 'linear-gradient(135deg, #FFD700, #FFA000)' : undefined, color: topUpSelected ? '#000' : undefined }}>
                       {topUpLoading ? <span className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" /> : <Coins size={18} />}
-                      {topUpLoading ? 'SENDING...' : 'REQUEST TOP-UP'}
+                      {topUpLoading ? (ar ? 'جاري الإرسال...' : 'SENDING...') : (ar ? 'طلب شحن' : 'REQUEST TOP-UP')}
                     </motion.button>
-                    <p className="font-body text-gray-600 text-[10px] text-center mt-2">A staff member will come to collect payment and add coins to your account.</p>
+                    <p className="font-body text-gray-600 text-[10px] text-center mt-2">{ar ? 'سيأتي موظف لاستلام الدفعة وإضافة التوكنز إلى حسابك.' : 'A staff member will come to collect payment and add coins to your account.'}</p>
 
                     {/* Coin info cards */}
                     <div className="mt-8 grid grid-cols-3 gap-3">
                       {[
-                        { label: 'Rate', value: '100/JOD', sub: '1 JOD = 100 coins', color: '#39FF14' },
-                        { label: 'Play Cost', value: '2.5/min', sub: '150 coins per hour', color: '#00BFFF' },
-                        { label: 'Transfer Fee', value: '10%', sub: 'When sending coins', color: '#FF6F00' },
+                        { label: ar ? 'السعر' : 'Rate', value: '100/JOD', sub: ar ? '1 دينار = 100 توكن' : '1 JOD = 100 coins', color: '#39FF14' },
+                        { label: ar ? 'تكلفة اللعب' : 'Play Cost', value: '2.5/min', sub: ar ? '150 توكن لكل ساعة' : '150 coins per hour', color: '#00BFFF' },
+                        { label: ar ? 'رسوم التحويل' : 'Transfer Fee', value: '10%', sub: ar ? 'عند إرسال التوكنز' : 'When sending coins', color: '#FF6F00' },
                       ].map(info => (
                         <div key={info.label} className="relative text-center p-3 rounded-lg overflow-hidden" style={{ background: `linear-gradient(135deg, ${info.color}06, transparent)`, border: `1px solid ${info.color}18`, boxShadow: `0 0 10px ${info.color}06` }}>
                           <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: `1px solid ${info.color}50`, borderLeft: `1px solid ${info.color}50` }} />
@@ -1608,12 +1610,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                           <Crown size={28} className="text-yellow-400" />
                         </div>
                         <div className="flex-1">
-                          <p className="font-ninja text-sm text-yellow-400 tracking-wider">BECOME VIP</p>
-                          <p className="font-body text-xs text-gray-400 mt-0.5">Get exclusive perks, daily free play, café discounts, exclusive skins & more!</p>
-                          <p className="font-ninja text-xs text-white mt-1">{VIP_CONFIG.priceCoins.toLocaleString()} Coins</p>
+                          <p className="font-ninja text-sm text-yellow-400 tracking-wider">{ar ? 'كن VIP' : 'BECOME VIP'}</p>
+                          <p className="font-body text-xs text-gray-400 mt-0.5">{ar ? 'احصل على مزايا حصرية، لعب مجاني يومي، خصومات الكافيه، سكنز حصرية والمزيد!' : 'Get exclusive perks, daily free play, café discounts, exclusive skins & more!'}</p>
+                          <p className="font-ninja text-xs text-white mt-1">{VIP_CONFIG.priceCoins.toLocaleString()} {ar ? 'توكن' : 'Coins'}</p>
                         </div>
                         <div className="flex-shrink-0">
-                          <div className="px-3 py-1.5 rounded-lg font-ninja text-xs text-black" style={{ background: 'linear-gradient(135deg, #FFD700, #FFA000)' }}>VIEW</div>
+                          <div className="px-3 py-1.5 rounded-lg font-ninja text-xs text-black" style={{ background: 'linear-gradient(135deg, #FFD700, #FFA000)' }}>{ar ? 'عرض' : 'VIEW'}</div>
                         </div>
                       </div>
                     </motion.div>
@@ -1678,7 +1680,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
                   {/* GIFT CARD label top-left */}
                   <div className="absolute top-4 left-5 z-10">
-                    <p className="font-ninja text-[11px] text-white/60 tracking-[0.25em] uppercase">Gift Card</p>
+                    <p className="font-ninja text-[11px] text-white/60 tracking-[0.25em] uppercase">{ar ? 'بطاقة هدية' : 'Gift Card'}</p>
                   </div>
 
                   {/* Chip top-right */}
@@ -1720,7 +1722,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
                 {/* Title */}
                 <h2 className="font-ninja text-lg text-white mb-1 tracking-wider" style={{ textShadow: `0 0 10px ${gcModal.accent}40` }}>{gcModal.name}</h2>
-                <p className="font-body text-xs text-gray-500 mb-4">Select an amount below</p>
+                <p className="font-body text-xs text-gray-500 mb-4">{ar ? 'اختر مبلغاً من الأسفل' : 'Select an amount below'}</p>
 
                 {/* Denomination grid */}
                 <div className="grid grid-cols-3 gap-2 mb-4">
@@ -1754,7 +1756,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(234,179,8,0.4)', borderLeft: '1px solid rgba(234,179,8,0.4)' }} />
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(234,179,8,0.4)', borderRight: '1px solid rgba(234,179,8,0.4)' }} />
                     <div className="flex items-center justify-between">
-                      <span className="font-ninja text-[11px] text-gray-400 tracking-wider">TOTAL COST</span>
+                      <span className="font-ninja text-[11px] text-gray-400 tracking-wider">{ar ? 'التكلفة الإجمالية' : 'TOTAL COST'}</span>
                       <span className="font-ninja text-lg text-yellow-400 flex items-center gap-1.5" style={{ textShadow: '0 0 8px rgba(234,179,8,0.3)' }}>
                         <Coins size={14} /> {(gcAmount * USD_TO_COINS).toLocaleString()}
                       </span>
@@ -1766,8 +1768,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 {gcRequestSent ? (
                   <div className="relative rounded-lg p-4 mb-3 text-center overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.1), rgba(57,255,20,0.02))', border: '1px solid rgba(57,255,20,0.3)', boxShadow: '0 0 20px rgba(57,255,20,0.12)' }}>
                     <Check size={24} className="text-ninja-green mx-auto mb-1" style={{ filter: 'drop-shadow(0 0 8px rgba(57,255,20,0.5))' }} />
-                    <p className="font-ninja text-sm text-ninja-green tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>REQUEST SENT</p>
-                    <p className="font-body text-[10px] text-gray-500 mt-1">Staff will deliver your code shortly</p>
+                    <p className="font-ninja text-sm text-ninja-green tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>{ar ? 'تم إرسال الطلب' : 'REQUEST SENT'}</p>
+                    <p className="font-body text-[10px] text-gray-500 mt-1">{ar ? 'سيقوم الموظفون بتسليم الكود قريباً' : 'Staff will deliver your code shortly'}</p>
                   </div>
                 ) : null}
 
@@ -1780,12 +1782,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid rgba(0,0,0,0.3)', borderLeft: '2px solid rgba(0,0,0,0.3)' }} />
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid rgba(0,0,0,0.3)', borderRight: '2px solid rgba(0,0,0,0.3)' }} />
                     {gcSending ? <span className="animate-spin w-5 h-5 border-2 border-black border-t-transparent rounded-full" /> : <CreditCard size={18} />}
-                    {gcSending ? 'REQUESTING...' : `REQUEST ${gcModal.currency}${gcAmount || ''}`}
+                    {gcSending ? (ar ? 'جاري الطلب...' : 'REQUESTING...') : (ar ? `طلب ${gcModal.currency}${gcAmount || ''}` : `REQUEST ${gcModal.currency}${gcAmount || ''}`)}
                   </motion.button>
                 )}
 
                 <p className="font-body text-[10px] text-gray-600 text-center mt-3">
-                  Staff will deliver your code within a few minutes.
+                  {ar ? 'سيقوم الموظفون بتسليم الكود خلال بضع دقائق.' : 'Staff will deliver your code within a few minutes.'}
                 </p>
               </div>
             </motion.div>
@@ -1827,7 +1829,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <h2 className="font-ninja text-2xl mb-2" style={{ color: TIER_CONFIG[selectedSkin.tier].color }}>{selectedSkin.name}</h2>
                     <div className="flex items-center gap-2 mb-3">
                       <span className="px-2.5 py-1 rounded-full font-ninja text-[10px] tracking-wider" style={{ background: `${TIER_CONFIG[selectedSkin.tier].color}15`, color: TIER_CONFIG[selectedSkin.tier].color, border: `1px solid ${TIER_CONFIG[selectedSkin.tier].color}35` }}>{TIER_CONFIG[selectedSkin.tier].label}</span>
-                      {ownedNinjas.includes(selectedSkin.id) && <span className="px-2.5 py-1 rounded-full font-ninja text-[10px] tracking-wider bg-ninja-green/15 text-ninja-green border border-ninja-green/25">OWNED</span>}
+                      {ownedNinjas.includes(selectedSkin.id) && <span className="px-2.5 py-1 rounded-full font-ninja text-[10px] tracking-wider bg-ninja-green/15 text-ninja-green border border-ninja-green/25">{ar ? 'مملوك' : 'OWNED'}</span>}
                     </div>
                     <p className="font-body text-sm text-gray-400 leading-relaxed">{selectedSkin.description}</p>
                   </div>
@@ -1835,7 +1837,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 <div className="mb-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Zap size={14} style={{ color: TIER_CONFIG[selectedSkin.tier].color }} />
-                    <p className="font-ninja text-xs text-gray-400 tracking-wider">PERKS & BONUSES</p>
+                    <p className="font-ninja text-xs text-gray-400 tracking-wider">{ar ? 'المزايا والمكافآت' : 'PERKS & BONUSES'}</p>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     {getPerksList(selectedSkin).map((perk, i) => (
@@ -1852,11 +1854,11 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 {ownedNinjas.includes(selectedSkin.id) ? (
                   <div className="flex items-center justify-center gap-2 py-3.5 rounded-xl border border-ninja-green/20" style={{ background: 'rgba(57,255,20,0.05)' }}>
                     <Check size={18} className="text-ninja-green" />
-                    <span className="font-ninja text-sm text-ninja-green tracking-wider">ALREADY OWNED</span>
+                    <span className="font-ninja text-sm text-ninja-green tracking-wider">{ar ? 'مملوك بالفعل' : 'ALREADY OWNED'}</span>
                   </div>
                 ) : (
                   <div className="flex gap-3">
-                    <button onClick={() => setSelectedSkin(null)} className="ninja-btn ninja-btn-ghost flex-1">CANCEL</button>
+                    <button onClick={() => setSelectedSkin(null)} className="ninja-btn ninja-btn-ghost flex-1">{ar ? 'إلغاء' : 'CANCEL'}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => buySkin(selectedSkin)}
                       disabled={buying || buySuccess || (selectedSkin.price > 0 && player.coins < selectedSkin.price) || (selectedSkin.unlockLevel ? playerLevel < selectedSkin.unlockLevel : false)}
@@ -1869,10 +1871,10 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         : { background: `linear-gradient(135deg, ${TIER_CONFIG[selectedSkin.tier].color}, ${TIER_CONFIG[selectedSkin.tier].color}CC)`, color: '#000', border: 'none' }
                       }>
                       {buying ? <span className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" />
-                        : buySuccess ? <><Check size={16} /> UNLOCKED!</>
-                        : selectedSkin.unlockLevel && playerLevel < selectedSkin.unlockLevel ? <><Lock size={14} /> NEED LVL {selectedSkin.unlockLevel}</>
-                        : selectedSkin.price > 0 ? <><Coins size={14} /> BUY FOR {selectedSkin.price} COINS</>
-                        : <><Sparkles size={14} /> CLAIM FREE</>}
+                        : buySuccess ? <><Check size={16} /> {ar ? 'تم الفتح!' : 'UNLOCKED!'}</>
+                        : selectedSkin.unlockLevel && playerLevel < selectedSkin.unlockLevel ? <><Lock size={14} /> {ar ? `تحتاج المستوى ${selectedSkin.unlockLevel}` : `NEED LVL ${selectedSkin.unlockLevel}`}</>
+                        : selectedSkin.price > 0 ? <><Coins size={14} /> {ar ? `اشترِ بـ ${selectedSkin.price} توكن` : `BUY FOR ${selectedSkin.price} COINS`}</>
+                        : <><Sparkles size={14} /> {ar ? 'احصل مجاناً' : 'CLAIM FREE'}</>}
                     </motion.button>
                   </div>
                 )}
@@ -1905,9 +1907,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                   className="w-32 h-32 mx-auto object-contain mb-3" style={{ filter: `drop-shadow(0 0 20px ${confirmChest.glowColor})` }}
                   animate={{ y: [0, -8, 0] }} transition={{ duration: 2.5, repeat: Infinity }} />
                 <h3 className="font-ninja text-2xl" style={{ color: confirmChest.color }}>{confirmChest.name}</h3>
-                <p className="font-body text-sm text-gray-400 mt-1 flex items-center justify-center gap-1">Cost: <Coins size={14} className="text-yellow-400" /> {getDiscountedCost(confirmChest.cost)}</p>
+                <p className="font-body text-sm text-gray-400 mt-1 flex items-center justify-center gap-1">{ar ? 'التكلفة:' : 'Cost:'} <Coins size={14} className="text-yellow-400" /> {getDiscountedCost(confirmChest.cost)}</p>
               </div>
-              <h4 className="font-ninja text-sm text-gray-300 mb-3 text-center tracking-wider">POSSIBLE REWARDS</h4>
+              <h4 className="font-ninja text-sm text-gray-300 mb-3 text-center tracking-wider">{ar ? 'المكافآت المحتملة' : 'POSSIBLE REWARDS'}</h4>
               <div className="grid grid-cols-3 gap-2 max-h-[250px] overflow-y-auto pr-1 mb-5">
                 {confirmChest.rewards.map(r => (
                   <div key={r.id} className="rounded-xl p-2.5 text-center" style={{ background: `${RARITY_COLORS[r.rarity]?.bg || '#666'}08`, border: `1px solid ${RARITY_COLORS[r.rarity]?.bg || '#666'}20` }}>
@@ -1920,17 +1922,17 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 ))}
               </div>
               <div className="flex gap-2">
-                <button onClick={() => setConfirmChest(null)} className="ninja-btn ninja-btn-ghost px-4 py-3 rounded-xl font-ninja text-xs">CANCEL</button>
+                <button onClick={() => setConfirmChest(null)} className="ninja-btn ninja-btn-ghost px-4 py-3 rounded-xl font-ninja text-xs">{ar ? 'إلغاء' : 'CANCEL'}</button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => { buyChestToInventory(confirmChest); setConfirmChest(null); }}
                   className="flex-1 py-3 rounded-xl font-ninja text-xs tracking-wider"
                   style={{ background: 'rgba(255,255,255,0.04)', border: `1px solid ${confirmChest.color}40`, color: confirmChest.color }}>
-                  SAVE FOR LATER
+                  {ar ? 'احفظ لوقت لاحق' : 'SAVE FOR LATER'}
                 </motion.button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                   onClick={() => { openChest(confirmChest); setConfirmChest(null); }}
                   className="ninja-btn ninja-btn-green-fill flex-[1.3] py-3 rounded-xl font-ninja text-black text-sm tracking-wider"
-                  style={{ background: confirmChest.color }}>OPEN NOW</motion.button>
+                  style={{ background: confirmChest.color }}>{ar ? 'افتح الآن' : 'OPEN NOW'}</motion.button>
               </div>
             </motion.div>
           </motion.div>
@@ -1985,7 +1987,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 </div>
                 <motion.button initial={{ opacity: 0 }} animate={{ opacity: 0.6 }} transition={{ delay: 2 }}
                   onClick={() => { cancelAnimationFrame(animFrameRef.current); setSpinOffset(winIndex * CARD_W); setActiveCardIndex(winIndex); setPhase('reveal'); }}
-                  className="ninja-btn ninja-btn-ghost mt-10 px-10 py-3 rounded-xl font-ninja text-sm">SKIP</motion.button>
+                  className="ninja-btn ninja-btn-ghost mt-10 px-10 py-3 rounded-xl font-ninja text-sm">{ar ? 'تخطي' : 'SKIP'}</motion.button>
               </div>
             )}
             {phase === 'reveal' && reward && (
@@ -2018,7 +2020,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     )}
                   </div>
                 </motion.div>
-                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ delay: 1.5 }} className="font-body text-gray-500 mt-8">Click anywhere to continue</motion.p>
+                <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.5 }} transition={{ delay: 1.5 }} className="font-body text-gray-500 mt-8">{ar ? 'اضغط في أي مكان للمتابعة' : 'Click anywhere to continue'}</motion.p>
               </motion.div>
             )}
           </motion.div>

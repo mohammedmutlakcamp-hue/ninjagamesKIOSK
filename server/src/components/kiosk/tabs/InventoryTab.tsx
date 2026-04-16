@@ -82,6 +82,8 @@ const CATEGORIES: { id: Category; label: string; icon: React.ReactNode; color: s
 ];
 
 export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   const [detailModal, setDetailModal] = useState<InventoryItem | null>(null);
   const [sellModal, setSellModal] = useState<InventoryItem | null>(null);
   const [useModal, setUseModal] = useState<InventoryItem | null>(null);
@@ -424,8 +426,8 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
             <div className="flex items-center gap-2">
               <Package size={20} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 8px rgba(57,255,20,0.6))' }} />
               <div>
-                <h2 className="font-ninja text-base text-ninja-green tracking-wider" style={{ textShadow: '0 0 15px rgba(57,255,20,0.5)' }}>INVENTORY</h2>
-                <p className="font-body text-[9px] text-gray-600">{inventory.length} items collected</p>
+                <h2 className="font-ninja text-base text-ninja-green tracking-wider" style={{ textShadow: '0 0 15px rgba(57,255,20,0.5)' }}>{ar ? 'الحقيبة' : 'INVENTORY'}</h2>
+                <p className="font-body text-[9px] text-gray-600">{ar ? `${inventory.length} عنصر` : `${inventory.length} items collected`}</p>
               </div>
             </div>
           </div>
@@ -507,7 +509,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                 <Coins size={18} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 6px rgba(234,179,8,0.6))' }} />
               </div>
               <div>
-                <span className="font-body text-[8px] text-gray-500 uppercase tracking-wider">BALANCE</span>
+                <span className="font-body text-[8px] text-gray-500 uppercase tracking-wider">{ar ? 'الرصيد' : 'BALANCE'}</span>
                 <p className="font-ninja text-lg text-yellow-300 leading-tight" style={{ textShadow: '0 0 10px rgba(234,179,8,0.4)' }}>{Math.floor(player.coins).toLocaleString()}</p>
               </div>
             </div>
@@ -538,12 +540,12 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
 
           <div className="relative z-[2] flex items-center gap-2 px-3 py-2">
             <div className="flex-1 max-w-xs relative">
-              <NinjaInput type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Search..." icon={<Search size={12} />} />
+              <NinjaInput type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder={ar ? 'بحث...' : 'Search...'} icon={<Search size={12} />} />
               {searchQuery && <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white z-10"><X size={12} /></button>}
             </div>
             <button onClick={() => { setBulkMode(!bulkMode); setSelectedIds(new Set()); }}
               className={`ninja-btn ${bulkMode ? 'ninja-btn-red' : 'ninja-btn-ghost'} text-[11px] flex-shrink-0 px-4 py-2`}>
-              {bulkMode ? 'CANCEL' : 'SELECT ITEMS'}
+              {bulkMode ? (ar ? 'إلغاء' : 'CANCEL') : (ar ? 'اختيار العناصر' : 'SELECT ITEMS')}
             </button>
             {bulkMode && (
               <>
@@ -551,12 +553,12 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                   const tradeableIds = filteredInventory.filter(i => i.tradeable !== false).map(i => i.id);
                   setSelectedIds(prev => prev.size === tradeableIds.length ? new Set() : new Set(tradeableIds));
                 }} className="ninja-btn ninja-btn-sm ninja-btn-ghost text-[11px] flex-shrink-0">
-                  {selectedIds.size === filteredInventory.filter(i => i.tradeable !== false).length ? 'NONE' : 'ALL'}
+                  {selectedIds.size === filteredInventory.filter(i => i.tradeable !== false).length ? (ar ? 'لا شيء' : 'NONE') : (ar ? 'الكل' : 'ALL')}
                 </button>
                 {selectedIds.size > 0 && (
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} onClick={handleBulkSell}
                     className="ninja-btn ninja-btn-sm ninja-btn-yellow flex items-center gap-1.5 text-[11px] flex-shrink-0">
-                    <Coins size={12} /> SELL {selectedIds.size} ({bulkSellTotal} <Coins size={10} className="inline" />)
+                    <Coins size={12} /> {ar ? 'بيع' : 'SELL'} {selectedIds.size} ({bulkSellTotal} <Coins size={10} className="inline" />)
                   </motion.button>
                 )}
               </>
@@ -571,8 +573,8 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               <div className="w-20 h-20 rounded-2xl bg-white/[0.02] border border-white/[0.05] flex items-center justify-center mx-auto mb-4">
                 {category === 'all' ? <Package size={40} className="text-gray-700" /> : <Search size={36} className="text-gray-700" />}
               </div>
-              <p className="font-ninja text-lg text-gray-600">{inventory.length === 0 ? 'NO ITEMS YET' : 'NO MATCHES'}</p>
-              <p className="font-body text-gray-700 text-sm mt-1">{inventory.length === 0 ? 'Open chests to get items!' : 'Try a different category or search'}</p>
+              <p className="font-ninja text-lg text-gray-600">{inventory.length === 0 ? (ar ? 'لا توجد عناصر' : 'NO ITEMS YET') : (ar ? 'لا توجد نتائج' : 'NO MATCHES')}</p>
+              <p className="font-body text-gray-700 text-sm mt-1">{inventory.length === 0 ? (ar ? 'افتح الصناديق للحصول على العناصر!' : 'Open chests to get items!') : (ar ? 'جرب فئة أخرى أو بحثاً مختلفاً' : 'Try a different category or search')}</p>
             </div>
           </div>
         ) : (
@@ -610,7 +612,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                         <motion.div className="absolute -top-3 left-1/2 -translate-x-1/2 z-30 px-3 py-1 rounded-full font-ninja text-[9px] tracking-wider whitespace-nowrap"
                           initial={{ y: -10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}
                           style={{ background: 'rgba(192,132,252,0.25)', border: '1px solid rgba(192,132,252,0.5)', color: '#c084fc', boxShadow: '0 0 12px rgba(192,132,252,0.3)' }}>
-                          NEW ITEM
+                          {ar ? 'عنصر جديد' : 'NEW ITEM'}
                         </motion.div>
                       </>
                     )}
@@ -658,7 +660,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                       {equipped && !bulkMode && (
                         <div className="absolute bottom-10 left-2 z-20 flex items-center gap-1 bg-ninja-green/20 border border-ninja-green/40 rounded-md px-1.5 py-0.5">
                           <ShieldCheck size={10} className="text-ninja-green" />
-                          <span className="font-ninja text-[8px] text-ninja-green">EQUIPPED</span>
+                          <span className="font-ninja text-[8px] text-ninja-green">{ar ? 'مُجهز' : 'EQUIPPED'}</span>
                         </div>
                       )}
 
@@ -668,14 +670,14 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                         {isNonTradeable && !equipped && (
                           <div className="flex items-center gap-1 bg-black/50 border border-white/10 rounded-md px-1.5 py-0.5">
                             <Lock size={8} className="text-gray-500" />
-                            <span className="font-body text-[7px] text-gray-500">NON-TRADEABLE</span>
+                            <span className="font-body text-[7px] text-gray-500">{ar ? 'غير قابل للتبادل' : 'NON-TRADEABLE'}</span>
                           </div>
                         )}
                         {/* Gift badge — sent by friend */}
                         {item.sentBy && (
                           <div className="flex items-center gap-1 bg-purple-500/20 border border-purple-500/30 rounded-md px-1.5 py-0.5">
                             <Gift size={8} className="text-purple-400" />
-                            <span className="font-body text-[7px] text-purple-300 max-w-[60px] truncate">from {item.sentBy}</span>
+                            <span className="font-body text-[7px] text-purple-300 max-w-[60px] truncate">{ar ? `من ${item.sentBy}` : `from ${item.sentBy}`}</span>
                           </div>
                         )}
                       </div>
@@ -731,13 +733,13 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
 
                 <div className="relative z-[2] flex items-center justify-center gap-3 py-3">
                   <button onClick={() => setPage(Math.max(0, page - 1))} disabled={page === 0}
-                    className={`ninja-btn ninja-btn-ghost ninja-btn-sm text-[11px] ${page === 0 ? 'opacity-30' : ''}`}>&lt; Prev</button>
+                    className={`ninja-btn ninja-btn-ghost ninja-btn-sm text-[11px] ${page === 0 ? 'opacity-30' : ''}`}>&lt; {ar ? 'السابق' : 'Prev'}</button>
                   <span className="font-ninja text-sm text-gray-400">
-                    Page <span className="text-white">{page + 1}</span>/{Math.ceil(filteredInventory.length / ITEMS_PER_PAGE)}
+                    {ar ? 'صفحة' : 'Page'} <span className="text-white">{page + 1}</span>/{Math.ceil(filteredInventory.length / ITEMS_PER_PAGE)}
                   </span>
                   <button onClick={() => setPage(Math.min(Math.ceil(filteredInventory.length / ITEMS_PER_PAGE) - 1, page + 1))}
                     disabled={page >= Math.ceil(filteredInventory.length / ITEMS_PER_PAGE) - 1}
-                    className={`ninja-btn ninja-btn-ghost ninja-btn-sm text-[11px] ${page >= Math.ceil(filteredInventory.length / ITEMS_PER_PAGE) - 1 ? 'opacity-30' : ''}`}>Next &gt;</button>
+                    className={`ninja-btn ninja-btn-ghost ninja-btn-sm text-[11px] ${page >= Math.ceil(filteredInventory.length / ITEMS_PER_PAGE) - 1 ? 'opacity-30' : ''}`}>{ar ? 'التالي' : 'Next'} &gt;</button>
                 </div>
               </div>
             )}
@@ -807,8 +809,8 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                     {detailModal.rarity}
                   </span>
                   <span className="font-body text-[10px] text-gray-500 uppercase">{detailModal.type.replace('_', ' ')}</span>
-                  {isEquipped(detailModal) && <span className="flex items-center gap-1 font-ninja text-[10px] text-ninja-green" style={{ textShadow: '0 0 6px rgba(57,255,20,0.4)' }}><ShieldCheck size={10} /> EQUIPPED</span>}
-                  {detailModal.tradeable === false && <span className="flex items-center gap-1 font-body text-[9px] text-gray-500 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/5"><Lock size={8} /> Non-tradeable</span>}
+                  {isEquipped(detailModal) && <span className="flex items-center gap-1 font-ninja text-[10px] text-ninja-green" style={{ textShadow: '0 0 6px rgba(57,255,20,0.4)' }}><ShieldCheck size={10} /> {ar ? 'مُجهز' : 'EQUIPPED'}</span>}
+                  {detailModal.tradeable === false && <span className="flex items-center gap-1 font-body text-[9px] text-gray-500 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/5"><Lock size={8} /> {ar ? 'غير قابل للتبادل' : 'Non-tradeable'}</span>}
                 </div>
 
                 {/* Details grid — HUD styled */}
@@ -817,21 +819,21 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                     <div className="relative rounded-lg px-3 py-2.5" style={{ background: 'rgba(234,179,8,0.04)', border: '1px solid rgba(234,179,8,0.15)' }}>
                       <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '1px solid rgba(234,179,8,0.4)', borderLeft: '1px solid rgba(234,179,8,0.4)' }} />
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '1px solid rgba(234,179,8,0.4)', borderRight: '1px solid rgba(234,179,8,0.4)' }} />
-                      <p className="font-body text-[9px] text-gray-500 uppercase mb-0.5">Value</p>
+                      <p className="font-body text-[9px] text-gray-500 uppercase mb-0.5">{ar ? 'القيمة' : 'Value'}</p>
                       <p className="font-ninja text-sm text-yellow-400 flex items-center gap-1"><Coins size={12} /> {detailModal.value}</p>
                     </div>
                   )}
                   <div className="relative rounded-lg px-3 py-2.5" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
                     <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '1px solid rgba(255,255,255,0.15)', borderLeft: '1px solid rgba(255,255,255,0.15)' }} />
                     <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '1px solid rgba(255,255,255,0.15)', borderRight: '1px solid rgba(255,255,255,0.15)' }} />
-                    <p className="font-body text-[9px] text-gray-500 uppercase mb-0.5">Obtained</p>
+                    <p className="font-body text-[9px] text-gray-500 uppercase mb-0.5">{ar ? 'تاريخ الحصول' : 'Obtained'}</p>
                     <p className="font-body text-sm text-gray-300 flex items-center gap-1"><Clock size={11} className="text-gray-500" /> {formatDate(detailModal.obtainedAt)}</p>
                   </div>
                   {detailModal.sentBy && (
                     <div className="relative rounded-lg px-3 py-2.5 col-span-2" style={{ background: 'rgba(168,85,247,0.04)', border: '1px solid rgba(168,85,247,0.15)' }}>
                       <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '1px solid rgba(168,85,247,0.4)', borderLeft: '1px solid rgba(168,85,247,0.4)' }} />
                       <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '1px solid rgba(168,85,247,0.4)', borderRight: '1px solid rgba(168,85,247,0.4)' }} />
-                      <p className="font-body text-[9px] text-purple-400 uppercase mb-0.5">Gift from friend</p>
+                      <p className="font-body text-[9px] text-purple-400 uppercase mb-0.5">{ar ? 'هدية من صديق' : 'Gift from friend'}</p>
                       <p className="font-body text-sm text-purple-300 flex items-center gap-1"><Gift size={11} /> {detailModal.sentBy}</p>
                     </div>
                   )}
@@ -843,34 +845,34 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(57,255,20,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => handleEquipSkin(detailModal)} disabled={processing}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-black"
                       style={{ background: 'linear-gradient(135deg, #2ddb1a, #39FF14)', boxShadow: '0 0 12px rgba(57,255,20,0.2)' }}>
-                      {processing ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} EQUIP
+                      {processing ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />} {ar ? 'تجهيز' : 'EQUIP'}
                     </motion.button>
                   )}
                   {detailModal.type === 'skin' && isEquipped(detailModal) && (
                     <div className="flex-1 py-3 flex items-center justify-center gap-2 font-ninja text-sm rounded-xl"
                       style={{ color: 'rgba(57,255,20,0.5)', border: '1px solid rgba(57,255,20,0.2)', background: 'rgba(57,255,20,0.04)' }}>
-                      <ShieldCheck size={16} /> CURRENTLY EQUIPPED
+                      <ShieldCheck size={16} /> {ar ? 'مُجهز حالياً' : 'CURRENTLY EQUIPPED'}
                     </div>
                   )}
                   {detailModal.type !== 'skin' && detailModal.tradeable !== false && (
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(57,255,20,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => setUseModal(detailModal)}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-black"
                       style={{ background: 'linear-gradient(135deg, #2ddb1a, #39FF14)', boxShadow: '0 0 12px rgba(57,255,20,0.2)' }}>
-                      <Sparkles size={16} /> USE
+                      <Sparkles size={16} /> {ar ? 'استخدام' : 'USE'}
                     </motion.button>
                   )}
                   {detailModal.tradeable !== false && (
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(168,85,247,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => setSendModal(detailModal)}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-white"
                       style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}>
-                      <Send size={16} /> SEND
+                      <Send size={16} /> {ar ? 'إرسال' : 'SEND'}
                     </motion.button>
                   )}
                   {detailModal.tradeable !== false && detailModal.type !== 'skin' && detailModal.type !== 'vip' && (
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(234,179,8,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => setSellModal(detailModal)}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-black"
                       style={{ background: 'linear-gradient(135deg, #d4a017, #eab308)', boxShadow: '0 0 12px rgba(234,179,8,0.2)' }}>
-                      <Coins size={16} /> SELL
+                      <Coins size={16} /> {ar ? 'بيع' : 'SELL'}
                     </motion.button>
                   )}
                 </div>
@@ -899,7 +901,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               {/* Top neon accent line */}
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-ninja text-xl text-yellow-400 tracking-wider" style={{ textShadow: '0 0 12px rgba(234,179,8,0.4)' }}>SELL ITEM</h3>
+                <h3 className="font-ninja text-xl text-yellow-400 tracking-wider" style={{ textShadow: '0 0 12px rgba(234,179,8,0.4)' }}>{ar ? 'بيع العنصر' : 'SELL ITEM'}</h3>
                 <button onClick={() => setSellModal(null)} className="w-9 h-9 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:rotate-90" style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}><X size={16} /></button>
               </div>
               <div className="relative flex items-center gap-4 mb-5 rounded-xl p-3" style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -911,16 +913,16 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               <div className="relative rounded-xl p-4 mb-5 space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(234,179,8,0.12)' }}>
                 <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '1px solid rgba(234,179,8,0.25)', borderLeft: '1px solid rgba(234,179,8,0.25)' }} />
                 <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '1px solid rgba(234,179,8,0.25)', borderRight: '1px solid rgba(234,179,8,0.25)' }} />
-                <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">Item value</span><span className="font-body text-sm text-gray-300 flex items-center gap-1"><Coins size={12} className="text-yellow-500" /> {sellModal.value || 0}</span></div>
-                <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">Sell fee (20%)</span><span className="font-body text-sm text-red-400">-{Math.floor((sellModal.value || 0) * 0.2)}</span></div>
-                <div className="border-t border-white/10 pt-2 flex items-center justify-between"><span className="font-body text-xs text-gray-400 font-bold">You receive</span><span className="font-ninja text-lg text-yellow-400 flex items-center gap-1" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}><Coins size={14} /> {getSellValue(sellModal)}</span></div>
+                <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">{ar ? 'قيمة العنصر' : 'Item value'}</span><span className="font-body text-sm text-gray-300 flex items-center gap-1"><Coins size={12} className="text-yellow-500" /> {sellModal.value || 0}</span></div>
+                <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">{ar ? 'رسوم البيع (20%)' : 'Sell fee (20%)'}</span><span className="font-body text-sm text-red-400">-{Math.floor((sellModal.value || 0) * 0.2)}</span></div>
+                <div className="border-t border-white/10 pt-2 flex items-center justify-between"><span className="font-body text-xs text-gray-400 font-bold">{ar ? 'ستستلم' : 'You receive'}</span><span className="font-ninja text-lg text-yellow-400 flex items-center gap-1" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}><Coins size={14} /> {getSellValue(sellModal)}</span></div>
               </div>
               <div className="flex gap-3">
-                <button onClick={() => setSellModal(null)} className="flex-1 py-3 rounded-xl font-ninja text-sm text-gray-400" style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}>CANCEL</button>
+                <button onClick={() => setSellModal(null)} className="flex-1 py-3 rounded-xl font-ninja text-sm text-gray-400" style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}>{ar ? 'إلغاء' : 'CANCEL'}</button>
                 <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(234,179,8,0.4)' }} whileTap={{ scale: 0.96 }} onClick={() => handleSell(sellModal)} disabled={processing}
                   className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-black"
                   style={{ background: 'linear-gradient(135deg, #d4a017, #eab308)', boxShadow: '0 0 12px rgba(234,179,8,0.2)' }}>
-                  {processing ? <Loader2 size={16} className="animate-spin" /> : <Coins size={16} />} CONFIRM SELL
+                  {processing ? <Loader2 size={16} className="animate-spin" /> : <Coins size={16} />} {ar ? 'تأكيد البيع' : 'CONFIRM SELL'}
                 </motion.button>
               </div>
             </motion.div>
@@ -1040,7 +1042,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                         style={{ textShadow: '0 0 30px rgba(255,215,0,0.7), 0 0 60px rgba(255,149,0,0.4)' }}>
                         +{chestResult.value}
                       </p>
-                      <p className="font-ninja text-sm text-yellow-300/80 tracking-[0.3em]">TOKENS</p>
+                      <p className="font-ninja text-sm text-yellow-300/80 tracking-[0.3em]">{ar ? 'توكنز' : 'TOKENS'}</p>
                     </motion.div>
                   ) : (
                     <motion.p
@@ -1053,14 +1055,14 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                   <motion.p
                     initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}
                     className="font-body text-gray-400 text-sm mt-4 relative z-10">
-                    {chestResult.type === 'coins' ? 'Added to your balance!' : 'Added to your inventory!'}
+                    {chestResult.type === 'coins' ? (ar ? 'تمت الإضافة إلى رصيدك!' : 'Added to your balance!') : (ar ? 'تمت الإضافة إلى حقيبتك!' : 'Added to your inventory!')}
                   </motion.p>
                 </motion.div>
               ) : chestPhase !== 'idle' ? null : (
                 <>
                   <div className="flex items-center justify-between mb-5">
                     <h3 className="font-ninja text-lg tracking-wider" style={{ color: useModal.type === 'chest' ? '#00BFFF' : '#39FF14' }}>
-                      {useModal.type === 'chest' ? 'OPEN CHEST' : 'USE ITEM'}
+                      {useModal.type === 'chest' ? (ar ? 'فتح الصندوق' : 'OPEN CHEST') : (ar ? 'استخدام العنصر' : 'USE ITEM')}
                     </h3>
                     <button onClick={() => setUseModal(null)} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white"><X size={16} /></button>
                   </div>
@@ -1074,14 +1076,14 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                     )}
                     <div>
                       <p className="font-ninja text-sm text-white">{useModal.name.toUpperCase()}</p>
-                      <p className="font-body text-[10px] capitalize" style={{ color: useModal.type === 'chest' ? '#00BFFF' : rarityColor(useModal.rarity) }}>{useModal.type === 'chest' ? 'Openable Chest' : useModal.rarity}</p>
+                      <p className="font-body text-[10px] capitalize" style={{ color: useModal.type === 'chest' ? '#00BFFF' : rarityColor(useModal.rarity) }}>{useModal.type === 'chest' ? (ar ? 'صندوق قابل للفتح' : 'Openable Chest') : useModal.rarity}</p>
                     </div>
                   </div>
 
                   {/* Chest rewards preview */}
                   {useModal.type === 'chest' && (
                     <div className="mb-5">
-                      <p className="font-ninja text-[10px] text-gray-400 tracking-wider mb-2">POSSIBLE REWARDS</p>
+                      <p className="font-ninja text-[10px] text-gray-400 tracking-wider mb-2">{ar ? 'المكافآت المحتملة' : 'POSSIBLE REWARDS'}</p>
                       <div className="grid grid-cols-3 gap-1.5">
                         {DAILY_CHEST_REWARDS.map((r, i) => (
                           <div key={i} className="text-center p-2 rounded-lg" style={{ background: `${rarityColor(r.rarity)}08`, border: `1px solid ${rarityColor(r.rarity)}15` }}>
@@ -1094,21 +1096,21 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                   )}
 
                   {useModal.type === 'vip' && (
-                    <div className="bg-yellow-400/[0.05] border border-yellow-400/10 rounded-lg px-3 py-2 mb-4"><p className="font-body text-xs text-gray-400">VIP will activate for <span className="text-yellow-400 font-ninja">{VIP_CONFIG.durationDays} days</span>. If already active, days will be added to your current expiry.</p></div>
+                    <div className="bg-yellow-400/[0.05] border border-yellow-400/10 rounded-lg px-3 py-2 mb-4"><p className="font-body text-xs text-gray-400">{ar ? 'سيتم تفعيل VIP لمدة ' : 'VIP will activate for '}<span className="text-yellow-400 font-ninja">{VIP_CONFIG.durationDays} {ar ? 'يوم' : 'days'}</span>{ar ? '. إذا كان مفعلاً بالفعل، ستُضاف الأيام إلى تاريخ انتهائك الحالي.' : '. If already active, days will be added to your current expiry.'}</p></div>
                   )}
                   {useModal.type === 'voucher' && !useModal.name.toLowerCase().includes('tournament') && (
-                    <div className="bg-ninja-green/[0.05] border border-ninja-green/10 rounded-lg px-3 py-2 mb-4"><p className="font-body text-xs text-gray-400">An order will be created for the staff</p></div>
+                    <div className="bg-ninja-green/[0.05] border border-ninja-green/10 rounded-lg px-3 py-2 mb-4"><p className="font-body text-xs text-gray-400">{ar ? 'سيتم إنشاء طلب للموظفين' : 'An order will be created for the staff'}</p></div>
                   )}
 
                   <div className="flex gap-3">
-                    <button onClick={() => setUseModal(null)} className="ninja-btn ninja-btn-ghost flex-1 py-3 font-ninja text-sm">CANCEL</button>
+                    <button onClick={() => setUseModal(null)} className="ninja-btn ninja-btn-ghost flex-1 py-3 font-ninja text-sm">{ar ? 'إلغاء' : 'CANCEL'}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleUse(useModal)} disabled={processing}
                       className={`flex-1 py-3 flex items-center justify-center gap-2 font-ninja text-sm rounded-xl transition-all ${
                         useModal.type === 'chest' ? 'text-white' : useModal.type === 'vip' ? 'text-black' : 'ninja-btn ninja-btn-green'
                       }`}
                       style={useModal.type === 'chest' ? { background: 'linear-gradient(135deg, #00BFFF, #0080FF)', border: 'none' } : useModal.type === 'vip' ? { background: 'linear-gradient(135deg, #FFD700, #FFA000)', border: 'none' } : {}}>
                       {processing ? <Loader2 size={16} className="animate-spin" /> : useModal.type === 'chest' ? <Package size={16} /> : useModal.type === 'vip' ? <Crown size={16} /> : <Sparkles size={16} />}
-                      {useModal.type === 'chest' ? 'OPEN CHEST' : useModal.type === 'vip' ? 'ACTIVATE VIP' : 'CONFIRM USE'}
+                      {useModal.type === 'chest' ? (ar ? 'فتح الصندوق' : 'OPEN CHEST') : useModal.type === 'vip' ? (ar ? 'تفعيل VIP' : 'ACTIVATE VIP') : (ar ? 'تأكيد الاستخدام' : 'CONFIRM USE')}
                     </motion.button>
                   </div>
                 </>
@@ -1161,7 +1163,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               {/* Top neon accent line */}
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
               <div className="flex items-center justify-between mb-5">
-                <h3 className="font-ninja text-lg text-purple-400 tracking-wider">SEND TO FRIEND</h3>
+                <h3 className="font-ninja text-lg text-purple-400 tracking-wider">{ar ? 'إرسال إلى صديق' : 'SEND TO FRIEND'}</h3>
                 <button onClick={closeSendModal} className="w-8 h-8 rounded-full bg-white/[0.05] border border-white/[0.1] flex items-center justify-center text-gray-400 hover:text-white"><X size={16} /></button>
               </div>
               {sendSuccess ? (
@@ -1180,26 +1182,26 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                   {!sendPinVerified ? (
                     <div className="space-y-4">
                       <div>
-                        <label className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 block flex items-center gap-1"><Lock size={10} /> Verify PIN</label>
+                        <label className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 block flex items-center gap-1"><Lock size={10} /> {ar ? 'تحقق من PIN' : 'Verify PIN'}</label>
                         <NinjaInput type="password" maxLength={6} value={sendPin} onChange={(e) => { setSendPin(e.target.value.replace(/\D/g, '')); setSendError(''); }}
-                          placeholder="Enter your 6-digit PIN" icon={<Lock size={14} />} className="text-center text-lg tracking-[0.5em]" />
+                          placeholder={ar ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'} icon={<Lock size={14} />} className="text-center text-lg tracking-[0.5em]" />
                       </div>
                       {sendError && <p className="font-body text-red-400 text-sm text-center">{sendError}</p>}
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleSendToFriend(sendModal)}
-                        className="ninja-btn ninja-btn-purple w-full py-3 flex items-center justify-center gap-2 font-ninja text-sm"><Lock size={16} /> VERIFY PIN</motion.button>
+                        className="ninja-btn ninja-btn-purple w-full py-3 flex items-center justify-center gap-2 font-ninja text-sm"><Lock size={16} /> {ar ? 'تحقق من PIN' : 'VERIFY PIN'}</motion.button>
                     </div>
                   ) : (
                     <div className="space-y-4">
                       <div>
-                        <label className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 block">Recipient Username</label>
-                        <NinjaInput type="text" value={sendTarget} onChange={(e) => { setSendTarget(e.target.value); setSendError(''); }} placeholder="Enter friend's username" />
+                        <label className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 block">{ar ? 'اسم المستلم' : 'Recipient Username'}</label>
+                        <NinjaInput type="text" value={sendTarget} onChange={(e) => { setSendTarget(e.target.value); setSendError(''); }} placeholder={ar ? 'أدخل اسم صديقك' : "Enter friend's username"} />
                       </div>
                       {sendError && <p className="font-body text-red-400 text-sm text-center">{sendError}</p>}
                       <div className="flex gap-3">
-                        <button onClick={closeSendModal} className="ninja-btn ninja-btn-ghost flex-1 py-3 font-ninja text-sm">CANCEL</button>
+                        <button onClick={closeSendModal} className="ninja-btn ninja-btn-ghost flex-1 py-3 font-ninja text-sm">{ar ? 'إلغاء' : 'CANCEL'}</button>
                         <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleSendToFriend(sendModal)} disabled={sendLoading}
                           className="ninja-btn ninja-btn-purple flex-1 py-3 flex items-center justify-center gap-2 font-ninja text-sm">
-                          {sendLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {sendLoading ? 'SENDING...' : 'SEND'}
+                          {sendLoading ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />} {sendLoading ? (ar ? 'جاري الإرسال...' : 'SENDING...') : (ar ? 'إرسال' : 'SEND')}
                         </motion.button>
                       </div>
                     </div>

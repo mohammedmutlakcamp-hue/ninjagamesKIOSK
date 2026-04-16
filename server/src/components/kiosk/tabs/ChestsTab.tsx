@@ -46,15 +46,17 @@ const getRewardIcon = (r: ChestReward, size = 20) => {
   return <Gift size={size} />;
 };
 
-function formatTime(ts: number) {
+function formatTime(ts: number, ar: boolean = false) {
   const diff = Date.now() - ts;
-  if (diff < 60000) return 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}m ago`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}h ago`;
-  return `${Math.floor(diff / 86400000)}d ago`;
+  if (diff < 60000) return ar ? 'الآن' : 'Just now';
+  if (diff < 3600000) return ar ? `قبل ${Math.floor(diff / 60000)} د` : `${Math.floor(diff / 60000)}m ago`;
+  if (diff < 86400000) return ar ? `قبل ${Math.floor(diff / 3600000)} س` : `${Math.floor(diff / 3600000)}h ago`;
+  return ar ? `قبل ${Math.floor(diff / 86400000)} ي` : `${Math.floor(diff / 86400000)}d ago`;
 }
 
 export function ChestsTab({ player }: Props) {
+  const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
+  const ar = lang === 'ar';
   // Core state
   const [selectedChest, setSelectedChest] = useState<Chest | null>(null);
   const [openCount, setOpenCount] = useState(1);
@@ -295,12 +297,12 @@ export function ChestsTab({ player }: Props) {
               <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid rgba(57,255,20,0.4)', borderLeft: '2px solid rgba(57,255,20,0.4)' }} />
               <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid rgba(57,255,20,0.4)', borderRight: '2px solid rgba(57,255,20,0.4)' }} />
               <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.3), transparent)' }} />
-              <h2 className="font-ninja text-2xl tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 15px rgba(57,255,20,0.4)' }}>TREASURE CHESTS</h2>
+              <h2 className="font-ninja text-2xl tracking-[0.15em]" style={{ color: '#39FF14', textShadow: '0 0 15px rgba(57,255,20,0.4)' }}>{ar ? 'صناديق الكنز' : 'TREASURE CHESTS'}</h2>
             </div>
             {/* Discount — RIGHT */}
             {chestDiscount > 0 ? (
               <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-ninja text-xs" style={{ background: 'rgba(57,255,20,0.06)', border: '1px solid rgba(57,255,20,0.15)', color: '#39FF14' }}>
-                <Percent size={11} /> {chestDiscount}% DISCOUNT
+                <Percent size={11} /> {chestDiscount}% {ar ? 'خصم' : 'DISCOUNT'}
               </div>
             ) : <div className="w-[100px]" />}
           </div>
@@ -378,7 +380,7 @@ export function ChestsTab({ player }: Props) {
                     {chest.name.toUpperCase()}
                   </p>
                   <p className="font-body text-xs text-center text-gray-500 mt-0.5 relative z-[1]">
-                    {chest.rewards.length} unique rewards
+                    {chest.rewards.length} {ar ? 'مكافأة فريدة' : 'unique rewards'}
                   </p>
 
                   {/* Cost — HUD badge */}
@@ -435,13 +437,13 @@ export function ChestsTab({ player }: Props) {
                   <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.2)', boxShadow: '0 0 8px rgba(57,255,20,0.15)' }}>
                     <Clock size={12} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
                   </div>
-                  <span className="font-ninja text-xs text-gray-200 tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.15)' }}>LAST OPENED</span>
-                  <span className="ml-auto font-body text-[9px] text-gray-600">Live</span>
+                  <span className="font-ninja text-xs text-gray-200 tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.15)' }}>{ar ? 'آخر ما فُتح' : 'LAST OPENED'}</span>
+                  <span className="ml-auto font-body text-[9px] text-gray-600">{ar ? 'مباشر' : 'Live'}</span>
                   <div className="w-1.5 h-1.5 rounded-full bg-ninja-green animate-pulse" style={{ boxShadow: '0 0 6px rgba(57,255,20,0.5)' }} />
                 </div>
                 <div className="space-y-1">
                   {recentDrops.length === 0 ? (
-                    <p className="font-body text-[11px] text-gray-600 text-center py-2">No drops yet — be the first!</p>
+                    <p className="font-body text-[11px] text-gray-600 text-center py-2">{ar ? 'لا توجد جوائز بعد — كن الأول!' : 'No drops yet — be the first!'}</p>
                   ) : (
                     recentDrops.slice(0, 5).map((drop, idx) => {
                       const rc = RARITY_COLORS[drop.rewardRarity as keyof typeof RARITY_COLORS]?.bg || '#666';
@@ -459,7 +461,7 @@ export function ChestsTab({ player }: Props) {
                             <p className="font-body text-xs text-white truncate">{drop.playerName}</p>
                             <p className="font-body text-[10px] truncate" style={{ color: rc }}>{drop.rewardName}</p>
                           </div>
-                          <span className="font-body text-[10px] text-gray-600 flex-shrink-0">{formatTime(drop.timestamp)}</span>
+                          <span className="font-body text-[10px] text-gray-600 flex-shrink-0">{formatTime(drop.timestamp, ar)}</span>
                         </motion.div>
                       );
                     })
@@ -498,12 +500,12 @@ export function ChestsTab({ player }: Props) {
                   <div className="w-6 h-6 rounded flex items-center justify-center" style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.2)', boxShadow: '0 0 8px rgba(255,215,0,0.15)' }}>
                     <Crown size={12} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(255,215,0,0.6))' }} />
                   </div>
-                  <span className="font-ninja text-xs text-yellow-300/90 tracking-wider" style={{ textShadow: '0 0 8px rgba(255,215,0,0.15)' }}>LUCKY PLAYERS</span>
+                  <span className="font-ninja text-xs text-yellow-300/90 tracking-wider" style={{ textShadow: '0 0 8px rgba(255,215,0,0.15)' }}>{ar ? 'اللاعبون المحظوظون' : 'LUCKY PLAYERS'}</span>
                   <Sparkles size={10} className="text-yellow-400/40 ml-auto" />
                 </div>
                 <div className="space-y-1">
                   {luckyDrops.length === 0 ? (
-                    <p className="font-body text-[11px] text-gray-600 text-center py-2">No big wins yet — try your luck!</p>
+                    <p className="font-body text-[11px] text-gray-600 text-center py-2">{ar ? 'لا يوجد فوز كبير بعد — جرب حظك!' : 'No big wins yet — try your luck!'}</p>
                   ) : (
                     luckyDrops.slice(0, 5).map((drop, idx) => {
                       const rc = RARITY_COLORS[drop.rewardRarity as keyof typeof RARITY_COLORS]?.bg || '#666';
@@ -522,7 +524,7 @@ export function ChestsTab({ player }: Props) {
                               <span className="font-ninja" style={{ color: rc }}>{drop.playerName}</span>
                             </p>
                             <p className="font-body text-[10px] text-gray-400 truncate">
-                              won <span style={{ color: rc }}>{drop.rewardName}</span> from {drop.chestTier}
+                              {ar ? (<>فاز بـ <span style={{ color: rc }}>{drop.rewardName}</span> من {drop.chestTier}</>) : (<>won <span style={{ color: rc }}>{drop.rewardName}</span> from {drop.chestTier}</>)}
                             </p>
                           </div>
                           <span className="font-ninja text-[10px] px-2 py-0.5 rounded flex-shrink-0"
@@ -550,7 +552,7 @@ export function ChestsTab({ player }: Props) {
               style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.05), rgba(57,255,20,0.02))', border: '1px solid rgba(57,255,20,0.12)' }}>
               <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(57,255,20,0.3)', borderLeft: '1px solid rgba(57,255,20,0.3)' }} />
               <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(57,255,20,0.3)', borderRight: '1px solid rgba(57,255,20,0.3)' }} />
-              <ChevronLeft size={14} /> BACK
+              <ChevronLeft size={14} /> {ar ? 'رجوع' : 'BACK'}
             </button>
           </div>
 
@@ -558,12 +560,12 @@ export function ChestsTab({ player }: Props) {
           <h2 className="font-ninja text-2xl tracking-[0.15em] mb-0.5" style={{ color: selectedChest.color, textShadow: `0 0 20px ${selectedChest.glowColor}` }}>
             {selectedChest.name.toUpperCase()}
           </h2>
-          <p className="font-body text-xs text-gray-500 mb-1">{selectedChest.rewards.length} possible rewards</p>
+          <p className="font-body text-xs text-gray-500 mb-1">{selectedChest.rewards.length} {ar ? 'مكافأة محتملة' : 'possible rewards'}</p>
           <div className="flex items-center gap-2 mb-2">
             <span className="font-ninja text-xl flex items-center gap-1.5" style={{ color: selectedChest.color }}>
               <Coins size={18} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' }} />
               {chestDiscount > 0 ? <><span className="line-through text-gray-600 text-sm">{selectedChest.cost}</span> {getDiscountedCost(selectedChest.cost)}</> : selectedChest.cost}
-              <span className="text-gray-500 text-xs ml-1">tokens</span>
+              <span className="text-gray-500 text-xs ml-1">{ar ? 'توكنز' : 'tokens'}</span>
             </span>
           </div>
 
@@ -623,7 +625,7 @@ export function ChestsTab({ player }: Props) {
             <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(0,0,0,0.3)', borderLeft: '2px solid rgba(0,0,0,0.3)' }} />
             <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,0,0,0.3)', borderRight: '2px solid rgba(0,0,0,0.3)' }} />
             {processing ? <span className="animate-spin w-5 h-5 border-2 border-black border-t-transparent rounded-full" /> : <Package size={22} />}
-            {processing ? 'OPENING...' : `OPEN ${openCount > 1 ? `${openCount}x ` : ''}${selectedChest.name.toUpperCase()}`}
+            {processing ? (ar ? 'جاري الفتح...' : 'OPENING...') : (ar ? `افتح ${openCount > 1 ? `${openCount}x ` : ''}${selectedChest.name.toUpperCase()}` : `OPEN ${openCount > 1 ? `${openCount}x ` : ''}${selectedChest.name.toUpperCase()}`)}
           </motion.button>
 
           {/* REWARDS GRID — HUD framed */}
@@ -636,7 +638,7 @@ export function ChestsTab({ player }: Props) {
             <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: `linear-gradient(90deg, ${selectedChest.color}30, transparent 50%)` }} />
             <div className="flex items-center justify-center gap-2 mb-3">
               <Eye size={14} style={{ color: selectedChest.color, filter: `drop-shadow(0 0 4px ${selectedChest.color})` }} />
-              <span className="font-ninja text-xs tracking-wider" style={{ color: selectedChest.color, textShadow: `0 0 6px ${selectedChest.color}30` }}>POSSIBLE REWARDS</span>
+              <span className="font-ninja text-xs tracking-wider" style={{ color: selectedChest.color, textShadow: `0 0 6px ${selectedChest.color}30` }}>{ar ? 'المكافآت المحتملة' : 'POSSIBLE REWARDS'}</span>
             </div>
             <div className="flex flex-wrap justify-center gap-2.5">
               {selectedChest.rewards.map((r, idx) => {
@@ -729,7 +731,7 @@ export function ChestsTab({ player }: Props) {
             style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.05), rgba(57,255,20,0.02))', border: '1px solid rgba(57,255,20,0.12)' }}>
             <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(57,255,20,0.3)', borderLeft: '1px solid rgba(57,255,20,0.3)' }} />
             <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '1px solid rgba(57,255,20,0.3)', borderRight: '1px solid rgba(57,255,20,0.3)' }} />
-            <SkipForward size={14} /> SKIP
+            <SkipForward size={14} /> {ar ? 'تخطي' : 'SKIP'}
           </motion.button>
         </div>
       )}
@@ -768,7 +770,7 @@ export function ChestsTab({ player }: Props) {
               </div>
             </motion.div>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} transition={{ delay: 1.2 }}
-              className="font-ninja text-gray-600 mt-6 text-xs tracking-wider" style={{ textShadow: '0 0 6px rgba(57,255,20,0.1)' }}>CLICK ANYWHERE TO CONTINUE</motion.p>
+              className="font-ninja text-gray-600 mt-6 text-xs tracking-wider" style={{ textShadow: '0 0 6px rgba(57,255,20,0.1)' }}>{ar ? 'اضغط في أي مكان للمتابعة' : 'CLICK ANYWHERE TO CONTINUE'}</motion.p>
           </motion.div>
         </div>
       )}
@@ -779,7 +781,7 @@ export function ChestsTab({ player }: Props) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-4xl px-6 text-center">
             <motion.h3 initial={{ y: -20 }} animate={{ y: 0 }}
               className="font-ninja text-2xl mb-3 tracking-wider" style={{ color: selectedChest.color }}>
-              {bulkResults.length}x {selectedChest.name.toUpperCase()} OPENED!
+              {ar ? `تم فتح ${bulkResults.length}x ${selectedChest.name.toUpperCase()}!` : `${bulkResults.length}x ${selectedChest.name.toUpperCase()} OPENED!`}
             </motion.h3>
 
             <div className="flex gap-3 justify-center mb-5 flex-wrap">
@@ -790,8 +792,8 @@ export function ChestsTab({ player }: Props) {
                 return (
                   <>
                     {totalCoins > 0 && <div className="relative flex items-center gap-2 px-5 py-2.5 rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(234,179,8,0.1), rgba(234,179,8,0.03))', border: '1px solid rgba(234,179,8,0.2)' }}><div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(234,179,8,0.4)', borderLeft: '1px solid rgba(234,179,8,0.4)' }} /><Coins size={16} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' }} /><span className="font-ninja text-base text-yellow-400" style={{ textShadow: '0 0 8px rgba(234,179,8,0.3)' }}>+{totalCoins}</span></div>}
-                    {skins > 0 && <div className="relative flex items-center gap-2 px-5 py-2.5 rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(168,85,247,0.03))', border: '1px solid rgba(168,85,247,0.2)' }}><div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(168,85,247,0.4)', borderLeft: '1px solid rgba(168,85,247,0.4)' }} /><Star size={16} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.5))' }} /><span className="font-ninja text-base text-purple-400" style={{ textShadow: '0 0 8px rgba(168,85,247,0.3)' }}>{skins} skins</span></div>}
-                    {rareUp > 0 && <div className="relative flex items-center gap-2 px-5 py-2.5 rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.1), rgba(57,255,20,0.03))', border: '1px solid rgba(57,255,20,0.2)' }}><div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(57,255,20,0.4)', borderLeft: '1px solid rgba(57,255,20,0.4)' }} /><Sparkles size={16} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.5))' }} /><span className="font-ninja text-base text-ninja-green" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>{rareUp} rare+</span></div>}
+                    {skins > 0 && <div className="relative flex items-center gap-2 px-5 py-2.5 rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(168,85,247,0.1), rgba(168,85,247,0.03))', border: '1px solid rgba(168,85,247,0.2)' }}><div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(168,85,247,0.4)', borderLeft: '1px solid rgba(168,85,247,0.4)' }} /><Star size={16} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.5))' }} /><span className="font-ninja text-base text-purple-400" style={{ textShadow: '0 0 8px rgba(168,85,247,0.3)' }}>{skins} {ar ? 'سكنز' : 'skins'}</span></div>}
+                    {rareUp > 0 && <div className="relative flex items-center gap-2 px-5 py-2.5 rounded-lg overflow-hidden" style={{ background: 'linear-gradient(135deg, rgba(57,255,20,0.1), rgba(57,255,20,0.03))', border: '1px solid rgba(57,255,20,0.2)' }}><div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '1px solid rgba(57,255,20,0.4)', borderLeft: '1px solid rgba(57,255,20,0.4)' }} /><Sparkles size={16} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.5))' }} /><span className="font-ninja text-base text-ninja-green" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>{rareUp} {ar ? 'نادر+' : 'rare+'}</span></div>}
                   </>
                 );
               })()}
@@ -826,7 +828,7 @@ export function ChestsTab({ player }: Props) {
             </div>
 
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 0.4 }} transition={{ delay: bulkResults.length * 0.12 + 0.5 }}
-              className="font-ninja text-gray-600 mt-6 text-xs tracking-wider" style={{ textShadow: '0 0 6px rgba(57,255,20,0.1)' }}>CLICK ANYWHERE TO CONTINUE</motion.p>
+              className="font-ninja text-gray-600 mt-6 text-xs tracking-wider" style={{ textShadow: '0 0 6px rgba(57,255,20,0.1)' }}>{ar ? 'اضغط في أي مكان للمتابعة' : 'CLICK ANYWHERE TO CONTINUE'}</motion.p>
           </motion.div>
         </div>
       )}
