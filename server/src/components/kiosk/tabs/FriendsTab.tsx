@@ -874,7 +874,7 @@ export function FriendsTab({ player }: Props) {
                       <div className="space-y-2">
                         {(filteredFriends || onlineFriends).map((friend, i) => (
                           <motion.div key={friend.uid} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }}
-                            onClick={() => setActionFriend(friend)}
+                            onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: friend.uid } }))}
                             className="relative flex items-center gap-4 p-4 pl-5 rounded-2xl cursor-pointer overflow-hidden hover:scale-[1.01] transition-transform"
                             style={{
                               background: 'linear-gradient(180deg, rgba(57,255,20,0.05) 0%, #040608 40%, #030508 100%)',
@@ -934,7 +934,7 @@ export function FriendsTab({ player }: Props) {
                       {offlineFriends.map((friend, i) => (
                         <motion.div key={friend.uid} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
                           transition={{ delay: (onlineFriends.length + i) * 0.05 }}
-                          onClick={() => setActionFriend(friend)}
+                          onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: friend.uid } }))}
                           className="relative flex items-center gap-4 p-4 pl-5 rounded-2xl cursor-pointer opacity-75 hover:opacity-100 transition-opacity overflow-hidden"
                           style={{
                             background: 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, #040608 40%, #030508 100%)',

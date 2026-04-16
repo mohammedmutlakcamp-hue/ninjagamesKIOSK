@@ -1099,7 +1099,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     const onlineFriends = filtered.filter(f => f.isOnline);
                     const offlineFriends = filtered.filter(f => !f.isOnline);
                     const renderFriend = (f: FriendData) => (
-                      <div key={f.uid} className="relative flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all group overflow-hidden"
+                      <div key={f.uid} className="relative flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-all group overflow-hidden hover:bg-white/[0.02]"
+                        onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: f.uid } }))}
                         style={{
                           background: f.isOnline ? 'linear-gradient(135deg, rgba(57,255,20,0.04), transparent)' : 'linear-gradient(135deg, rgba(255,255,255,0.015), transparent)',
                           border: f.isOnline ? '1px solid rgba(57,255,20,0.1)' : '1px solid rgba(255,255,255,0.04)',
@@ -1107,68 +1108,21 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                         {/* Left glow bar */}
                         <div className="absolute left-0 top-[20%] bottom-[20%] w-[2px]" style={{ background: f.isOnline ? '#39FF14' : '#666', boxShadow: f.isOnline ? '0 0 4px #39FF14' : 'none', opacity: f.isOnline ? 0.4 : 0.2 }} />
                         <div className="w-8 h-8 rounded-full relative flex-shrink-0 overflow-hidden"
-                          style={{ background: 'rgba(0,0,0,0.4)', border: f.isOnline ? '1px solid rgba(57,255,20,0.4)' : '1px solid rgba(255,255,255,0.1)', boxShadow: f.isOnline ? '0 0 6px rgba(57,255,20,0.3)' : 'none' }}
-                          onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: f.uid } }))}>
+                          style={{ background: 'rgba(0,0,0,0.4)', border: f.isOnline ? '1px solid rgba(57,255,20,0.4)' : '1px solid rgba(255,255,255,0.1)', boxShadow: f.isOnline ? '0 0 6px rgba(57,255,20,0.3)' : 'none' }}>
                           <img src={f.profilePhoto || `/img/pfp-${f.ninjaType || 'neon'}.png`} alt={f.username}
                             className={`w-full h-full ${f.profilePhoto ? 'object-cover' : 'object-contain'}`}
                             onError={(e) => { (e.target as HTMLImageElement).src = `/img/pfp-${f.ninjaType || 'neon'}.png`; }} />
                           <div className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-black ${f.isOnline ? 'bg-green-500' : 'bg-gray-600'}`}
                             style={{ boxShadow: f.isOnline ? '0 0 6px #39FF14' : 'none' }} />
                         </div>
-                        {confirmRemoveFriend === f.uid ? (
-                          <div className="flex-1 flex items-center gap-1.5 min-w-0">
-                            <span className="font-body text-[10px] text-red-400 truncate">Remove?</span>
-                            <button onClick={(e) => { e.stopPropagation(); handleRemoveFriend(f.uid); }}
-                              className="relative px-2 py-0.5 rounded font-ninja text-[9px] transition-all overflow-hidden"
-                              style={{ background: 'rgba(239,68,68,0.18)', border: '1px solid rgba(239,68,68,0.5)', color: '#FCA5A5', boxShadow: '0 0 6px rgba(239,68,68,0.2)' }}>
-                              <div className="absolute top-0 left-0 w-1 h-1" style={{ borderTop: '1px solid #EF4444', borderLeft: '1px solid #EF4444' }} />
-                              <div className="absolute bottom-0 right-0 w-1 h-1" style={{ borderBottom: '1px solid #EF4444', borderRight: '1px solid #EF4444' }} />
-                              YES
-                            </button>
-                            <button onClick={(e) => { e.stopPropagation(); setConfirmRemoveFriend(null); }}
-                              className="relative px-2 py-0.5 rounded font-ninja text-[9px] transition-all"
-                              style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.12)', color: '#888' }}>NO</button>
-                          </div>
-                        ) : (
-                          <>
-                            <div className="flex-1 min-w-0" onClick={() => window.dispatchEvent(new CustomEvent('view-player-profile', { detail: { uid: f.uid } }))}>
-                              <p className="font-body text-[12px] text-white truncate" style={{ textShadow: '0 0 6px rgba(57,255,20,0.15)' }}>{f.username}</p>
-                              {f.isOnline && f.currentActivity ? (
-                                <p className="font-body text-[9px] text-ninja-green truncate">{f.currentActivity}</p>
-                              ) : (
-                                <p className="font-body text-[9px] text-gray-600">{f.isOnline ? 'Online' : 'Offline'}</p>
-                              )}
-                            </div>
-                            <div className="flex gap-0.5 flex-shrink-0">
-                              <button onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('open-private-chat', { detail: { friendId: f.uid, friendName: f.username } })); }}
-                                className="relative w-6 h-6 rounded flex items-center justify-center text-blue-400 transition-all overflow-hidden"
-                                style={{ background: 'rgba(0,191,255,0.08)', border: '1px solid rgba(0,191,255,0.25)', boxShadow: '0 0 4px rgba(0,191,255,0.1)' }}
-                                title="Message">
-                                <MessageSquare size={10} style={{ filter: 'drop-shadow(0 0 3px rgba(0,191,255,0.6))' }} />
-                              </button>
-                              {f.isOnline && (
-                                <button onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('start-voice-call', { detail: { friendId: f.uid, friendName: f.username } })); }}
-                                  className="relative w-6 h-6 rounded flex items-center justify-center text-green-400 transition-all overflow-hidden"
-                                  style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.25)', boxShadow: '0 0 4px rgba(57,255,20,0.1)' }}
-                                  title="Call">
-                                  <Phone size={10} style={{ filter: 'drop-shadow(0 0 3px rgba(57,255,20,0.6))' }} />
-                                </button>
-                              )}
-                              <button onClick={(e) => { e.stopPropagation(); onSendCoins?.(f.username); }}
-                                className="relative w-6 h-6 rounded flex items-center justify-center text-yellow-400 transition-all overflow-hidden"
-                                style={{ background: 'rgba(234,179,8,0.08)', border: '1px solid rgba(234,179,8,0.25)', boxShadow: '0 0 4px rgba(234,179,8,0.1)' }}
-                                title="Send Coins">
-                                <Coins size={10} style={{ filter: 'drop-shadow(0 0 3px rgba(234,179,8,0.6))' }} />
-                              </button>
-                              <button onClick={(e) => { e.stopPropagation(); setConfirmRemoveFriend(f.uid); }}
-                                className="relative w-6 h-6 rounded flex items-center justify-center text-red-400/40 hover:text-red-400 transition-all"
-                                style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.15)' }}
-                                title="Remove Friend">
-                                <UserMinus size={10} />
-                              </button>
-                            </div>
-                          </>
-                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-body text-[12px] text-white truncate" style={{ textShadow: '0 0 6px rgba(57,255,20,0.15)' }}>{f.username}</p>
+                          {f.isOnline && f.currentActivity ? (
+                            <p className="font-body text-[9px] text-ninja-green truncate">{f.currentActivity}</p>
+                          ) : (
+                            <p className="font-body text-[9px] text-gray-600">{f.isOnline ? 'Online' : 'Offline'}</p>
+                          )}
+                        </div>
                       </div>
                     );
                     return (

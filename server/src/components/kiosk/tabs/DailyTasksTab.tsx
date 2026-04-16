@@ -9,7 +9,8 @@ import { useEscapeKey } from '@/lib/useEscapeKey';
 import {
   Coins, CheckCircle2, Sparkles, Calendar, Flame,
   LogIn, Package, Send, UtensilsCrossed, Gamepad2, Target, UserPlus,
-  Loader2, ArrowRight, X, Gift, Lock, Instagram,
+  Loader2, ArrowRight, X, Gift, Lock, Instagram, Star, ExternalLink, AtSign, Heart,
+  Camera, MessageCircle,
 } from 'lucide-react';
 
 export type DailyShortcutAction = 'food' | 'chests' | 'send-coins' | 'add-friend';
@@ -76,8 +77,63 @@ const DAILY_TASKS: DailyTask[] = [
   { id: 'open_chest',     title: 'Open Chest',                 description: 'Open any chest',                                                    icon: <Package size={32} />,         color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN' },
   { id: 'send_coins',     title: 'Send Coins',                 description: 'Send coins to a friend',                                            icon: <Send size={32} />,            color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND' },
   { id: 'order_food',     title: 'Order from Food & Snacks',   description: 'Place any order from the Food & Snacks menu',                       icon: <UtensilsCrossed size={32} />, color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER' },
-  { id: 'check_socials',  title: 'Check Our Socials',          description: 'Watch our story, follow us, and like 3 posts — admin will verify', icon: <Instagram size={32} />,       color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 25 },
+  { id: 'check_socials',  title: 'Check Our Socials',          description: 'Like 3 of our latest Instagram posts — admin will verify', icon: <Instagram size={32} />,       color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 25 },
   { id: 'play_30_min',    title: 'Play 75 Min',                description: 'Play for at least 75 minutes',                                      icon: <Target size={32} />,          color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 10 },
+];
+
+// One-time bonus tasks — much bigger reward, manual admin verification.
+// Stored on player.socialBonus.{id} = { requested, requestedAt, claimed }
+interface SocialBonus {
+  id: string; title: string; subtitle: string;
+  icon: React.ReactNode; color: string; glow: string;
+  reward: number;
+  steps: { icon: React.ReactNode; text: string }[];
+  primaryUrl?: string; primaryUrlLabel?: string;
+  highlightHandle?: string;
+}
+
+const SOCIAL_BONUS_TASKS: SocialBonus[] = [
+  {
+    id: 'check_socials_bonus',
+    title: 'Check Our Socials',
+    subtitle: 'Like our 3 latest Instagram posts',
+    icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 25,
+    primaryUrl: 'https://www.instagram.com/ininjagames',
+    primaryUrlLabel: 'Open Instagram',
+    highlightHandle: '@ininjagames',
+    steps: [
+      { icon: <Heart size={14} />, text: 'Like 3 of our most recent Instagram posts' },
+      { icon: <Camera size={14} />, text: 'Send a screenshot to admin OR show your phone at the desk' },
+      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — coins arrive instantly' },
+    ],
+  },
+  {
+    id: 'google_review',
+    title: 'Leave Google Review',
+    subtitle: 'Rate us 5 stars on Google Maps',
+    icon: <Star size={28} />, color: '#FBBF24', glow: '251,191,36', reward: 100,
+    primaryUrl: 'https://share.google/CW0iX87oFRlrr7Qn0',
+    primaryUrlLabel: 'Open Google Review',
+    steps: [
+      { icon: <Star size={14} />, text: 'Open the Google review link' },
+      { icon: <MessageCircle size={14} />, text: 'Leave 5 stars and a short comment' },
+      { icon: <Camera size={14} />, text: 'Show the published review at the desk' },
+    ],
+  },
+  {
+    id: 'instagram_bio',
+    title: 'Add Us to Your Bio',
+    subtitle: 'Put @ininjagames in your Instagram bio',
+    icon: <AtSign size={28} />, color: '#00BFFF', glow: '0,191,255', reward: 75,
+    primaryUrl: 'https://www.instagram.com/ininjagames',
+    primaryUrlLabel: 'Open Instagram',
+    highlightHandle: '@ininjagames',
+    steps: [
+      { icon: <AtSign size={14} />, text: 'Add @ininjagames to your Instagram bio' },
+      { icon: <Camera size={14} />, text: 'Show your bio to a worker at the desk' },
+      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — bonus coins added' },
+    ],
+  },
 ];
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
@@ -91,6 +147,10 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
   const [claimingStreak, setClaimingStreak] = useState(false);
   const [streakRewardClaimed, setStreakRewardClaimed] = useState(false);
   const [chestRevealed, setChestRevealed] = useState<{ name: string; value: number } | null>(null);
+  // Social verification modal
+  const [socialOpen, setSocialOpen] = useState<SocialBonus | null>(null);
+  const [socialSubmitting, setSocialSubmitting] = useState(false);
+  const [socialSubmitted, setSocialSubmitted] = useState<string>('');
   const [chestOpening, setChestOpening] = useState(false);
   const todayKey = getDateKey();
   const yesterdayKey = getYesterdayKey();
@@ -135,6 +195,29 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
     }, 30000);
     return () => clearInterval(interval);
   }, [player?.uid, todayKey]);
+
+  // Player taps "Request verification" in the social-bonus popup. Creates a doc
+  // in `social-verification-requests` that the admin sees in real time.
+  const submitSocialRequest = async (bonus: SocialBonus) => {
+    if (socialSubmitting || socialSubmitted === bonus.id) return;
+    setSocialSubmitting(true);
+    try {
+      const reqRef = doc(db, 'social-verification-requests', `${player.uid}_${bonus.id}_${Date.now()}`);
+      await setDoc(reqRef, {
+        playerId: player.uid,
+        playerName: player.username,
+        bonusId: bonus.id,
+        bonusTitle: bonus.title,
+        reward: bonus.reward,
+        status: 'pending',
+        createdAt: Date.now(),
+      });
+      setSocialSubmitted(bonus.id);
+    } catch (err) {
+      console.error('Social request failed', err);
+    }
+    setSocialSubmitting(false);
+  };
 
   const handleClaim = async (task: DailyTask, e: React.MouseEvent) => {
     if (claiming) return;
@@ -799,6 +882,23 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                           {task.shortcutLabel} <ArrowRight size={13} />
                         </motion.button>
                       )}
+                      {/* Special: check_socials opens the verification popup */}
+                      {!isClaimed && !isComplete && task.id === 'check_socials' && (
+                        <motion.button
+                          whileHover={{ scale: 1.06, boxShadow: `0 0 18px rgba(${task.glowColor},0.4)` }}
+                          whileTap={{ scale: 0.94 }}
+                          onClick={() => setSocialOpen(SOCIAL_BONUS_TASKS[0])}
+                          className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-1.5 transition-all flex-shrink-0"
+                          style={{
+                            background: `linear-gradient(135deg, rgba(${task.glowColor},0.2), rgba(${task.glowColor},0.06))`,
+                            border: `1.5px solid rgba(${task.glowColor},0.5)`,
+                            color: task.color,
+                            boxShadow: `0 0 12px rgba(${task.glowColor},0.25)`,
+                            textShadow: `0 0 6px rgba(${task.glowColor},0.5)`,
+                          }}>
+                          CHECK <ArrowRight size={13} />
+                        </motion.button>
+                      )}
 
                       {!isClaimed && isComplete && (
                         <motion.button
@@ -820,6 +920,90 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
               </motion.div>
             );
           })}
+        </div>
+
+        {/* ═══ EARN MORE COINS ═══ One-time bonus tasks, manual admin verification */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-[2px] flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4))' }} />
+            <span className="font-ninja text-sm tracking-[0.25em] text-yellow-400" style={{ textShadow: '0 0 10px rgba(251,191,36,0.5)' }}>
+              ⚡ EARN MORE COINS
+            </span>
+            <div className="h-[2px] flex-1" style={{ background: 'linear-gradient(90deg, rgba(251,191,36,0.4), transparent)' }} />
+          </div>
+          <p className="text-center font-body text-xs text-gray-500 mb-3">
+            One-time bonuses · admin verifies and pays out
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            {SOCIAL_BONUS_TASKS.map((b, i) => {
+              const claimed = !!(player.socialBonus && player.socialBonus[b.id]?.claimed);
+              const requested = !!(player.socialBonus && player.socialBonus[b.id]?.requested) || socialSubmitted === b.id;
+              return (
+                <motion.button key={b.id}
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.06 }}
+                  whileHover={!claimed ? { scale: 1.02, boxShadow: `0 0 22px rgba(${b.glow},0.35)` } : undefined}
+                  whileTap={!claimed ? { scale: 0.98 } : undefined}
+                  disabled={claimed}
+                  onClick={() => setSocialOpen(b)}
+                  className="relative rounded-xl overflow-hidden text-left p-4 transition-all"
+                  style={{
+                    background: claimed
+                      ? 'linear-gradient(135deg, rgba(57,255,20,0.04), rgba(0,0,0,0.4))'
+                      : `linear-gradient(135deg, rgba(${b.glow},0.10), rgba(${b.glow},0.02) 60%, rgba(0,0,0,0.4))`,
+                    border: `1.5px solid rgba(${b.glow},${claimed ? '0.15' : '0.45'})`,
+                    boxShadow: claimed ? 'none' : `inset 0 0 18px rgba(${b.glow},0.05)`,
+                    opacity: claimed ? 0.55 : 1,
+                  }}>
+                  {/* HUD corners */}
+                  {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, ci) => (
+                    <div key={ci} className={`absolute ${pos} w-3 h-3 z-10`} style={{
+                      ...(pos.includes('top') ? { borderTop: `1.5px solid ${b.color}` } : { borderBottom: `1.5px solid ${b.color}` }),
+                      ...(pos.includes('left') ? { borderLeft: `1.5px solid ${b.color}` } : { borderRight: `1.5px solid ${b.color}` }),
+                      opacity: claimed ? 0.3 : 0.7,
+                    }} />
+                  ))}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(${b.glow},0.2), rgba(${b.glow},0.06))`,
+                        border: `1.5px solid rgba(${b.glow},0.4)`,
+                        color: b.color,
+                        boxShadow: `0 0 10px rgba(${b.glow},0.2)`,
+                      }}>{b.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-ninja text-base text-white truncate" style={{ textShadow: `0 0 8px rgba(${b.glow},0.4)` }}>
+                        {b.title}
+                      </p>
+                      <p className="font-body text-[11px] text-gray-500 truncate">{b.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-1">
+                      <Coins size={14} className="text-yellow-400" />
+                      <span className="font-ninja text-sm text-yellow-400" style={{ textShadow: '0 0 6px rgba(234,179,8,0.4)' }}>
+                        +{b.reward}
+                      </span>
+                    </div>
+                    {claimed ? (
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
+                        style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
+                        <CheckCircle2 size={10} /> CLAIMED
+                      </span>
+                    ) : requested ? (
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
+                        style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#FBBF24' }}>
+                        <Loader2 size={10} className="animate-spin" /> PENDING
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] font-ninja tracking-wider" style={{ color: b.color }}>
+                        OPEN <ArrowRight size={10} />
+                      </span>
+                    )}
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
         </div>
 
         {/* All complete — claimable 10-coin bonus */}
@@ -896,6 +1080,161 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           </motion.div>
         )}
       </div>
+
+      {/* Social verification popup */}
+      <AnimatePresence>
+        {socialOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-[110] flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
+            onClick={() => { setSocialOpen(null); setSocialSubmitted(''); }}>
+            <motion.div initial={{ scale: 0.92, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0 }}
+              transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-[480px] max-w-[92vw] rounded-2xl overflow-hidden p-6"
+              style={{
+                background: `linear-gradient(180deg, rgba(${socialOpen.glow},0.06) 0%, #060810 50%, #050a10 100%)`,
+                border: `1.5px solid rgba(${socialOpen.glow},0.4)`,
+                boxShadow: `0 25px 60px rgba(0,0,0,0.9), 0 0 50px rgba(${socialOpen.glow},0.18)`,
+              }}>
+              {/* HUD corners */}
+              {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
+                <div key={i} className={`absolute ${pos} w-4 h-4 pointer-events-none z-[2]`} style={{
+                  ...(pos.includes('top') ? { borderTop: `2px solid ${socialOpen.color}` } : { borderBottom: `2px solid ${socialOpen.color}` }),
+                  ...(pos.includes('left') ? { borderLeft: `2px solid ${socialOpen.color}` } : { borderRight: `2px solid ${socialOpen.color}` }),
+                  filter: `drop-shadow(0 0 6px ${socialOpen.color})`,
+                }} />
+              ))}
+              <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]"
+                style={{ background: `linear-gradient(90deg, transparent, ${socialOpen.color}, transparent)`, boxShadow: `0 0 12px ${socialOpen.color}` }} />
+
+              {/* Close */}
+              <button onClick={() => { setSocialOpen(null); setSocialSubmitted(''); }}
+                className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-lg text-gray-400 hover:text-white transition-all z-[10]"
+                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                <X size={14} />
+              </button>
+
+              <div className="relative z-[3]">
+                {/* Header */}
+                <div className="flex items-center gap-4 mb-4">
+                  <div className="w-14 h-14 rounded-xl flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: `linear-gradient(135deg, rgba(${socialOpen.glow},0.22), rgba(${socialOpen.glow},0.06))`,
+                      border: `1.5px solid rgba(${socialOpen.glow},0.5)`,
+                      color: socialOpen.color,
+                      boxShadow: `0 0 16px rgba(${socialOpen.glow},0.3)`,
+                    }}>{socialOpen.icon}</div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ninja text-2xl text-white tracking-wider truncate"
+                      style={{ textShadow: `0 0 12px rgba(${socialOpen.glow},0.4)` }}>
+                      {socialOpen.title}
+                    </p>
+                    <p className="font-body text-xs text-gray-400 mt-1">{socialOpen.subtitle}</p>
+                  </div>
+                  <div className="flex flex-col items-center px-3 py-2 rounded-lg flex-shrink-0"
+                    style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.35)' }}>
+                    <Coins size={16} className="text-yellow-400" />
+                    <span className="font-ninja text-base text-yellow-400 mt-0.5">+{socialOpen.reward}</span>
+                  </div>
+                </div>
+
+                {/* Highlighted handle */}
+                {socialOpen.highlightHandle && (
+                  <div className="relative rounded-lg p-3 mb-4 text-center"
+                    style={{
+                      background: `linear-gradient(135deg, rgba(${socialOpen.glow},0.12), rgba(${socialOpen.glow},0.04))`,
+                      border: `1px solid rgba(${socialOpen.glow},0.35)`,
+                    }}>
+                    <p className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1">Tag us</p>
+                    <p className="font-ninja text-2xl tracking-wider" style={{ color: socialOpen.color, textShadow: `0 0 12px rgba(${socialOpen.glow},0.5)` }}>
+                      {socialOpen.highlightHandle}
+                    </p>
+                  </div>
+                )}
+
+                {/* Verification notice */}
+                <div className="rounded-lg p-3 mb-4"
+                  style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)' }}>
+                  <p className="font-ninja text-[11px] tracking-wider text-yellow-400 mb-1">
+                    ⚠ MANUAL VERIFICATION
+                  </p>
+                  <p className="font-body text-xs text-gray-400 leading-relaxed">
+                    Coins are paid out by a worker after they confirm you completed the steps.
+                    Bring your phone to the desk OR send a screenshot in the kiosk chat.
+                  </p>
+                </div>
+
+                {/* Steps */}
+                <div className="space-y-2 mb-5">
+                  {socialOpen.steps.map((s, i) => (
+                    <div key={i} className="flex items-start gap-3 p-2.5 rounded-lg"
+                      style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)' }}>
+                      <div className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-ninja"
+                        style={{
+                          background: `rgba(${socialOpen.glow},0.15)`,
+                          border: `1px solid rgba(${socialOpen.glow},0.4)`,
+                          color: socialOpen.color,
+                        }}>{i + 1}</div>
+                      <div className="flex-1 min-w-0 flex items-center gap-2">
+                        <span style={{ color: socialOpen.color, opacity: 0.7 }}>{s.icon}</span>
+                        <span className="font-body text-xs text-gray-300">{s.text}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex gap-2">
+                  {socialOpen.primaryUrl && (
+                    <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                      onClick={() => { window.open(socialOpen.primaryUrl, '_blank'); }}
+                      className="flex-1 relative h-12 rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-2 overflow-hidden"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(${socialOpen.glow},0.2), rgba(${socialOpen.glow},0.06))`,
+                        border: `1.5px solid rgba(${socialOpen.glow},0.55)`,
+                        color: socialOpen.color,
+                        boxShadow: `0 0 14px rgba(${socialOpen.glow},0.25)`,
+                      }}>
+                      <ExternalLink size={13} /> {socialOpen.primaryUrlLabel || 'OPEN LINK'}
+                    </motion.button>
+                  )}
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+                    onClick={() => { window.open('/info', '_blank'); }}
+                    className="relative h-12 px-4 rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1.5 overflow-hidden"
+                    style={{
+                      background: 'rgba(57,255,20,0.08)',
+                      border: '1px solid rgba(57,255,20,0.3)',
+                      color: '#39FF14',
+                    }}>
+                    ALL LINKS
+                  </motion.button>
+                </div>
+
+                {/* Submit verification request */}
+                <motion.button whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.98 }}
+                  onClick={() => submitSocialRequest(socialOpen)}
+                  disabled={socialSubmitting || socialSubmitted === socialOpen.id}
+                  className="w-full mt-2 h-12 rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-60"
+                  style={{
+                    background: socialSubmitted === socialOpen.id
+                      ? 'rgba(57,255,20,0.1)'
+                      : 'linear-gradient(135deg, rgba(251,191,36,0.22), rgba(251,191,36,0.08))',
+                    border: socialSubmitted === socialOpen.id
+                      ? '1px solid rgba(57,255,20,0.45)'
+                      : '1.5px solid rgba(251,191,36,0.55)',
+                    color: socialSubmitted === socialOpen.id ? '#39FF14' : '#FBBF24',
+                    boxShadow: socialSubmitted === socialOpen.id ? 'none' : '0 0 14px rgba(251,191,36,0.25)',
+                  }}>
+                  {socialSubmitting ? <><Loader2 size={14} className="animate-spin" /> SENDING...</>
+                   : socialSubmitted === socialOpen.id ? <><CheckCircle2 size={14} /> SENT — WAIT FOR ADMIN</>
+                   : <>I DID IT — REQUEST VERIFICATION</>}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Floating reward */}
       <AnimatePresence>
