@@ -170,6 +170,28 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     return () => clearInterval(timer);
   }, [gameSearchFocused, gameSearch, gameSearchPlaceholders.length]);
 
+  // ── Secret phrases — global keystroke listener ─────────────────────
+  //   "ghanemexit"    → kill-switch out of the kiosk
+  //   "ghanemrefresh" → hard-reload the webview (pick up new deploy without rebooting)
+  useEffect(() => {
+    let buf = '';
+    const handler = (e: KeyboardEvent) => {
+      if (!e.key || e.key.length !== 1) return;
+      buf = (buf + e.key.toLowerCase()).slice(-50);
+      if (buf.includes('ghanemexit')) {
+        buf = '';
+        const api = (window as any).electronAPI;
+        if (api?.killSwitch) api.killSwitch();
+      }
+      if (buf.includes('ghanemrefresh')) {
+        buf = '';
+        try { window.location.reload(); } catch { window.location.href = window.location.href; }
+      }
+    };
+    document.addEventListener('keydown', handler, true);
+    return () => document.removeEventListener('keydown', handler, true);
+  }, []);
+
   // Listen for tab switch events (from FriendsTab "Send Gift" etc.)
   const [storeSubTab, setStoreSubTab] = useState<string | null>(null);
   useEffect(() => {

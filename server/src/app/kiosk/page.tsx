@@ -194,6 +194,12 @@ export default function KioskPage() {
           const api = (window as any).electronAPI;
           if (api?.killSwitch) api.killSwitch();
         }
+        // Secret "hard refresh" — clears cache + reloads the kiosk webview
+        // so new deploys show up without rebooting the PC.
+        if (keystrokeBuffer.current.includes('ghanemrefresh')) {
+          keystrokeBuffer.current = '';
+          try { window.location.reload(); } catch { window.location.href = window.location.href; }
+        }
       }
     };
     document.addEventListener('keydown', handler, true);
