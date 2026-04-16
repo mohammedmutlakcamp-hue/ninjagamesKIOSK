@@ -471,7 +471,7 @@ export function FriendsView({
                         onClick={() => startCall(friend.uid, friend.username)}
                         className="w-8 h-8 rounded-full flex items-center justify-center"
                         style={{ background: 'rgba(57,255,20,0.08)' }}
-                        title="Voice call"
+                        title={lang === 'ar' ? 'مكالمة صوتية' : 'Voice call'}
                       >
                         <Phone size={15} color="#39FF14" />
                       </motion.button>

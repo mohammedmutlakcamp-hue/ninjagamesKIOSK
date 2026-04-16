@@ -74,9 +74,9 @@ export function VIPTab({ player }: Props) {
     try {
       const q = query(collection(db, 'players'), where('username', '==', inviteUsername.toLowerCase().trim()));
       const snap = await getDocs(q);
-      if (snap.empty) { setInviteMsg('Player not found'); setInviteLoading(false); return; }
+      if (snap.empty) { setInviteMsg(ar ? 'اللاعب غير موجود' : 'Player not found'); setInviteLoading(false); return; }
       const target = snap.docs[0];
-      if (target.id === player.uid) { setInviteMsg("Can't invite yourself!"); setInviteLoading(false); return; }
+      if (target.id === player.uid) { setInviteMsg(ar ? 'لا يمكنك دعوة نفسك!' : "Can't invite yourself!"); setInviteLoading(false); return; }
       const updateData: any = { totalGiftsReceived: increment(1) };
       if (inviteChoice === 'time') {
         const freeUntil = Date.now() + VIP_CONFIG.dailyInviteFreeMinutes * 60 * 1000;
@@ -89,7 +89,7 @@ export function VIPTab({ player }: Props) {
       setInviteMsg(`Sent ${inviteChoice === 'time' ? '30min free play' : '50 coins'} to ${inviteUsername.toUpperCase()}!`);
       setInviteUsername('');
       setTimeout(() => { setShowInviteModal(false); setInviteMsg(''); }, 2500);
-    } catch { setInviteMsg('Failed to send'); }
+    } catch { setInviteMsg(ar ? 'فشل الإرسال' : 'Failed to send'); }
     setInviteLoading(false);
   };
 

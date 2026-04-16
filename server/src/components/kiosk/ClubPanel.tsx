@@ -58,7 +58,7 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 5 * 1024 * 1024) { setCreateError('Image must be under 5MB'); return; }
+    if (file.size > 5 * 1024 * 1024) { setCreateError(ar ? 'يجب أن يكون حجم الصورة أقل من 5 ميجابايت' : 'Image must be under 5MB'); return; }
     setUploadingLogo(true);
     setCreateError('');
     try {
@@ -86,7 +86,7 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
       });
       setCreateLogo(dataUrl);
     } catch {
-      setCreateError('Failed to process image');
+      setCreateError(ar ? 'فشلت معالجة الصورة' : 'Failed to process image');
     }
     setUploadingLogo(false);
     if (logoInputRef.current) logoInputRef.current.value = '';
@@ -179,8 +179,8 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
   // ── Actions ──
   const handleCreate = async () => {
     setCreateError('');
-    if (!createName.trim() || createName.trim().length < 3) { setCreateError('Name must be at least 3 characters'); return; }
-    if (!createTag.trim() || createTag.trim().length < 2) { setCreateError('Tag must be at least 2 characters'); return; }
+    if (!createName.trim() || createName.trim().length < 3) { setCreateError(ar ? 'يجب أن يكون الاسم 3 أحرف على الأقل' : 'Name must be at least 3 characters'); return; }
+    if (!createTag.trim() || createTag.trim().length < 2) { setCreateError(ar ? 'يجب أن يكون الوسم حرفين على الأقل' : 'Tag must be at least 2 characters'); return; }
     setCreating(true);
     try {
       await createClub({
@@ -194,7 +194,7 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
       setCreateName(''); setCreateTag(''); setCreateLogo('⚔️');
     } catch (err) {
       console.error(err);
-      setCreateError('Failed to create club. Try again.');
+      setCreateError(ar ? 'فشل إنشاء النادي. حاول مرة أخرى.' : 'Failed to create club. Try again.');
     }
     setCreating(false);
   };
@@ -233,14 +233,14 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
         fromUsername: player.username,
         to: targetUid,
       });
-      if (result === 'already-in-club') setInviteError('That player is already in a club.');
-      else if (result === 'already-pending') setInviteError('Invite already sent.');
+      if (result === 'already-in-club') setInviteError(ar ? 'هذا اللاعب في نادٍ بالفعل.' : 'That player is already in a club.');
+      else if (result === 'already-pending') setInviteError(ar ? 'تم إرسال الدعوة بالفعل.' : 'Invite already sent.');
       else {
         setInviteResults(prev => prev.map(p => p.uid === targetUid ? { ...p, invited: true } : p));
       }
     } catch (err) {
       console.error(err);
-      setInviteError('Failed to send invite.');
+      setInviteError(ar ? 'فشل إرسال الدعوة.' : 'Failed to send invite.');
     }
     setInvitingUid(null);
   };
@@ -249,9 +249,9 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
     setProcessingInvite(invite.id);
     try {
       const result = await acceptClubInvite(invite.id, player.uid);
-      if (result === 'full') setInviteError('That club is full.');
-      else if (result === 'already-in-club') setInviteError('You are already in a club.');
-      else if (result === 'gone') setInviteError('That invite is no longer valid.');
+      if (result === 'full') setInviteError(ar ? 'هذا النادي ممتلئ.' : 'That club is full.');
+      else if (result === 'already-in-club') setInviteError(ar ? 'أنت في نادٍ بالفعل.' : 'You are already in a club.');
+      else if (result === 'gone') setInviteError(ar ? 'هذه الدعوة لم تعد صالحة.' : 'That invite is no longer valid.');
       else if (result === 'ok') {
         // Optimistically flip the local view to the club we just joined so the
         // user sees the change immediately (the snapshot will arrive soon after).
@@ -266,7 +266,7 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
       }
     } catch (err) {
       console.error('acceptClubInvite failed', err);
-      setInviteError('Accept failed — check console for details.');
+      setInviteError(ar ? 'فشل القبول — راجع الكونسول للتفاصيل.' : 'Accept failed — check console for details.');
     }
     setProcessingInvite(null);
   };
@@ -307,18 +307,18 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
     if (!club) return;
     setTreasuryError('');
     const amount = parseInt(depositAmount, 10);
-    if (!Number.isFinite(amount) || amount <= 0) { setTreasuryError('Enter a valid amount'); return; }
-    if ((player.coins || 0) < amount) { setTreasuryError(`You only have ${player.coins || 0} tokens`); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { setTreasuryError(ar ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount'); return; }
+    if ((player.coins || 0) < amount) { setTreasuryError(ar ? `لديك فقط ${player.coins || 0} توكن` : `You only have ${player.coins || 0} tokens`); return; }
     setTreasuryLoading(true);
     try {
       const result = await depositToClub(club.id, player.uid, amount);
       if (result === 'ok') { setDepositAmount(''); }
-      else if (result === 'insufficient') setTreasuryError(`You only have ${player.coins || 0} tokens`);
-      else if (result === 'not-member') setTreasuryError('You are not a member of this club');
-      else setTreasuryError('Deposit failed');
+      else if (result === 'insufficient') setTreasuryError(ar ? `لديك فقط ${player.coins || 0} توكن` : `You only have ${player.coins || 0} tokens`);
+      else if (result === 'not-member') setTreasuryError(ar ? 'أنت لست عضواً في هذا النادي' : 'You are not a member of this club');
+      else setTreasuryError(ar ? 'فشل الإيداع' : 'Deposit failed');
     } catch (err) {
       console.error(err);
-      setTreasuryError('Deposit failed');
+      setTreasuryError(ar ? 'فشل الإيداع' : 'Deposit failed');
     }
     setTreasuryLoading(false);
   };
@@ -329,12 +329,12 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
     setTreasuryLoading(true);
     try {
       const result = await depositVoucherToClub(club.id, player.uid);
-      if (result === 'no-voucher') setTreasuryError('You have no Tournament Entry Pass to deposit');
-      else if (result === 'not-member') setTreasuryError('You are not a member of this club');
-      else if (result !== 'ok') setTreasuryError('Deposit failed');
+      if (result === 'no-voucher') setTreasuryError(ar ? 'لا تملك تذكرة دخول بطولة لإيداعها' : 'You have no Tournament Entry Pass to deposit');
+      else if (result === 'not-member') setTreasuryError(ar ? 'أنت لست عضواً في هذا النادي' : 'You are not a member of this club');
+      else if (result !== 'ok') setTreasuryError(ar ? 'فشل الإيداع' : 'Deposit failed');
     } catch (err) {
       console.error(err);
-      setTreasuryError('Deposit failed');
+      setTreasuryError(ar ? 'فشل الإيداع' : 'Deposit failed');
     }
     setTreasuryLoading(false);
   };
@@ -345,12 +345,12 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
     setTreasuryLoading(true);
     try {
       const result = await withdrawVoucherFromClub(club.id, player.uid);
-      if (result === 'none-owned') setTreasuryError('You have no deposited vouchers to take back');
-      else if (result === 'not-member') setTreasuryError('You are not a member of this club');
-      else if (result !== 'ok') setTreasuryError('Withdraw failed');
+      if (result === 'none-owned') setTreasuryError(ar ? 'لا تملك أي تذاكر مودعة لاستعادتها' : 'You have no deposited vouchers to take back');
+      else if (result === 'not-member') setTreasuryError(ar ? 'أنت لست عضواً في هذا النادي' : 'You are not a member of this club');
+      else if (result !== 'ok') setTreasuryError(ar ? 'فشل السحب' : 'Withdraw failed');
     } catch (err) {
       console.error(err);
-      setTreasuryError('Withdraw failed');
+      setTreasuryError(ar ? 'فشل السحب' : 'Withdraw failed');
     }
     setTreasuryLoading(false);
   };
@@ -359,19 +359,19 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
     if (!club) return;
     setTreasuryError('');
     const amount = parseInt(depositAmount, 10);
-    if (!Number.isFinite(amount) || amount <= 0) { setTreasuryError('Enter a valid amount'); return; }
+    if (!Number.isFinite(amount) || amount <= 0) { setTreasuryError(ar ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount'); return; }
     const myShare = clubShareOf(club, player.uid);
-    if (myShare < amount) { setTreasuryError(`Your cut is only ${myShare} tokens`); return; }
+    if (myShare < amount) { setTreasuryError(ar ? `حصتك فقط ${myShare} توكن` : `Your cut is only ${myShare} tokens`); return; }
     setTreasuryLoading(true);
     try {
       const result = await withdrawFromClub(club.id, player.uid, amount);
       if (result === 'ok') { setDepositAmount(''); }
-      else if (result === 'insufficient-share') setTreasuryError(`Your cut is only ${myShare} tokens`);
-      else if (result === 'not-member') setTreasuryError('You are not a member of this club');
-      else setTreasuryError('Withdraw failed');
+      else if (result === 'insufficient-share') setTreasuryError(ar ? `حصتك فقط ${myShare} توكن` : `Your cut is only ${myShare} tokens`);
+      else if (result === 'not-member') setTreasuryError(ar ? 'أنت لست عضواً في هذا النادي' : 'You are not a member of this club');
+      else setTreasuryError(ar ? 'فشل السحب' : 'Withdraw failed');
     } catch (err) {
       console.error(err);
-      setTreasuryError('Withdraw failed');
+      setTreasuryError(ar ? 'فشل السحب' : 'Withdraw failed');
     }
     setTreasuryLoading(false);
   };

@@ -679,12 +679,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
   const handleSendCoinsQuick = async () => {
     if (sendLoading) return;
-    if (!sendPin || sendPin.length !== 6) { setSendError('Enter your 6-digit PIN'); return; }
-    if (sendPin !== String(player.pin)) { setSendError('Wrong PIN'); setSendPin(''); return; }
+    if (!sendPin || sendPin.length !== 6) { setSendError(lang === 'ar' ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'); return; }
+    if (sendPin !== String(player.pin)) { setSendError(lang === 'ar' ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
     const amount = parseInt(sendAmount);
-    if (!sendTarget.trim()) { setSendError('Enter a username'); return; }
-    if (!amount || amount <= 0) { setSendError('Enter a valid amount'); return; }
-    if (Math.ceil(amount * 1.1) > player.coins) { setSendError('Not enough tokens (includes 10% fee)'); return; }
+    if (!sendTarget.trim()) { setSendError(lang === 'ar' ? 'أدخل اسم المستخدم' : 'Enter a username'); return; }
+    if (!amount || amount <= 0) { setSendError(lang === 'ar' ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount'); return; }
+    if (Math.ceil(amount * 1.1) > player.coins) { setSendError(lang === 'ar' ? 'التوكنز غير كافية (تشمل رسوم 10%)' : 'Not enough tokens (includes 10% fee)'); return; }
     setSendLoading(true);
     setSendError('');
     setSendSuccess('');
@@ -692,9 +692,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       const { collection, query, where, getDocs, increment: inc } = await import('firebase/firestore');
       const q = query(collection(db, 'players'), where('username', '==', sendTarget.trim()));
       const snap = await getDocs(q);
-      if (snap.empty) { setSendError('Player not found'); setSendLoading(false); return; }
+      if (snap.empty) { setSendError(lang === 'ar' ? 'اللاعب غير موجود' : 'Player not found'); setSendLoading(false); return; }
       const targetDoc = snap.docs[0];
-      if (targetDoc.id === player.uid) { setSendError("Can't send to yourself"); setSendLoading(false); return; }
+      if (targetDoc.id === player.uid) { setSendError(lang === 'ar' ? 'لا يمكنك الإرسال لنفسك' : "Can't send to yourself"); setSendLoading(false); return; }
       const fee = Math.ceil(amount * 0.1);
       const batch = writeBatch(db);
       batch.update(doc(db, 'players', player.uid), { coins: inc(-(amount + fee)), totalCoinsSpent: inc(amount + fee) });
@@ -711,7 +711,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       setTimeout(() => { setShowSendCoinsModal(false); setSendSuccess(''); setSendTarget(''); setSendPin(''); setSendPinVerified(false); }, 1500);
     } catch (err) {
       console.error(err);
-      setSendError('Failed to send tokens');
+      setSendError(lang === 'ar' ? 'فشل إرسال التوكنز' : 'Failed to send tokens');
     }
     setSendLoading(false);
   };
@@ -724,10 +724,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     { id: 'tournaments' as Tab, label: t(lang, 'tournaments'), icon: <Swords size={20} />, color: '#FF4444' },
     { id: 'software' as Tab, label: t(lang, 'software'), icon: <Monitor size={20} />, color: '#A855F7' },
     { id: 'chests' as Tab, label: t(lang, 'chests'), icon: <Package size={20} />, color: '#00BFFF' },
-    { id: 'inventory' as Tab, label: 'Inventory', icon: <Backpack size={20} />, color: '#E879F9' },
-    { id: 'store' as Tab, label: 'Store', icon: <ShoppingBag size={20} />, color: '#FF6F00' },
-    { id: 'food' as Tab, label: 'Food & Snacks', icon: <UtensilsCrossed size={20} />, color: '#F97316' },
-    { id: 'hubbly' as Tab, label: 'Hubbly Bubbly', icon: <Flame size={20} />, color: '#06B6D4' },
+    { id: 'inventory' as Tab, label: lang === 'ar' ? 'الحقيبة' : 'Inventory', icon: <Backpack size={20} />, color: '#E879F9' },
+    { id: 'store' as Tab, label: lang === 'ar' ? 'المتجر' : 'Store', icon: <ShoppingBag size={20} />, color: '#FF6F00' },
+    { id: 'food' as Tab, label: lang === 'ar' ? 'الطعام والوجبات' : 'Food & Snacks', icon: <UtensilsCrossed size={20} />, color: '#F97316' },
+    { id: 'hubbly' as Tab, label: lang === 'ar' ? 'شيشة' : 'Hubbly Bubbly', icon: <Flame size={20} />, color: '#06B6D4' },
     // VIP moved to bottom section
   ] as { id: Tab; label: string; icon: React.ReactNode; color?: string }[])
     .filter(item => visibleTabs[item.id] !== false);
@@ -984,7 +984,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 <button onClick={() => setActivePopup('profile')}
                   className="w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110"
                   style={{ border: '2px solid rgba(0,200,255,0.3)', background: 'radial-gradient(circle, rgba(0,200,255,0.1) 0%, rgba(0,0,0,0.4) 70%)', boxShadow: '0 0 10px rgba(0,200,255,0.15)' }}
-                  title="Settings">
+                  title={lang === 'ar' ? 'الإعدادات' : 'Settings'}>
                   <Settings size={18} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 4px rgba(0,200,255,0.5))' }} />
                 </button>
               </div>
@@ -1187,7 +1187,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 </AnimatePresence>
               </div>
             ) : (
-              <button onClick={() => setTab('games')} title="Games"
+              <button onClick={() => setTab('games')} title={lang === 'ar' ? 'الألعاب' : 'Games'}
                 className={`w-full flex justify-center py-2 rounded-lg transition-all ${(tab as string) === 'games' ? 'bg-ninja-green/10 text-ninja-green' : 'text-gray-500 hover:text-gray-300'}`}>
                 <Gamepad2 size={18} />
               </button>
@@ -1248,7 +1248,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 </AnimatePresence>
               </div>
             ) : (
-              <button onClick={() => setOpenDropdown(openDropdown === 'launchers' ? null : 'launchers')} title="Launchers"
+              <button onClick={() => setOpenDropdown(openDropdown === 'launchers' ? null : 'launchers')} title={lang === 'ar' ? 'المشغلات' : 'Launchers'}
                 className="w-full flex justify-center py-2 rounded-lg text-gray-500 hover:text-blue-400 transition-all">
                 <Play size={18} />
               </button>
@@ -1323,7 +1323,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 </AnimatePresence>
               </div>
             ) : (
-              <button onClick={() => setActivePopup('software')} title="Creator Tools"
+              <button onClick={() => setActivePopup('software')} title={lang === 'ar' ? 'أدوات المبدعين' : 'Creator Tools'}
                 className={`w-full flex justify-center py-2 rounded-lg transition-all ${activePopup === 'software' ? 'bg-purple-500/10 text-purple-400' : 'text-gray-500 hover:text-gray-300'}`}>
                 <Wrench size={18} />
               </button>
@@ -1574,7 +1574,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     {/* Close button */}
                     <button
                       onClick={() => setActivePopup(null)}
-                      title="Close"
+                      title={lang === 'ar' ? 'إغلاق' : 'Close'}
                       className={`absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
                       style={{ background: isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)', border: `1px solid ${isVipPopup ? 'rgba(255,215,0,0.15)' : 'rgba(57,255,20,0.15)'}`, boxShadow: `0 0 10px ${isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)'}`, transition: 'all 0.3s' }}
                     >

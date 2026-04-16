@@ -432,7 +432,7 @@ export function ChatView({ player, lang }: { player: any; lang: Lang }) {
               onClick={() => startCall(activeFriend.uid, activeFriend.username)}
               className="w-9 h-9 rounded-full flex items-center justify-center transition-colors active:bg-white/10 flex-shrink-0"
               style={{ background: 'rgba(57,255,20,0.08)' }}
-              title="Voice call"
+              title={lang === 'ar' ? 'مكالمة صوتية' : 'Voice call'}
             >
               <Phone size={18} color="#39FF14" />
             </button>

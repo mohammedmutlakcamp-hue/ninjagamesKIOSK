@@ -179,16 +179,16 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
   const handleSendCoins = async () => {
     if (sendLoading) return;
     if (!sendPinVerified) {
-      if (!sendPin || sendPin.length !== 6) { setSendResult('Enter your 6-digit PIN'); return; }
-      if (sendPin !== currentPlayer.pin) { setSendResult('Wrong PIN'); setSendPin(''); return; }
+      if (!sendPin || sendPin.length !== 6) { setSendResult(ar ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'); return; }
+      if (sendPin !== currentPlayer.pin) { setSendResult(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
       setSendPinVerified(true);
       setSendResult(null);
       return;
     }
     const amount = parseInt(sendAmount);
-    if (!amount || amount <= 0) { setSendResult('Enter a valid amount'); return; }
+    if (!amount || amount <= 0) { setSendResult(ar ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount'); return; }
     const fee = Math.ceil(amount * 0.1);
-    if (amount + fee > (currentPlayer?.coins || 0)) { setSendResult('Not enough coins'); return; }
+    if (amount + fee > (currentPlayer?.coins || 0)) { setSendResult(ar ? 'العملات غير كافية' : 'Not enough coins'); return; }
     setSendLoading(true);
     try {
       await updateDoc(doc(db, 'players', currentPlayer.uid), { coins: increment(-(amount + fee)) });
@@ -198,7 +198,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
       setSendPin(''); setSendPinVerified(false);
       trackDailyTask(currentPlayer.uid, 'send_coins').catch(() => {});
       setTimeout(() => { setSendCoinsOpen(false); setSendResult(null); }, 1500);
-    } catch { setSendResult('Failed'); }
+    } catch { setSendResult(ar ? 'فشل' : 'Failed'); }
     setSendLoading(false);
   };
 

@@ -88,10 +88,10 @@ export function TournamentTab({ player }: Props) {
   const joinAsSingle = async (t: Tournament) => {
     if (joining) return;
     setJoining(true); setJoinError('');
-    if (isRegistered(t)) { setJoinError('Already registered!'); setJoining(false); return; }
-    if ((t.participants?.length || 0) >= t.maxPlayers) { setJoinError('Tournament is full!'); setJoining(false); return; }
+    if (isRegistered(t)) { setJoinError(ar ? 'مسجّل بالفعل!' : 'Already registered!'); setJoining(false); return; }
+    if ((t.participants?.length || 0) >= t.maxPlayers) { setJoinError(ar ? 'البطولة ممتلئة!' : 'Tournament is full!'); setJoining(false); return; }
     const hasPass = hasTournamentPass();
-    if (!hasPass && player.coins < t.entryFee) { setJoinError('Not enough tokens!'); setJoining(false); return; }
+    if (!hasPass && player.coins < t.entryFee) { setJoinError(ar ? 'التوكنز غير كافية!' : 'Not enough tokens!'); setJoining(false); return; }
     try {
       if (hasPass) {
         let found = false;
@@ -108,7 +108,7 @@ export function TournamentTab({ player }: Props) {
       await updateDoc(doc(db, 'tournaments', t.id), { participants: arrayUnion(participant) });
       setSelectedTournament({ ...t, participants: [...(t.participants || []), participant] });
       setRegChoiceTournament(null);
-    } catch { setJoinError('Failed to join.'); }
+    } catch { setJoinError(ar ? 'فشل الانضمام.' : 'Failed to join.'); }
     setJoining(false);
   };
 
@@ -124,12 +124,12 @@ export function TournamentTab({ player }: Props) {
       const existingIds = new Set((t.participants || []).map(p => p.playerId));
       const alreadyRegistered = club.members.filter(uid => existingIds.has(uid));
       if (alreadyRegistered.length > 0) {
-        setJoinError('One of your club members is already registered. Leave or disband first.');
+        setJoinError(ar ? 'أحد أعضاء ناديك مسجّل بالفعل. اتركه أو حلّ النادي أولاً.' : 'One of your club members is already registered. Leave or disband first.');
         setJoining(false); return;
       }
       const openSlots = t.maxPlayers - (t.participants?.length || 0);
       if (openSlots < club.members.length) {
-        setJoinError(`Not enough space — tournament has ${openSlots} slot${openSlots === 1 ? '' : 's'} left, club needs ${club.members.length}.`);
+        setJoinError(ar ? `لا توجد مساحة كافية — المتبقي ${openSlots} مقعد، النادي يحتاج ${club.members.length}.` : `Not enough space — tournament has ${openSlots} slot${openSlots === 1 ? '' : 's'} left, club needs ${club.members.length}.`);
         setJoining(false); return;
       }
 
@@ -172,7 +172,7 @@ export function TournamentTab({ player }: Props) {
         const mine = clubShareOf(club, shortfall.m.uid);
         const needCount = memberAllocation.filter(a => a.method === 'share').length;
         const totalNeeded = needCount * t.entryFee;
-        setJoinError(`${shortfall.m.username}'s treasury share is too low (${mine}/${t.entryFee}). Club needs ${totalNeeded} tokens for ${needCount} uncovered member${needCount === 1 ? '' : 's'}, or add more vouchers.`);
+        setJoinError(ar ? `حصة ${shortfall.m.username} من الخزينة منخفضة (${mine}/${t.entryFee}). النادي يحتاج ${totalNeeded} توكن لـ ${needCount} عضو غير مغطى، أو أضف المزيد من التذاكر.` : `${shortfall.m.username}'s treasury share is too low (${mine}/${t.entryFee}). Club needs ${totalNeeded} tokens for ${needCount} uncovered member${needCount === 1 ? '' : 's'}, or add more vouchers.`);
         setJoining(false); return;
       }
 
@@ -190,7 +190,7 @@ export function TournamentTab({ player }: Props) {
           await updateDoc(doc(db, 'players', a.m.uid), { inventory: newInv });
         } catch (err) {
           console.error('voucher burn failed for', a.m.uid, err);
-          setJoinError('Failed to burn voucher, try again.');
+          setJoinError(ar ? 'فشل استخدام التذكرة، حاول مرة أخرى.' : 'Failed to burn voucher, try again.');
           setJoining(false); return;
         }
       }
@@ -200,7 +200,7 @@ export function TournamentTab({ player }: Props) {
       if (pooledUsed > 0) {
         const poolResult = await consumeClubVouchers(club.id, pooledUsed);
         if (poolResult !== 'ok') {
-          setJoinError(poolResult === 'insufficient' ? 'Club voucher pool ran out. Deposit more.' : 'Failed to use pooled vouchers.');
+          setJoinError(poolResult === 'insufficient' ? (ar ? 'نفدت تذاكر النادي. أودع المزيد.' : 'Club voucher pool ran out. Deposit more.') : (ar ? 'فشل استخدام تذاكر النادي.' : 'Failed to use pooled vouchers.'));
           setJoining(false); return;
         }
       }
@@ -213,9 +213,9 @@ export function TournamentTab({ player }: Props) {
         if (result !== 'ok') {
           if (typeof result === 'object' && result.error === 'insufficient') {
             const offender = memberInfos.find(m => m.uid === result.offender);
-            setJoinError(`${offender?.username || 'A member'}'s share ran out.`);
+            setJoinError(ar ? `نفدت حصة ${offender?.username || 'أحد الأعضاء'}.` : `${offender?.username || 'A member'}'s share ran out.`);
           } else {
-            setJoinError('Failed to charge club treasury.');
+            setJoinError(ar ? 'فشل خصم المبلغ من خزينة النادي.' : 'Failed to charge club treasury.');
           }
           setJoining(false); return;
         }
@@ -246,7 +246,7 @@ export function TournamentTab({ player }: Props) {
       setRegChoiceTournament(null);
     } catch (err) {
       console.error('Club registration failed', err);
-      setJoinError('Failed to register club.');
+      setJoinError(ar ? 'فشل تسجيل النادي.' : 'Failed to register club.');
     }
     setJoining(false);
   };

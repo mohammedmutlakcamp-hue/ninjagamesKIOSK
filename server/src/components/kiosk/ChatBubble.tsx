@@ -383,7 +383,7 @@ export function ChatBubble({ player, hideBubble = false }: Props) {
   const handleImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 10 * 1024 * 1024) { alert('Image must be under 10MB'); return; }
+    if (file.size > 10 * 1024 * 1024) { alert(lang === 'ar' ? 'يجب أن يكون حجم الصورة أقل من 10 ميجابايت' : 'Image must be under 10MB'); return; }
     const reader = new FileReader();
     reader.onload = (ev) => sendMessage('image', '', ev.target?.result as string);
     reader.readAsDataURL(file);

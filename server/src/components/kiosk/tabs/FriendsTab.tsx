@@ -259,8 +259,8 @@ export function FriendsTab({ player }: Props) {
   const handleSendCoins = async () => {
     if (!sendCoinsTo || !sendAmount || sendLoading) return;
     const amount = parseInt(sendAmount);
-    if (isNaN(amount) || amount <= 0) { setSendError('Enter a valid amount'); return; }
-    if (Math.ceil(amount * 1.1) > (player.coins || 0)) { setSendError('Not enough tokens (includes 10% fee)'); return; }
+    if (isNaN(amount) || amount <= 0) { setSendError(ar ? 'أدخل مبلغاً صحيحاً' : 'Enter a valid amount'); return; }
+    if (Math.ceil(amount * 1.1) > (player.coins || 0)) { setSendError(ar ? 'التوكنز غير كافية (تشمل رسوم 10%)' : 'Not enough tokens (includes 10% fee)'); return; }
     setSendLoading(true);
     setSendError('');
     try {
@@ -275,7 +275,7 @@ export function FriendsTab({ player }: Props) {
       setSendSuccess(`Sent ${amount} tokens to ${sendCoinsTo.username}! (${fee} fee burned)`);
       setSendAmount('');
       setTimeout(() => { setSendSuccess(''); setSendCoinsTo(null); }, 2000);
-    } catch { setSendError('Failed to send tokens'); }
+    } catch { setSendError(ar ? 'فشل إرسال التوكنز' : 'Failed to send tokens'); }
     setSendLoading(false);
   };
 
@@ -799,7 +799,7 @@ export function FriendsTab({ player }: Props) {
                             detail: { friendId: group.id, friendName: group.name, isGroup: true, members: group.members },
                           }));
                         }}
-                        className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title="Group call"
+                        className="relative w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" title={ar ? 'مكالمة جماعية' : 'Group call'}
                         style={{ background: 'rgba(168,85,247,0.1)', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 10px rgba(168,85,247,0.12)' }}>
                         <div className="absolute top-0 left-0 w-1.5 h-1.5" style={{ borderTop: '1px solid rgba(168,85,247,0.5)', borderLeft: '1px solid rgba(168,85,247,0.5)' }} />
                         <Phone size={14} className="text-purple-400" style={{ filter: 'drop-shadow(0 0 4px rgba(168,85,247,0.6))' }} />

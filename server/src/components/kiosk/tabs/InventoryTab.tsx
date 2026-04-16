@@ -323,18 +323,18 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const handleSendToFriend = async (item: InventoryItem) => {
     if (sendLoading) return;
     if (!sendPinVerified) {
-      if (!sendPin || sendPin.length !== 6) { setSendError('Enter your 6-digit PIN'); return; }
-      if (sendPin !== String(player.pin)) { setSendError('Wrong PIN'); setSendPin(''); return; }
+      if (!sendPin || sendPin.length !== 6) { setSendError(ar ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'); return; }
+      if (sendPin !== String(player.pin)) { setSendError(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
       setSendPinVerified(true); setSendError(''); return;
     }
-    if (!sendTarget.trim()) { setSendError('Enter a username'); return; }
+    if (!sendTarget.trim()) { setSendError(ar ? 'أدخل اسم المستخدم' : 'Enter a username'); return; }
     setSendLoading(true); setSendError('');
     try {
       const q = query(collection(db, 'players'), where('username', '==', sendTarget.trim()));
       const snap = await getDocs(q);
-      if (snap.empty) { setSendError('Player not found'); setSendLoading(false); return; }
+      if (snap.empty) { setSendError(ar ? 'اللاعب غير موجود' : 'Player not found'); setSendLoading(false); return; }
       const targetDoc = snap.docs[0];
-      if (targetDoc.id === player.uid) { setSendError("Can't send to yourself"); setSendLoading(false); return; }
+      if (targetDoc.id === player.uid) { setSendError(ar ? 'لا يمكنك الإرسال لنفسك' : "Can't send to yourself"); setSendLoading(false); return; }
       const senderInventory = (player.inventory || []).map((inv: InventoryItem) => inv.id === item.id ? { ...inv, used: true } : inv);
       const targetData = targetDoc.data();
       const receiverInventory = [...(targetData.inventory || []), { ...item, id: `${item.id}-gift-${Date.now()}`, used: false, obtainedAt: Date.now(), sentBy: player.username }];
@@ -343,7 +343,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
       fetch('/api/notifications', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: 'Gift Received!', message: `${player.username} sent you "${item.name}"`, targetUids: [targetDoc.id] }) }).catch(() => {});
       setSendSuccess(`Sent "${item.name}" to ${sendTarget}!`);
       setTimeout(() => { setSendModal(null); setDetailModal(null); setSendSuccess(''); setSendTarget(''); setSendPin(''); setSendPinVerified(false); }, 1500);
-    } catch (err) { console.error(err); setSendError('Failed to send item'); }
+    } catch (err) { console.error(err); setSendError(ar ? 'فشل إرسال العنصر' : 'Failed to send item'); }
     setSendLoading(false);
   };
 
@@ -1154,7 +1154,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               }))}
               winIndex={spinWinIndex}
               accentColor="#39FF14"
-              title="Daily Chest"
+              title={ar ? 'الصندوق اليومي' : 'Daily Chest'}
               rarityColor={rarityColor}
               onComplete={handleSpinComplete}
             />
