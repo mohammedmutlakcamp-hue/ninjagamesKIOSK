@@ -29,6 +29,8 @@ RestartApplications=no
 Source: "..\client\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 ; Helper to restore explorer.exe as the shell if you want to roll back kiosk lockdown
 Source: "restore-shell.bat"; DestDir: "{app}"; Flags: ignoreversion
+; Watchdog — Windows Task Scheduler restarts NinjaKiosk if it dies
+Source: "..\WATCHDOG.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
 Name: "{commondesktop}\Ninja Games Kiosk"; Filename: "{app}\NinjaKiosk.exe"; WorkingDir: "{app}"; IconFilename: "{app}\NinjaKiosk.exe"
@@ -53,6 +55,13 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System";
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "NinjaKiosk"; ValueData: """{app}\NinjaKiosk.exe"""; Flags: uninsdeletevalue
 
 [Run]
+; Open firewall so the kiosk can reach the LAN server on :3000
+Filename: "netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NinjaKiosk Client"""; Flags: runhidden
+Filename: "netsh.exe"; Parameters: "advfirewall firewall add rule name=""NinjaKiosk Client"" dir=out action=allow protocol=TCP remoteport=3000"; Flags: runhidden
+; Register the watchdog scheduled task so a crashed kiosk auto-recovers
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""NinjaKiosk Watchdog"" /F"; Flags: runhidden
+Filename: "schtasks.exe"; Parameters: "/Create /TN ""NinjaKiosk Watchdog"" /TR ""\""""{app}\WATCHDOG.bat""""\""""  /SC MINUTE /MO 1 /RL HIGHEST /F"; Flags: runhidden
+; Launch the kiosk after install
 Filename: "{app}\NinjaKiosk.exe"; Parameters: "{code:GetLaunchParams}"; Description: "Launch Ninja Games Kiosk"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [InstallDelete]
@@ -62,6 +71,10 @@ Type: filesandordirs; Name: "{app}\*"
 Type: filesandordirs; Name: "{app}"
 
 [UninstallRun]
+; Remove the watchdog scheduled task
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""NinjaKiosk Watchdog"" /F"; Flags: runhidden
+; Remove firewall rule
+Filename: "netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NinjaKiosk Client"""; Flags: runhidden
 ; Restore everything we changed
 Filename: "reg.exe"; Parameters: "delete ""HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"" /v Shell /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableTaskMgr /f"; Flags: runhidden
