@@ -623,11 +623,96 @@ NOTE: The `AdminDashboard.tsx` wiring and the `globals.css` dark-mode block may 
 - `server/public/img/admin-icon.png` — adminchat PWA icon
 - `server/src/components/admin/` × 11 — admin panel expansion (see Session 6 start)
 
+### Session 7 Changes (April 16–17, 2026) — Deploy Night
+
+#### Arabic Translation (full pass)
+- **~500+ strings translated** across all kiosk + mobile components.
+- Inline ternary pattern: `{lang === 'ar' ? 'عربي' : 'English'}` — no useTranslation refactor.
+- **Cairo + Tajawal Google Fonts** loaded for RTL, scoped to `html[dir="rtl"]`.
+- RTL polish: chevron/arrow icons auto-flip via CSS, numeric inputs forced LTR.
+- Sidebar nav translated (Inventory, Store, Food, Hubbly, etc.)
+- 67 setter error messages translated (setError, setJoinError, setSendResult, etc.)
+- Admin panel stays English (user preference).
+
+#### Reset-PIN / Forgot-PIN Full Loop
+- **Bug fix:** admin "Reset PIN" was deleting the request doc instead of marking `status:'approved'`. Kiosk listener couldn't detect approval → player stuck on "WAITING" forever. Now writes `status:'approved'`.
+- **Player-side:** Forgot-PIN popup has 4 modes (Notify → Waiting ⏳ → Approved ✅ → Pick New PIN). Auto-flips in-place when admin approves. Persists across page reloads (localStorage).
+- **Admin-side:** `/adminchat` has a new "Reset PIN" sub-tab with toast popup, approve/reject, manual reset by username.
+- Temp password changed from `0000` → `000000` (matches 6-digit PIN convention).
+- Submit-time legacy check in `handleLogin` — fixes race where player typed fast and hit the normal PIN path before debounce fired.
+
+#### Friends Activity Broadcast
+- On game launch: writes `onlineStatus.currentActivity = 'Playing {game}'` + `currentGameId` + `activitySince` to Firestore.
+- Sidebar friends list shows gamepad icon + `Playing X` (AR: `يلعب X`).
+- PlayerProfileCard shows live green pill with current game.
+- Toast message: `Started playing Valorant` (AR: `بدأ لعب Valorant`).
+- Game-end detection (web-side): when kiosk regains visibility for 3 sec, resets to 'In lobby'.
+
+#### Daily Tasks Fix
+- **Critical bug:** `trackDailyTask()` silently returned if the `daily-tasks/{uid}_{date}` doc didn't exist (player hadn't opened Tasks tab today). All progress was lost.
+- Fixed: auto-initializes the doc on first tracked action of the day.
+- All action types now properly mapped: `add_friend`, `launch_game`, `play_minigame`, `get_headshot`, `earn_coins`, `check_socials`.
+- "All Tasks Complete" → CLAIM gives coins + daily chest. Post-claim shows "OPEN NOW" button that jumps to Inventory and auto-opens the chest.
+
+#### Social Task Rewards
+- All 3 social bonuses set to **10 tokens** (was 25/100/75).
+- Instagram + Google review: **repeatable every 10 days** (cooldown with `claimedAt` timestamp).
+- Instagram bio: one-time only.
+- Admin verification UI: popup fires on `/ghanimadmin` + `/adminchat`. Approve → credits coins + starts cooldown. Reject → clears pending flag.
+- Cooldown bug fixed: `requestedAt > claimedAt` check prevents stale "PENDING" state.
+- Firestore rule added for `social-verification-requests`.
+
+#### Hubbly Bubbly Split
+- Two independent tabs: **HOOKAH** (shisha flow: flavor → ice → confirm) and **TOBACCO** (direct cigarette pick → confirm).
+- Tobacco orderable standalone — no longer forced through the shisha flow.
+- Orders saved with `type: 'hookah' | 'tobacco'` in `shisha-orders` collection.
+
+#### Tournament PIN Gate
+- "JOIN TOURNAMENT" button now prompts for the player's 6-digit PIN before committing tokens/vouchers.
+- Orange accent theme, bilingual. Prevents unauthorized tournament joins on unlocked sessions.
+
+#### Chest Economy System (new: `lib/chest-economy.ts`)
+- **Bronze chest removed** — level-up and playtime rewards now grant Common Chests.
+- **Unique skins:** duplicate skin rolls → re-roll up to 12 times. Only falls back to coin conversion if player owns every skin in the pool.
+- **Profit-biased RNG:** reads `config/chest-economy` + `config/chest-ledger` from Firestore. When house is ahead of profitThreshold (default 3000), boosts high-value drops (boostFactor 1.8). When behind lossThreshold (default 1000), dampens them (dampenFactor 0.5). Kill switch: `biasEnabled=false`.
+- **Legendary chest rebalanced:** old EV was 376 on 200 cost (house in the red). Post-rebalance: EV ~143, margin ~28–52% depending on bias config.
+- **Monte Carlo sims:**
+  - `scripts/monte-carlo-chests.js` — per-tier margin analysis under 3 configs (PURE RNG / NEUTRAL / HOUSE-AGGRESSIVE), 100k opens each.
+  - `scripts/monte-carlo-daily.js` — daily P&L with 30 customers, 1–5 JOD, including voucher costs. Supports `--customers`, `--min`, `--max`, `--discount`, `--vip` flags.
+  - Result: **+46 JOD/day avg, 0 loss days / 1000 sims. ~1,400 JOD/mo gross.**
+
+#### UI Fixes
+- Sidebar-to-content gap removed (border-right + box-shadow + paddingLeft).
+- Sidebar language flag: uses `/img/flag-sa.svg` (cleaner Saudi flag), fills full circle.
+- "Earn More Coins" section: bottom padding bumped so it's not clipped.
+
+#### Secret Phrases
+- `ghanemadmin` — admin login from kiosk login screen.
+- `ghanemexit` — kill-switch, works from login + dashboard.
+- `ghanemrefresh` — hard-reloads kiosk WebView (pick up new Vercel deploy without rebooting). Works from login + dashboard.
+
+#### Screenshot Quality
+- Resolution: 640×360 → **1280×720**.
+- JPEG quality: 55 → **80**.
+- Interpolation: HighQualityBicubic + all HQ rendering flags.
+- C# client rebuilt; fresh binary shipped in `REALFINAL/installer/client/`.
+
+#### Deploy Package (REALFINAL/)
+- `Desktop/REALFINAL/` folder (419 MB) with everything needed to install the kiosk on client PCs tonight.
+- **ONE-CLICK-INSTALL.bat** — zero prompts. Auto-detects hostname, copies app to `C:\Program Files\NinjaKiosk`, sets up autostart + watchdog + firewall, launches with `--pc-name`.
+- **SCAN-GAMES.bat / .ps1** — standalone game-path scanner (Steam / Epic / Riot / Roblox / FiveM / Battle.net / Discord).
+- **CHECK-LAN.bat** — verifies cloud + LAN connectivity + firewall rules.
+
+#### Firestore Rules Updates
+- `pin-reset-requests` — allows Forgot-PIN flow.
+- `social-verification-requests` — allows social-task verification popup.
+- Both need to be deployed via Firebase Console (paste `firestore.rules` → Publish).
+
 ## TODO / NEXT STEPS
-- Tournament PIN: Require PIN before entering, check for tournament voucher
-- Admin player management (see inventory, remove coins, remove items)
 - Creator tools / launchers need real icons
 - Add welcome videos for epic/legendary/mythic skins
 - Test PWA "Add to Home Screen" on iOS Safari
-- Verify / re-wire Session-6 admin components in `AdminDashboard.tsx` on each LAN PC (files exist, imports may be missing)
-- Consider extracting the Buy Time / Top Up modals from KioskDashboard into their own component files — KioskDashboard is now ~2700 lines
+- Verify / re-wire Session-6 admin components in `AdminDashboard.tsx` on each LAN PC
+- Consider extracting Buy Time / Top Up modals from KioskDashboard (~3000+ lines now)
+- True live video streaming (WebRTC) for admin PC view — currently 5-sec screenshot loop
+- Admin panel Arabic translation (~400 strings, deferred by user preference)
