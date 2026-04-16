@@ -326,6 +326,47 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     };
   }, [initialPlayer.uid, isGuest]);
 
+  // ── Game-end detection (web-side) ───────────────────────────────────────
+  // When a game is launched, the C# client pushes the kiosk window behind
+  // the game. If the player closes the game, the kiosk regains visibility.
+  // We use that as our "game ended" signal: if the kiosk becomes visible
+  // AND at least 10 seconds have passed since the last launch, clear the
+  // player's currentActivity back to 'In lobby' so friends stop seeing a
+  // ghost game.
+  useEffect(() => {
+    if (isGuest) return;
+    let lastLaunchTs = 0;
+    let resetTimer: ReturnType<typeof setTimeout> | null = null;
+    const onLaunchResult = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.success) lastLaunchTs = Date.now();
+    };
+    const onVisibility = () => {
+      if (document.hidden) return;
+      // Only treat "window back in view" as game-end if we actually launched
+      // something at least 10s ago — guards against tab-switch / dev tools.
+      if (lastLaunchTs === 0 || Date.now() - lastLaunchTs < 10_000) return;
+      if (resetTimer) clearTimeout(resetTimer);
+      resetTimer = setTimeout(() => {
+        updateDoc(doc(db, 'players', initialPlayer.uid), {
+          'onlineStatus.currentActivity': 'In lobby',
+          'onlineStatus.currentGameId': null,
+          'onlineStatus.lastSeen': Date.now(),
+        }).catch(() => {});
+        lastLaunchTs = 0;
+      }, 3000); // 3s dwell so a brief alt-tab doesn't trip it
+    };
+    window.addEventListener('game-launch-result', onLaunchResult);
+    document.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('focus', onVisibility);
+    return () => {
+      window.removeEventListener('game-launch-result', onLaunchResult);
+      document.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('focus', onVisibility);
+      if (resetTimer) clearTimeout(resetTimer);
+    };
+  }, [initialPlayer.uid, isGuest]);
+
   useEffect(() => {
     if (isGuest) return; // Skip Firestore listener for guests
     const unsub = onSnapshot(doc(db, 'players', initialPlayer.uid), (snap) => {

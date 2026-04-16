@@ -10,7 +10,7 @@ import { Club, CLUB_MAX_MEMBERS, chargeEachMemberShare, clubShareOf, consumeClub
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import {
   Trophy, Coins, Users, Clock, Swords, Calendar, ChevronRight,
-  X, Check, AlertTriangle, Shield, Award, Ticket, Star, Crown, Flame, User,
+  X, Check, AlertTriangle, Shield, Award, Ticket, Star, Crown, Flame, User, Lock,
 } from 'lucide-react';
 
 interface Props {
@@ -39,8 +39,13 @@ export function TournamentTab({ player }: Props) {
   const [regChoiceTournament, setRegChoiceTournament] = useState<Tournament | null>(null);
   const [club, setClub] = useState<Club | null>(null);
   const [clubLoading, setClubLoading] = useState(false);
-  useEscapeKey(() => setRegChoiceTournament(null), regChoiceTournament !== null);
-  useEscapeKey(() => setSelectedTournament(null), selectedTournament !== null && regChoiceTournament === null);
+  // PIN gate — confirm the player's 6-digit PIN before committing to a tournament
+  const [pinGateTournament, setPinGateTournament] = useState<Tournament | null>(null);
+  const [gatePin, setGatePin] = useState('');
+  const [gatePinError, setGatePinError] = useState('');
+  useEscapeKey(() => setPinGateTournament(null), pinGateTournament !== null);
+  useEscapeKey(() => setRegChoiceTournament(null), regChoiceTournament !== null && pinGateTournament === null);
+  useEscapeKey(() => setSelectedTournament(null), selectedTournament !== null && regChoiceTournament === null && pinGateTournament === null);
 
   // Subscribe to the player's club (if any), so registration choices show up correctly.
   useEffect(() => {
@@ -712,7 +717,7 @@ export function TournamentTab({ player }: Props) {
                       </div>
                     )}
                     <motion.button whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(255,111,0,0.4)' }} whileTap={{ scale: 0.98 }}
-                      onClick={() => handleJoinClick(selectedTournament)} disabled={joining}
+                      onClick={() => { setGatePin(''); setGatePinError(''); setPinGateTournament(selectedTournament); }} disabled={joining}
                       className="relative w-full py-3.5 rounded-xl font-ninja text-base flex items-center justify-center gap-2 transition-all overflow-hidden"
                       style={{ background: 'linear-gradient(135deg, #FF6F00, #FF4500)', color: '#fff', border: '1px solid rgba(255,111,0,0.5)', boxShadow: '0 0 18px rgba(255,111,0,0.3), inset 0 0 15px rgba(255,255,255,0.08)', textShadow: '0 0 10px rgba(255,255,255,0.5)' }}>
                       <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(255,255,255,0.6)', borderLeft: '2px solid rgba(255,255,255,0.6)' }} />
@@ -868,6 +873,105 @@ export function TournamentTab({ player }: Props) {
                 {joining && (
                   <p className="font-body text-xs text-gray-500 text-center mt-4">{ar ? 'جاري معالجة التسجيل...' : 'Processing registration...'}</p>
                 )}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ═══ PIN gate — confirm identity before committing to tournament ═══ */}
+      <AnimatePresence>
+        {pinGateTournament && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[270] flex items-center justify-center"
+            style={{ background: 'rgba(0,0,0,0.88)', backdropFilter: 'blur(8px)' }}
+            onClick={() => !joining && setPinGateTournament(null)}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.92, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.92 }}
+              onClick={(e) => e.stopPropagation()}
+              className="relative w-[380px] max-w-[92vw] rounded-2xl p-6"
+              style={{
+                background: 'linear-gradient(180deg, #050a14 0%, #030508 100%)',
+                border: '1.5px solid rgba(255,111,0,0.45)',
+                boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 40px rgba(255,111,0,0.2)',
+              }}
+            >
+              <div className="text-center mb-5">
+                <div className="w-14 h-14 mx-auto mb-3 rounded-xl flex items-center justify-center" style={{ background: 'rgba(255,111,0,0.12)', border: '1px solid rgba(255,111,0,0.4)', boxShadow: '0 0 18px rgba(255,111,0,0.2)' }}>
+                  <Lock size={24} className="text-orange-400" />
+                </div>
+                <h3 className="font-ninja text-xl text-white tracking-wider mb-1">
+                  {ar ? 'تأكيد بالرمز السري' : 'CONFIRM WITH PIN'}
+                </h3>
+                <p className="font-body text-xs text-gray-400">
+                  {ar
+                    ? `أدخل رمز PIN الخاص بك للانضمام إلى ${pinGateTournament.name}`
+                    : `Enter your 6-digit PIN to join ${pinGateTournament.name}`}
+                </p>
+              </div>
+
+              <input
+                type="password"
+                inputMode="numeric"
+                autoFocus
+                value={gatePin}
+                onChange={(e) => { setGatePin(e.target.value.replace(/\D/g, '').slice(0, 6)); setGatePinError(''); }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && gatePin.length === 6) {
+                    if (gatePin === player.pin) {
+                      const t = pinGateTournament;
+                      setPinGateTournament(null);
+                      setGatePin('');
+                      handleJoinClick(t);
+                    } else {
+                      setGatePinError(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN');
+                      setGatePin('');
+                    }
+                  }
+                }}
+                placeholder="••••••"
+                maxLength={6}
+                className="w-full bg-black/50 border border-orange-500/30 rounded-lg px-4 py-4 text-center font-mono text-3xl tracking-[0.7em] text-white focus:outline-none focus:border-orange-400 mb-3"
+                style={{ direction: 'ltr' }}
+              />
+
+              {gatePinError && (
+                <p className="text-red-400 font-body text-xs text-center mb-3">{gatePinError}</p>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => { setPinGateTournament(null); setGatePin(''); setGatePinError(''); }}
+                  disabled={joining}
+                  className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider text-gray-300"
+                  style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)' }}
+                >
+                  {ar ? 'إلغاء' : 'CANCEL'}
+                </button>
+                <button
+                  disabled={joining || gatePin.length !== 6}
+                  onClick={() => {
+                    if (gatePin !== player.pin) {
+                      setGatePinError(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN');
+                      setGatePin('');
+                      return;
+                    }
+                    const t = pinGateTournament;
+                    setPinGateTournament(null);
+                    setGatePin('');
+                    handleJoinClick(t);
+                  }}
+                  className="flex-1 py-3 rounded-lg font-ninja text-sm tracking-wider disabled:opacity-50"
+                  style={{
+                    background: 'linear-gradient(135deg, #FF6F00, #FF4500)',
+                    color: '#fff',
+                    boxShadow: '0 0 14px rgba(255,111,0,0.35)',
+                  }}
+                >
+                  {ar ? 'تأكيد وانضم' : 'CONFIRM & JOIN'}
+                </button>
               </div>
             </motion.div>
           </motion.div>
