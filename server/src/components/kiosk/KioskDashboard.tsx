@@ -1460,7 +1460,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               exit={{ opacity: 0 }}
               className="fixed inset-0 z-[150] flex items-center justify-center"
               style={{ background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)' }}
-              onClick={() => setActivePopup(null)}
             >
               <motion.div
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}

@@ -1462,8 +1462,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       <AnimatePresence>
         {selectedRightFriend && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center backdrop-blur-sm"
-            onClick={() => setSelectedRightFriend(null)}>
+            className="fixed inset-0 bg-black/70 z-[200] flex items-center justify-center backdrop-blur-sm">
             <motion.div initial={{ opacity: 0, scale: 0.9, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.9 }}
               className="w-[400px] max-w-[90vw] rounded-2xl border border-ninja-green/20 overflow-hidden"
               style={{ background: 'rgba(11,12,16,0.97)', backdropFilter: 'blur(20px)' }}
@@ -1543,8 +1542,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       <AnimatePresence>
         {viewInfoFriend && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80"
-            onClick={() => setViewInfoFriend(null)}>
+            className="fixed inset-0 z-[300] flex items-center justify-center bg-black/80">
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="w-[480px] max-w-[90vw] rounded-2xl border border-white/10 overflow-hidden"
               style={{ background: '#0a0a0e' }}

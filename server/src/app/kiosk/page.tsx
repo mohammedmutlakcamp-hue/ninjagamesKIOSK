@@ -69,6 +69,10 @@ export default function KioskPage() {
   const [legacyPassword, setLegacyPassword] = useState('');      // free-text input
   const [pinSetupMode, setPinSetupMode] = useState(false);       // after legacy auth, set new PIN
   const [pinConfirm, setPinConfirm] = useState('');
+  // Forgot PIN flow — creates a `pin-reset-requests` doc that admin sees in real time
+  const [forgotPinOpen, setForgotPinOpen] = useState(false);
+  const [forgotPinSent, setForgotPinSent] = useState(false);
+  const [forgotPinSending, setForgotPinSending] = useState(false);
   // Guest request state
   const [guestRequestPending, setGuestRequestPending] = useState(false);
   const [guestRequestId, setGuestRequestId] = useState<string | null>(null);
@@ -236,6 +240,27 @@ export default function KioskPage() {
       setError(t(lang, 'connection_error'));
     }
     setLoading(false);
+  };
+
+  // Player tapped "Forgot PIN" — send a reset request to admin
+  const submitForgotPin = async () => {
+    if (forgotPinSending || forgotPinSent) return;
+    setForgotPinSending(true);
+    try {
+      const u = (username || '').trim().toLowerCase();
+      const reqRef = doc(db, 'pin-reset-requests', `${u || 'unknown'}_${Date.now()}`);
+      await setDoc(reqRef, {
+        username: u,
+        pcId: pcDocId || null,
+        pcName: pcNameDisplay || null,
+        status: 'pending',
+        createdAt: Date.now(),
+      });
+      setForgotPinSent(true);
+    } catch (err) {
+      console.error('Forgot-PIN request failed', err);
+    }
+    setForgotPinSending(false);
   };
 
   // Step 1 of legacy flow: validate the old EasyCafe password
@@ -1007,7 +1032,14 @@ export default function KioskPage() {
                           >
                             {lang === 'ar' ? '← إنشاء حساب جديد' : '→ Create New Account'}
                           </button>
-                        ) : null}
+                        ) : (
+                          <button
+                            onClick={() => { setForgotPinOpen(true); setForgotPinSent(false); }}
+                            className="mt-2 text-amber-400 font-ninja text-sm underline underline-offset-4 hover:text-amber-300 transition-all"
+                          >
+                            {lang === 'ar' ? '🔑 نسيت رمز PIN؟' : '🔑 Forgot your PIN?'}
+                          </button>
+                        )}
                       </motion.div>
                     )}
 
@@ -1687,6 +1719,75 @@ export default function KioskPage() {
         </div>
         );
       })()}
+
+      {/* Forgot-PIN popup — opened from the login error message */}
+      {forgotPinOpen && (
+        <div className="fixed inset-0 z-[450] flex items-center justify-center" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
+          <motion.div initial={{ scale: 0.92, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }}
+            className="relative w-[460px] max-w-[92vw] rounded-2xl overflow-hidden p-6"
+            style={{
+              background: 'linear-gradient(180deg, rgba(251,191,36,0.06) 0%, #060810 50%, #050a10 100%)',
+              border: '1.5px solid rgba(251,191,36,0.45)',
+              boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 50px rgba(251,191,36,0.18)',
+            }}>
+            {/* HUD corners */}
+            {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, i) => (
+              <div key={i} className={`absolute ${pos} w-4 h-4 pointer-events-none`} style={{
+                ...(pos.includes('top') ? { borderTop: '2px solid #FBBF24' } : { borderBottom: '2px solid #FBBF24' }),
+                ...(pos.includes('left') ? { borderLeft: '2px solid #FBBF24' } : { borderRight: '2px solid #FBBF24' }),
+                filter: 'drop-shadow(0 0 6px #FBBF24)',
+              }} />
+            ))}
+
+            {/* Close — only way out (no backdrop close per project rule) */}
+            <button onClick={() => { setForgotPinOpen(false); setForgotPinSent(false); }}
+              className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-white transition-all"
+              style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+              ✕
+            </button>
+
+            <div className="text-center">
+              <div className="text-5xl mb-3">🔑</div>
+              <p className="font-ninja text-2xl text-amber-400 tracking-wider mb-2" style={{ textShadow: '0 0 12px rgba(251,191,36,0.4)' }}>
+                {lang === 'ar' ? 'نسيت رمز PIN؟' : 'Forgot Your PIN?'}
+              </p>
+              <p className="font-body text-sm text-gray-400 leading-relaxed mb-5">
+                {forgotPinSent
+                  ? (lang === 'ar'
+                      ? '✓ تم إرسال طلبك. اذهب إلى الموظف ليقوم بإعادة تعيين الرمز لك. ستحصل على كلمة مرور مؤقتة لتسجيل الدخول واختيار رمز PIN جديد.'
+                      : '✓ Request sent! Visit the staff desk — they\'ll reset your PIN. You\'ll get a temporary password to log in and pick a new PIN.')
+                  : (lang === 'ar'
+                      ? 'لا توجد مشكلة! اضغط على الزر أدناه لإرسال طلب إلى الموظف. ثم اذهب إلى المكتب لإعادة تعيين الرمز.'
+                      : 'No worries! Tap below to ping the staff. Then go to the desk — they\'ll reset your PIN to a temporary password so you can log in.')}
+              </p>
+
+              {!forgotPinSent ? (
+                <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }}
+                  onClick={submitForgotPin} disabled={forgotPinSending}
+                  className="w-full h-12 rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-60"
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(251,191,36,0.25), rgba(251,191,36,0.08))',
+                    border: '1.5px solid rgba(251,191,36,0.6)',
+                    color: '#FBBF24',
+                    boxShadow: '0 0 16px rgba(251,191,36,0.3)',
+                    textShadow: '0 0 6px rgba(251,191,36,0.5)',
+                  }}>
+                  {forgotPinSending
+                    ? (lang === 'ar' ? 'جاري الإرسال...' : 'Sending...')
+                    : (lang === 'ar' ? '🔔 أرسل طلب إلى الموظف' : '🔔 Notify Staff')}
+                </motion.button>
+              ) : (
+                <div className="rounded-lg py-3 px-4"
+                  style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.4)' }}>
+                  <p className="font-ninja text-sm tracking-wider text-ninja-green" style={{ textShadow: '0 0 8px rgba(57,255,20,0.4)' }}>
+                    ✓ {lang === 'ar' ? 'تم — اذهب إلى الموظف' : 'SENT — GO TO STAFF'}
+                  </p>
+                </div>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      )}
 
       {/* Top-up overlay for 0-coins player on login screen */}
       {showLoginTopUp && zeroCoinsPlayer && (

@@ -1800,8 +1800,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         {selectedSkin && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[200] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => setSelectedSkin(null)}>
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 26 }}
               className="relative overflow-hidden rounded-2xl w-[560px] max-w-[94vw] max-h-[85vh] overflow-y-auto"
@@ -1890,8 +1889,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         {confirmChest && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[200] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => setConfirmChest(null)}>
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="relative overflow-hidden rounded-2xl p-6 max-w-[90vw] max-h-[80vh] overflow-y-auto"
               style={{ width: 550, background: 'linear-gradient(180deg, #060810 0%, #040608 50%, #050a10 100%)', border: '1px solid rgba(57,255,20,0.15)', boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 40px rgba(57,255,20,0.04)' }}

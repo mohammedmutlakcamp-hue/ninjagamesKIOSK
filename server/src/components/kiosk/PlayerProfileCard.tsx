@@ -220,7 +220,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
     >
-      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }} onClick={onClose} />
+      <div className="absolute inset-0" style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }} />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.92, y: 20 }}

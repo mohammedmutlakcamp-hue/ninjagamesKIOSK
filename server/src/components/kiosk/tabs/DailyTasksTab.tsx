@@ -1086,8 +1086,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
         {socialOpen && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[110] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => { setSocialOpen(null); setSocialSubmitted(''); }}>
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             <motion.div initial={{ scale: 0.92, opacity: 0, y: 12 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.92, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 220, damping: 22 }}
               onClick={(e) => e.stopPropagation()}

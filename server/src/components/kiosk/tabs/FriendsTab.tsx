@@ -980,8 +980,7 @@ export function FriendsTab({ player }: Props) {
         {actionFriend && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[105] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => setActionFriend(null)}>
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               onClick={(e) => e.stopPropagation()}
               className="rounded-2xl p-6 w-[420px] max-w-[92vw] relative overflow-hidden"

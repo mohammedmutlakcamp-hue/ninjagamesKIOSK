@@ -392,8 +392,15 @@ export function PlayerManagement() {
   const resetPin = async () => {
     if (!selected) return;
     try {
-      await updateDoc(doc(db, 'players', selected.uid), { pin: '' });
-      setActionMsg('PIN reset - player will set new PIN on login');
+      // Reuse the legacy-login flow: clear pin, mark as legacy with temp
+      // password '0000'. Player types username -> kiosk detects legacy ->
+      // asks for old password -> '0000' -> forced to set a new 6-digit PIN.
+      await updateDoc(doc(db, 'players', selected.uid), {
+        pin: '',
+        isLegacyUser: true,
+        legacyPassword: '0000',
+      });
+      setActionMsg('PIN reset → tell player to log in with temp password 0000 (they\'ll set a new PIN)');
       setResetPinConfirm(false);
     } catch (err: any) {
       setActionMsg('Failed: ' + (err.message || 'Unknown'));

@@ -752,8 +752,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
         {detailModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[200] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => setDetailModal(null)}>
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             <motion.div initial={{ scale: 0.85, opacity: 0, y: 30 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.85, opacity: 0, y: 20 }}
               transition={{ type: 'spring', damping: 20, stiffness: 200 }}
               className="relative w-[480px] max-h-[90vh] rounded-2xl overflow-hidden"
@@ -886,8 +885,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
         {sellModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="absolute inset-0 z-[210] flex items-center justify-center"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}
-            onClick={() => setSellModal(null)}>
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
             <motion.div initial={{ scale: 0.85, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.85, opacity: 0 }}
               transition={{ type: 'spring', damping: 20, stiffness: 200 }}
               className="relative rounded-2xl overflow-hidden p-7 w-[420px]"

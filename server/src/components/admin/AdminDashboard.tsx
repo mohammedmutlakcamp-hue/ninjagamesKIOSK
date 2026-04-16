@@ -47,7 +47,7 @@ import {
   UserPlus, ShieldCheck, X as XIcon, Phone, Bell, Crown, Gamepad2, Package,
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
-  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram
+  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key
 } from 'lucide-react';
 
 type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates';
@@ -198,6 +198,10 @@ export function AdminDashboard({ admin }: Props) {
   const [topUpNotification, setTopUpNotification] = useState<{ id: string; playerName: string; coins: number; priceJOD: number; playerId: string } | null>(null);
   const [topUpApproving, setTopUpApproving] = useState(false);
   const topUpSeenIds = useRef<Set<string>>(new Set());
+  // PIN reset requests (player tapped "Forgot PIN" on the kiosk login)
+  const [pinResetNotification, setPinResetNotification] = useState<{ id: string; username: string; pcName?: string | null; playerId?: string } | null>(null);
+  const [pinResetActioning, setPinResetActioning] = useState(false);
+  const pinResetSeenIds = useRef<Set<string>>(new Set());
   const [guestRegTopUp, setGuestRegTopUp] = useState<{ id: string; playerName: string; coins: number; priceJOD: number } | null>(null);
   const [guestRegApproving, setGuestRegApproving] = useState(false);
   const [notifQueue, setNotifQueue] = useState<any[]>([]);
@@ -332,6 +336,60 @@ export function AdminDashboard({ admin }: Props) {
     topUpSeenIds.current.add(topUpNotification.id);
     setTopUpApproving(false);
     setTopUpNotification(null);
+  };
+
+  // Listen for PIN reset requests (player tapped "Forgot PIN" on login)
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'pin-reset-requests'), (snap) => {
+      const pending = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter((r: any) => r.status === 'pending')
+        .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      const unseen = pending.find((r: any) => !pinResetSeenIds.current.has(r.id));
+      if (unseen) {
+        setPinResetNotification({
+          id: unseen.id,
+          username: unseen.username || 'unknown',
+          pcName: unseen.pcName,
+        });
+        playNotifSound();
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const approvePinReset = async () => {
+    if (!pinResetNotification) return;
+    setPinResetActioning(true);
+    try {
+      // Find the player by username (lowercase) and apply the legacy reset
+      const { getDocs, query, where, deleteDoc } = await import('firebase/firestore');
+      const q = query(collection(db, 'players'), where('username', '==', pinResetNotification.username));
+      const playerSnap = await getDocs(q);
+      if (!playerSnap.empty) {
+        await updateDoc(doc(db, 'players', playerSnap.docs[0].id), {
+          pin: '',
+          isLegacyUser: true,
+          legacyPassword: '0000',
+        });
+      }
+      await deleteDoc(doc(db, 'pin-reset-requests', pinResetNotification.id));
+    } catch (err) {
+      console.error('PIN reset failed:', err);
+    }
+    pinResetSeenIds.current.add(pinResetNotification.id);
+    setPinResetActioning(false);
+    setPinResetNotification(null);
+  };
+
+  const dismissPinResetPopup = async () => {
+    if (!pinResetNotification) return;
+    pinResetSeenIds.current.add(pinResetNotification.id);
+    try {
+      const { deleteDoc } = await import('firebase/firestore');
+      await deleteDoc(doc(db, 'pin-reset-requests', pinResetNotification.id));
+    } catch {}
+    setPinResetNotification(null);
   };
 
   const dismissTopUpPopup = () => {
@@ -843,6 +901,57 @@ export function AdminDashboard({ admin }: Props) {
                   </button>
                 </div>
               )}
+            </div>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* PIN Reset Request — player tapped "Forgot PIN" on the kiosk login */}
+      <AnimatePresence>
+        {pinResetNotification && !activeNotification && !guestNotification && !regNotification && (
+          <ModalOverlay>
+            <div className="w-[420px] max-w-[90vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#fbbf24]/10 flex items-center justify-center text-2xl">🔑</div>
+
+              <h1 className="text-xl md:text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">PIN Reset Request</h1>
+              <p className="text-[#86868b] text-sm mb-5">A player forgot their PIN — verify them before resetting</p>
+
+              <div className="bg-[#f5f5f7] rounded-xl p-5 mb-5 text-left space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Username</span>
+                  <span className="text-[#1d1d1f] font-semibold">{(pinResetNotification.username || '').toUpperCase()}</span>
+                </div>
+                {pinResetNotification.pcName && (
+                  <div className="flex justify-between">
+                    <span className="text-[#86868b] text-sm">From PC</span>
+                    <span className="text-[#1d1d1f] font-semibold">{pinResetNotification.pcName}</span>
+                  </div>
+                )}
+              </div>
+
+              <div className="bg-[#fff8e1] border border-[#fbbf24]/30 rounded-xl p-3 mb-5 text-left">
+                <p className="text-[#86868b] text-xs leading-relaxed">
+                  Resetting will set a temporary password <span className="font-mono font-bold text-[#1d1d1f]">0000</span>.
+                  Tell the player to type their username and <span className="font-mono font-bold">0000</span> — the kiosk will then ask them to pick a new 6-digit PIN.
+                </p>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={dismissPinResetPopup}
+                  disabled={pinResetActioning}
+                  className="flex-1 py-3.5 border border-[#d2d2d7] rounded-xl text-[#86868b] font-medium hover:bg-[#fafafa] transition-all flex items-center justify-center gap-2"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={approvePinReset}
+                  disabled={pinResetActioning}
+                  className="flex-1 py-3.5 bg-[#fbbf24] text-[#1d1d1f] rounded-xl font-medium hover:bg-[#f59e0b] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {pinResetActioning ? <Loader2 size={18} className="animate-spin" /> : <Key size={18} />} Reset PIN
+                </button>
+              </div>
             </div>
           </ModalOverlay>
         )}
