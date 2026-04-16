@@ -192,7 +192,8 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
     return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
   };
 
-  const bubbleSize = isMobile ? 'w-12 h-12' : 'w-14 h-14';
+  // Slightly larger on desktop so the logo + headset detail reads clearly
+  const bubbleSize = isMobile ? 'w-14 h-14' : 'w-[68px] h-[68px]';
   const panelWidth = isMobile ? 'w-[90vw]' : 'w-[380px]';
   const panelHeight = isMobile ? 'h-[70vh]' : 'h-[500px]';
 
@@ -229,14 +230,19 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             whileHover={{ scale: 1.1 }}
-            className={`fixed ${isMobile ? 'bottom-20 left-4' : 'bottom-6 left-6'} ${bubbleSize} z-[90] rounded-full flex items-center justify-center shadow-lg cursor-grab active:cursor-grabbing`}
+            className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} ${bubbleSize} z-[90] rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing overflow-visible`}
             style={{
-              background: 'linear-gradient(135deg, #39ff14 0%, #00cc44 100%)',
-              boxShadow: '0 0 20px rgba(57,255,20,0.4), 0 4px 15px rgba(0,0,0,0.3)',
+              filter: 'drop-shadow(0 0 14px rgba(57,255,20,0.45)) drop-shadow(0 4px 12px rgba(0,0,0,0.5))',
               touchAction: 'none',
             }}
           >
-            <Headphones size={isMobile ? 22 : 26} className="text-black pointer-events-none" />
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/img/admin-chat-bubble.png"
+              alt="Support"
+              className="w-full h-full object-contain pointer-events-none rounded-full"
+              draggable={false}
+            />
             {/* Unread badge */}
             {unread > 0 && (
               <motion.div
@@ -264,7 +270,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 10 }}
-            className={`fixed ${isMobile ? 'bottom-[88px] left-16' : 'bottom-[72px] left-20'} z-[90] px-3 py-1.5 rounded-lg bg-black/90 border border-ninja-green/20`}
+            className={`fixed ${isMobile ? 'bottom-[88px] right-16' : 'bottom-[72px] right-20'} z-[90] px-3 py-1.5 rounded-lg bg-black/90 border border-ninja-green/20`}
           >
             <p className="font-body text-[10px] text-ninja-green flex items-center gap-1">
               <GripVertical size={10} /> Drag me anywhere!
@@ -285,7 +291,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             initial={{ scale: 0.8, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.8, opacity: 0, y: 20 }}
-            className={`fixed ${isMobile ? 'bottom-20 left-4' : 'bottom-6 left-6'} ${panelWidth} ${panelHeight} z-[91] rounded-2xl overflow-hidden flex flex-col`}
+            className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} ${panelWidth} ${panelHeight} z-[91] rounded-2xl overflow-hidden flex flex-col`}
             style={{
               background: 'rgba(10,10,10,0.97)',
               border: '1px solid rgba(57,255,20,0.2)',
@@ -414,7 +420,7 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.8, opacity: 0 }}
             onTap={() => setMinimized(false)}
-            className={`fixed ${isMobile ? 'bottom-20 left-4' : 'bottom-6 left-6'} z-[91] px-4 py-2.5 rounded-full flex items-center gap-2 cursor-grab active:cursor-grabbing`}
+            className={`fixed ${isMobile ? 'bottom-20 right-4' : 'bottom-6 right-6'} z-[91] px-4 py-2.5 rounded-full flex items-center gap-2 cursor-grab active:cursor-grabbing`}
             style={{
               background: 'rgba(10,10,10,0.95)',
               border: '1px solid rgba(57,255,20,0.2)',
