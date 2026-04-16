@@ -934,9 +934,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 {/* Language button in chrome circle */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
                   className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110"
-                  style={{ border: '2px solid rgba(150,150,150,0.3)', background: 'radial-gradient(circle, rgba(168,85,247,0.1) 0%, rgba(0,0,0,0.4) 70%)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
+                  style={{ border: '2px solid rgba(57,255,20,0.4)', background: 'radial-gradient(circle, rgba(168,85,247,0.1) 0%, rgba(0,0,0,0.4) 70%)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                  <img src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-ar.png'} alt={lang.toUpperCase()} className="w-7 h-7 rounded-full object-cover" />
+                  <img src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-sa.svg'} alt={lang.toUpperCase()} className="w-full h-full rounded-full object-cover" />
                 </button>
 
                 {/* Center — Big avatar in octagonal sci-fi frame */}
