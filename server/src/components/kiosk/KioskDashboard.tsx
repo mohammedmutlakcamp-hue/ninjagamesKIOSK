@@ -428,20 +428,21 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 id: `${fid}-online-${Date.now()}`,
                 friendName: data.username,
                 friendNinjaType: data.ninjaType,
-                message: 'Just came online!',
+                message: lang === 'ar' ? 'أصبح متصلاً الآن!' : 'Just came online!',
                 type: 'online',
               },
             ]);
           }
-          // Friend started playing something new
+          // Friend started playing something new (strip "Playing " prefix for a cleaner toast)
           if (curr.isOnline && prev.currentActivity !== curr.currentActivity && curr.currentActivity && curr.currentActivity !== 'In lobby') {
+            const gameName = (curr.currentActivity as string).replace(/^Playing\s+/i, '');
             setFriendToasts((t) => [
               ...t,
               {
                 id: `${fid}-playing-${Date.now()}`,
                 friendName: data.username,
                 friendNinjaType: data.ninjaType,
-                message: `Is now ${curr.currentActivity}`,
+                message: lang === 'ar' ? `بدأ لعب ${gameName}` : `Started playing ${gameName}`,
                 type: 'playing',
               },
             ]);

@@ -285,11 +285,19 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       } else {
         setLaunchStatus('failed');
         setTimeout(() => setLaunchingGame(null), 4000);
+        // Launch failed — revert activity so friends don't see a ghost game
+        if (player?.uid) {
+          updateDoc(doc(db, 'players', player.uid), {
+            'onlineStatus.currentActivity': 'In lobby',
+            'onlineStatus.currentGameId': null,
+            'onlineStatus.lastSeen': Date.now(),
+          }).catch(() => {});
+        }
       }
     };
     window.addEventListener('game-launch-result', handler);
     return () => window.removeEventListener('game-launch-result', handler);
-  }, []);
+  }, [player?.uid]);
 
   // Fetch friend data from Firestore
   useEffect(() => {
@@ -504,11 +512,16 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
     notifyFriendsGameStart(player, game);
     // Track daily task: launch game
     if (player?.uid) trackDailyTask(player.uid, 'launch_game');
-    // Track per-game playtime (add 1 min per launch, real tracking via session)
+    // Track per-game playtime + broadcast current activity to friends
     if (player?.uid) {
       updateDoc(doc(db, 'players', player.uid), {
         [`gamePlaytime.${game.id}`]: increment(1),
         'stats.gamesPlayed': increment(1),
+        'onlineStatus.isOnline': true,
+        'onlineStatus.currentActivity': `Playing ${game.name}`,
+        'onlineStatus.currentGameId': game.id,
+        'onlineStatus.activitySince': Date.now(),
+        'onlineStatus.lastSeen': Date.now(),
       }).catch(() => {});
     }
   };
@@ -1121,7 +1134,12 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                         <div className="flex-1 min-w-0">
                           <p className="font-body text-[12px] text-white truncate" style={{ textShadow: '0 0 6px rgba(57,255,20,0.15)' }}>{f.username}</p>
                           {f.isOnline && f.currentActivity ? (
-                            <p className="font-body text-[9px] text-ninja-green truncate">{f.currentActivity}</p>
+                            <p className="font-body text-[9px] text-ninja-green truncate flex items-center gap-1">
+                              <Gamepad2 size={9} />
+                              {ar
+                                ? `يلعب ${(f.currentActivity).replace(/^Playing\s+/i, '')}`
+                                : (f.currentActivity === 'In lobby' ? 'In lobby' : f.currentActivity)}
+                            </p>
                           ) : (
                             <p className="font-body text-[9px] text-gray-600">{f.isOnline ? (ar ? 'متصل' : 'Online') : (ar ? 'غير متصل' : 'Offline')}</p>
                           )}

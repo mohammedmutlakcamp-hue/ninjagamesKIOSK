@@ -410,6 +410,24 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
                 {targetPlayer.activeTitle || 'Newcomer'} · <span style={{ color: levelInfo.color }}>Lv.{levelInfo.level} {levelInfo.title}</span>
               </p>
 
+              {/* Live activity — what the player is currently doing */}
+              {isOnline && targetPlayer?.onlineStatus?.currentActivity && targetPlayer.onlineStatus.currentActivity !== 'In lobby' && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full mb-2"
+                  style={{
+                    background: 'rgba(57,255,20,0.08)',
+                    border: '1px solid rgba(57,255,20,0.35)',
+                    boxShadow: '0 0 10px rgba(57,255,20,0.15)',
+                  }}>
+                  <span className="w-1.5 h-1.5 rounded-full bg-ninja-green" style={{ boxShadow: '0 0 4px #39FF14' }} />
+                  <Gamepad2 size={11} className="text-ninja-green" />
+                  <span className="font-ninja text-[11px] text-ninja-green tracking-wider">
+                    {ar
+                      ? `يلعب ${(targetPlayer.onlineStatus.currentActivity as string).replace(/^Playing\s+/i, '')}`
+                      : targetPlayer.onlineStatus.currentActivity}
+                  </span>
+                </div>
+              )}
+
               {/* Club badge — click to view club details */}
               {targetClub ? (
                 <button
