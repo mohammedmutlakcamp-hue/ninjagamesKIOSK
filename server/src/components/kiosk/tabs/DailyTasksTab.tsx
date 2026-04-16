@@ -81,12 +81,14 @@ const DAILY_TASKS: DailyTask[] = [
   { id: 'play_30_min',    title: 'Play 75 Min',                description: 'Play for at least 75 minutes',                                      icon: <Target size={32} />,          color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 10 },
 ];
 
-// One-time bonus tasks — much bigger reward, manual admin verification.
-// Stored on player.socialBonus.{id} = { requested, requestedAt, claimed }
+// One-time / repeatable bonus tasks — manual admin verification.
+// Stored on player.socialBonus.{id} = { requested, requestedAt, claimed, claimedAt }
+// If repeatEveryDays is set, the "claimed" state expires after that many days.
 interface SocialBonus {
   id: string; title: string; subtitle: string;
   icon: React.ReactNode; color: string; glow: string;
   reward: number;
+  repeatEveryDays?: number; // if set, player can re-claim after X days; otherwise one-time
   steps: { icon: React.ReactNode; text: string }[];
   primaryUrl?: string; primaryUrlLabel?: string;
   highlightHandle?: string;
@@ -97,7 +99,8 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
     id: 'check_socials_bonus',
     title: 'Check Our Socials',
     subtitle: 'Like our 3 latest Instagram posts',
-    icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 25,
+    icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 10,
+    repeatEveryDays: 10,
     primaryUrl: 'https://www.instagram.com/ininjagames',
     primaryUrlLabel: 'Open Instagram',
     highlightHandle: '@ininjagames',
@@ -111,7 +114,8 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
     id: 'google_review',
     title: 'Leave Google Review',
     subtitle: 'Rate us 5 stars on Google Maps',
-    icon: <Star size={28} />, color: '#FBBF24', glow: '251,191,36', reward: 100,
+    icon: <Star size={28} />, color: '#FBBF24', glow: '251,191,36', reward: 10,
+    repeatEveryDays: 10,
     primaryUrl: 'https://share.google/CW0iX87oFRlrr7Qn0',
     primaryUrlLabel: 'Open Google Review',
     steps: [
@@ -124,7 +128,8 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
     id: 'instagram_bio',
     title: 'Add Us to Your Bio',
     subtitle: 'Put @ininjagames in your Instagram bio',
-    icon: <AtSign size={28} />, color: '#00BFFF', glow: '0,191,255', reward: 75,
+    icon: <AtSign size={28} />, color: '#00BFFF', glow: '0,191,255', reward: 10,
+    // no repeatEveryDays → one-time bonus
     primaryUrl: 'https://www.instagram.com/ininjagames',
     primaryUrlLabel: 'Open Instagram',
     highlightHandle: '@ininjagames',
@@ -408,7 +413,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
         </button>
       )}
 
-      <div className="relative z-10 px-5 pt-5 pb-4">
+      <div className="relative z-10 px-5 pt-5 pb-16">
         {/* ═══ HEADER ═══ */}
         <div className="flex items-center justify-between mb-5">
           <div>
@@ -938,8 +943,16 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           </p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
             {SOCIAL_BONUS_TASKS.map((b, i) => {
-              const claimed = !!(player.socialBonus && player.socialBonus[b.id]?.claimed);
-              const requested = !!(player.socialBonus && player.socialBonus[b.id]?.requested) || socialSubmitted === b.id;
+              const sb = (player.socialBonus && player.socialBonus[b.id]) || {};
+              // Repeatable bonus: claimed state expires after repeatEveryDays days.
+              const cooldownMs = b.repeatEveryDays ? b.repeatEveryDays * 24 * 60 * 60 * 1000 : null;
+              const claimedAt: number = sb.claimedAt || 0;
+              const cooldownActive = cooldownMs !== null && claimedAt > 0 && (Date.now() - claimedAt) < cooldownMs;
+              const claimed = cooldownMs === null
+                ? !!sb.claimed                         // one-time
+                : cooldownActive;                       // cooldown still running
+              const requested = !claimed && (!!sb.requested || socialSubmitted === b.id);
+              const daysRemaining = cooldownActive ? Math.max(1, Math.ceil((cooldownMs! - (Date.now() - claimedAt)) / (24 * 60 * 60 * 1000))) : 0;
               return (
                 <motion.button key={b.id}
                   initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.06 }}
@@ -989,7 +1002,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                     {claimed ? (
                       <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
                         style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
-                        <CheckCircle2 size={10} /> CLAIMED
+                        <CheckCircle2 size={10} /> {b.repeatEveryDays ? (ar ? `بعد ${daysRemaining} ي` : `${daysRemaining}D LEFT`) : (ar ? 'تم' : 'CLAIMED')}
                       </span>
                     ) : requested ? (
                       <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
