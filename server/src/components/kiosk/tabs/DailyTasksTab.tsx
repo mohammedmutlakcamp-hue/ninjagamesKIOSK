@@ -214,13 +214,15 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
     return () => unsub();
   }, [player?.uid, todayKey]);
 
-  // Player taps "Request verification" in the social-bonus popup. Creates a doc
-  // in `social-verification-requests` that the admin sees in real time.
+  // Player taps "Request verification" in the social-bonus popup.
+  // Uses a STABLE doc id (player + bonus, no timestamp) so a player who
+  // taps the button five times still only creates ONE pending request.
+  // Stops the "admin sees the same popup 5 times" spam.
   const submitSocialRequest = async (bonus: SocialBonus) => {
     if (socialSubmitting || socialSubmitted === bonus.id) return;
     setSocialSubmitting(true);
     try {
-      const reqRef = doc(db, 'social-verification-requests', `${player.uid}_${bonus.id}_${Date.now()}`);
+      const reqRef = doc(db, 'social-verification-requests', `${player.uid}_${bonus.id}`);
       await setDoc(reqRef, {
         playerId: player.uid,
         playerName: player.username,

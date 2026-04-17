@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth, db } from '@/lib/firebase';
-import { collection, onSnapshot, getDocs, doc, updateDoc, deleteDoc, addDoc, increment } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, doc, updateDoc, deleteDoc, addDoc, increment, query, where } from 'firebase/firestore';
 import { PCManagement } from './PCManagement';
 import { PlayerManagement } from './PlayerManagement';
 import { MenuManagement } from './MenuManagement';
@@ -409,14 +409,36 @@ export function AdminDashboard({ admin }: Props) {
     setPinResetNotification(null);
   };
 
-  // Listen for social-verification requests (IG / Google review / Bio task)
+  // Listen for social-verification requests (IG / Google review / Bio task).
+  // Once on mount we also clean up any stale request docs > 24 h old —
+  // those are leftovers from the legacy timestamped-id scheme that never
+  // got cleared after approve/reject and would re-pop the popup forever.
   useEffect(() => {
+    let cleanedStale = false;
     const unsub = onSnapshot(collection(db, 'social-verification-requests'), (snap) => {
+      // First-pass: nuke anything older than 24 h. One shot per session.
+      if (!cleanedStale) {
+        cleanedStale = true;
+        const cutoff = Date.now() - 24 * 60 * 60 * 1000;
+        snap.docs.forEach((d) => {
+          const ts = (d.data() as any).createdAt || 0;
+          if (ts && ts < cutoff) deleteDoc(d.ref).catch(() => {});
+        });
+      }
       const pending = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as any))
         .filter((r: any) => r.status === 'pending')
         .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
-      const unseen = pending.find((r: any) => !socialVerifSeenIds.current.has(r.id));
+      // Dedupe by playerId+bonusId so a single player with multiple legacy
+      // pending docs only fires the popup once (the most recent one wins).
+      const seenKey = new Set<string>();
+      const dedup = pending.filter((r: any) => {
+        const key = `${r.playerId}::${r.bonusId}`;
+        if (seenKey.has(key)) return false;
+        seenKey.add(key);
+        return true;
+      });
+      const unseen = dedup.find((r: any) => !socialVerifSeenIds.current.has(r.id));
       if (unseen) {
         setSocialVerifNotification({
           id: unseen.id,
@@ -432,11 +454,32 @@ export function AdminDashboard({ admin }: Props) {
     return () => unsub();
   }, []);
 
+  // Wipe every pending request for this player + bonus combo.
+  // submitSocialRequest in DailyTasksTab uses a timestamped doc id, so
+  // a player who tapped "Request verification" three times has THREE
+  // pending docs. Without this fan-out, approving one would leave the
+  // other two, and the popup would re-fire on the next admin reload.
+  const clearAllSocialRequestsFor = async (playerId: string, bonusId: string) => {
+    try {
+      const q = query(
+        collection(db, 'social-verification-requests'),
+        where('playerId', '==', playerId),
+        where('bonusId', '==', bonusId),
+      );
+      const snap = await getDocs(q);
+      await Promise.all(snap.docs.map((d) => deleteDoc(d.ref).catch(() => {})));
+      // Mark every one we just deleted as "seen" so the in-session listener
+      // can't re-pop them while the snapshot is still in flight.
+      snap.docs.forEach((d) => socialVerifSeenIds.current.add(d.id));
+    } catch (err) {
+      console.error('clearAllSocialRequestsFor failed', err);
+    }
+  };
+
   const approveSocialVerif = async () => {
     if (!socialVerifNotification) return;
     setSocialVerifActioning(true);
     try {
-      const { deleteDoc } = await import('firebase/firestore');
       // Credit coins + mark claimed with timestamp (so kiosk cooldown logic works)
       await updateDoc(doc(db, 'players', socialVerifNotification.playerId), {
         coins: increment(socialVerifNotification.reward),
@@ -444,7 +487,7 @@ export function AdminDashboard({ admin }: Props) {
         [`socialBonus.${socialVerifNotification.bonusId}.claimedAt`]: Date.now(),
         [`socialBonus.${socialVerifNotification.bonusId}.requested`]: false,
       });
-      await deleteDoc(doc(db, 'social-verification-requests', socialVerifNotification.id));
+      await clearAllSocialRequestsFor(socialVerifNotification.playerId, socialVerifNotification.bonusId);
     } catch (err) {
       console.error('Social verif approve failed:', err);
     }
@@ -457,12 +500,11 @@ export function AdminDashboard({ admin }: Props) {
     if (!socialVerifNotification) return;
     setSocialVerifActioning(true);
     try {
-      const { deleteDoc } = await import('firebase/firestore');
       // Clear the pending flag so player can re-request
       await updateDoc(doc(db, 'players', socialVerifNotification.playerId), {
         [`socialBonus.${socialVerifNotification.bonusId}.requested`]: false,
       });
-      await deleteDoc(doc(db, 'social-verification-requests', socialVerifNotification.id));
+      await clearAllSocialRequestsFor(socialVerifNotification.playerId, socialVerifNotification.bonusId);
     } catch {}
     socialVerifSeenIds.current.add(socialVerifNotification.id);
     setSocialVerifActioning(false);
