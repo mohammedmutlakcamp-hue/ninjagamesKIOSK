@@ -57,6 +57,7 @@ service cloud.firestore {
     match /expenses/{id}               { allow read, write: if isAuthed(); }
     match /pin-reset-requests/{id}     { allow read, write: if isAuthed(); }
     match /social-verification-requests/{id} { allow read, write: if isAuthed(); }
+    match /debug-logs/{id}             { allow read, write: if isAuthed(); }
 
     // Admin-only: requires custom claim `admin == true`.
     match /admins/{id}                 { allow read: if isAuthed(); allow write: if isAdmin(); }

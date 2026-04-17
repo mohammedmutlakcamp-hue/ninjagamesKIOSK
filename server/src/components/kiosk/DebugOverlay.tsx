@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { subscribe, clearEntries, type DebugEntry } from '@/lib/debug-logger';
+import { subscribe, clearEntries, getSessionId, type DebugEntry } from '@/lib/debug-logger';
 
 const CATEGORY_COLOR: Record<string, string> = {
   visibility: '#FFD700',
@@ -85,8 +85,9 @@ export function DebugOverlay({ visible, onClose }: { visible: boolean; onClose: 
         ))}
         {entries.length === 0 && <div style={{ color: '#888', padding: 8 }}>(no events)</div>}
       </div>
-      <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.04)', color: '#888', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-        type ghanemdebug to toggle · window.__ninjaDebug.getEntries()
+      <div style={{ padding: '4px 10px', background: 'rgba(255,255,255,0.04)', color: '#888', borderTop: '1px solid rgba(255,255,255,0.06)', fontSize: 10 }}>
+        session: <span style={{ color: '#39FF14', userSelect: 'all' }}>{getSessionId()}</span>
+        {' · '}auto-saves to Firestore <code style={{ color: '#FFD700' }}>debug-logs/{getSessionId()}</code> every 3s
       </div>
     </div>
   );
