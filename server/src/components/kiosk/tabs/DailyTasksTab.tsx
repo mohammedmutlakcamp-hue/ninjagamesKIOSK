@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, getDoc, setDoc, arrayUnion } from 'firebase/firestore';
+import { doc, updateDoc, increment, getDoc, setDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
 import { VIP_CONFIG } from '@/lib/constants';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { trackDailyTask } from '@/lib/daily-tasks';
@@ -66,78 +66,83 @@ function getYesterdayKey(): string {
 }
 
 interface DailyTask {
-  id: string; title: string; description: string;
+  id: string;
+  title: string;          titleAr: string;
+  description: string;    descriptionAr: string;
   icon: React.ReactNode; color: string; glowColor: string;
   target: number; reward: number;
   shortcut?: DailyShortcutAction;
-  shortcutLabel?: string;
+  shortcutLabel?: string; shortcutLabelAr?: string;
 }
 
 const DAILY_TASKS: DailyTask[] = [
-  { id: 'daily_login',    title: 'Check-in',                   description: 'Log in to the kiosk today',                                         icon: <CheckCircle2 size={32} />,    color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 2 },
-  { id: 'open_chest',     title: 'Open Chest',                 description: 'Open any chest',                                                    icon: <Package size={32} />,         color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN' },
-  { id: 'send_coins',     title: 'Send Coins',                 description: 'Send coins to a friend',                                            icon: <Send size={32} />,            color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND' },
-  { id: 'order_food',     title: 'Order from Food & Snacks',   description: 'Place any order from the Food & Snacks menu',                       icon: <UtensilsCrossed size={32} />, color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER' },
-  { id: 'check_socials',  title: 'Check Our Socials',          description: 'Like 3 of our latest Instagram posts — admin will verify', icon: <Instagram size={32} />,       color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 25 },
-  { id: 'play_30_min',    title: 'Play 75 Min',                description: 'Play for at least 75 minutes',                                      icon: <Target size={32} />,          color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 10 },
+  { id: 'daily_login',    title: 'Check-in',                 titleAr: 'تسجيل الدخول',          description: 'Log in to the kiosk today',                                    descriptionAr: 'سجّل دخولك إلى الكشك اليوم',                                   icon: <CheckCircle2 size={32} />,    color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 2 },
+  { id: 'open_chest',     title: 'Open Chest',               titleAr: 'افتح صندوقاً',          description: 'Open any chest',                                              descriptionAr: 'افتح أي صندوق',                                                icon: <Package size={32} />,         color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN',  shortcutLabelAr: 'افتح'  },
+  { id: 'send_coins',     title: 'Send Coins',               titleAr: 'أرسل العملات',          description: 'Send coins to a friend',                                      descriptionAr: 'أرسل عملات إلى صديق',                                          icon: <Send size={32} />,            color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND',  shortcutLabelAr: 'أرسل' },
+  { id: 'order_food',     title: 'Order from Food & Snacks', titleAr: 'اطلب من الطعام والوجبات', description: 'Place any order from the Food & Snacks menu',               descriptionAr: 'اطلب أي شيء من قائمة الطعام والوجبات',                          icon: <UtensilsCrossed size={32} />, color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER', shortcutLabelAr: 'اطلب' },
+  { id: 'check_socials',  title: 'Check Our Socials',        titleAr: 'تابع حساباتنا',          description: 'Like 3 of our latest Instagram posts — admin will verify',    descriptionAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام — يؤكد الموظف',           icon: <Instagram size={32} />,       color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 25 },
+  { id: 'play_30_min',    title: 'Play 75 Min',              titleAr: 'العب 75 دقيقة',         description: 'Play for at least 75 minutes',                                descriptionAr: 'العب لمدة 75 دقيقة على الأقل',                                  icon: <Target size={32} />,          color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 10 },
 ];
 
 // One-time / repeatable bonus tasks — manual admin verification.
 // Stored on player.socialBonus.{id} = { requested, requestedAt, claimed, claimedAt }
 // If repeatEveryDays is set, the "claimed" state expires after that many days.
 interface SocialBonus {
-  id: string; title: string; subtitle: string;
+  id: string;
+  title: string;             titleAr: string;
+  subtitle: string;          subtitleAr: string;
   icon: React.ReactNode; color: string; glow: string;
   reward: number;
   repeatEveryDays?: number; // if set, player can re-claim after X days; otherwise one-time
-  steps: { icon: React.ReactNode; text: string }[];
-  primaryUrl?: string; primaryUrlLabel?: string;
+  steps: { icon: React.ReactNode; text: string; textAr: string }[];
+  primaryUrl?: string;
+  primaryUrlLabel?: string;  primaryUrlLabelAr?: string;
   highlightHandle?: string;
 }
 
 const SOCIAL_BONUS_TASKS: SocialBonus[] = [
   {
     id: 'check_socials_bonus',
-    title: 'Check Our Socials',
-    subtitle: 'Like our 3 latest Instagram posts',
+    title: 'Check Our Socials',                  titleAr: 'تابع حساباتنا',
+    subtitle: 'Like our 3 latest Instagram posts', subtitleAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام',
     icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 10,
     repeatEveryDays: 10,
     primaryUrl: 'https://www.instagram.com/ininjagames',
-    primaryUrlLabel: 'Open Instagram',
+    primaryUrlLabel: 'Open Instagram',           primaryUrlLabelAr: 'افتح إنستغرام',
     highlightHandle: '@ininjagames',
     steps: [
-      { icon: <Heart size={14} />, text: 'Like 3 of our most recent Instagram posts' },
-      { icon: <Camera size={14} />, text: 'Send a screenshot to admin OR show your phone at the desk' },
-      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — coins arrive instantly' },
+      { icon: <Heart size={14} />,        text: 'Like 3 of our most recent Instagram posts',                  textAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام' },
+      { icon: <Camera size={14} />,       text: 'Send a screenshot to admin OR show your phone at the desk', textAr: 'أرسل لقطة شاشة للموظف أو اعرض هاتفك عند الكاشير' },
+      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — coins arrive instantly',                   textAr: 'يؤكد الموظف — تصلك العملات فوراً' },
     ],
   },
   {
     id: 'google_review',
-    title: 'Leave Google Review',
-    subtitle: 'Rate us 5 stars on Google Maps',
+    title: 'Leave Google Review',                titleAr: 'اترك تقييم على جوجل',
+    subtitle: 'Rate us 5 stars on Google Maps',  subtitleAr: 'قيّمنا 5 نجوم على خرائط جوجل',
     icon: <Star size={28} />, color: '#FBBF24', glow: '251,191,36', reward: 10,
     repeatEveryDays: 10,
     primaryUrl: 'https://share.google/CW0iX87oFRlrr7Qn0',
-    primaryUrlLabel: 'Open Google Review',
+    primaryUrlLabel: 'Open Google Review',       primaryUrlLabelAr: 'افتح تقييم جوجل',
     steps: [
-      { icon: <Star size={14} />, text: 'Open the Google review link' },
-      { icon: <MessageCircle size={14} />, text: 'Leave 5 stars and a short comment' },
-      { icon: <Camera size={14} />, text: 'Show the published review at the desk' },
+      { icon: <Star size={14} />,           text: 'Open the Google review link',          textAr: 'افتح رابط تقييم جوجل' },
+      { icon: <MessageCircle size={14} />,  text: 'Leave 5 stars and a short comment',    textAr: 'اترك 5 نجوم وتعليقاً قصيراً' },
+      { icon: <Camera size={14} />,         text: 'Show the published review at the desk', textAr: 'اعرض التقييم المنشور عند الكاشير' },
     ],
   },
   {
     id: 'instagram_bio',
-    title: 'Add Us to Your Bio',
-    subtitle: 'Put @ininjagames in your Instagram bio',
+    title: 'Add Us to Your Bio',                 titleAr: 'أضفنا إلى سيرتك الذاتية',
+    subtitle: 'Put @ininjagames in your Instagram bio', subtitleAr: 'ضع @ininjagames في سيرتك على إنستغرام',
     icon: <AtSign size={28} />, color: '#00BFFF', glow: '0,191,255', reward: 10,
     // no repeatEveryDays → one-time bonus
     primaryUrl: 'https://www.instagram.com/ininjagames',
-    primaryUrlLabel: 'Open Instagram',
+    primaryUrlLabel: 'Open Instagram',           primaryUrlLabelAr: 'افتح إنستغرام',
     highlightHandle: '@ininjagames',
     steps: [
-      { icon: <AtSign size={14} />, text: 'Add @ininjagames to your Instagram bio' },
-      { icon: <Camera size={14} />, text: 'Show your bio to a worker at the desk' },
-      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — bonus coins added' },
+      { icon: <AtSign size={14} />,       text: 'Add @ininjagames to your Instagram bio',  textAr: 'أضف @ininjagames إلى سيرتك على إنستغرام' },
+      { icon: <Camera size={14} />,       text: 'Show your bio to a worker at the desk',   textAr: 'اعرض سيرتك للموظف عند الكاشير' },
+      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — bonus coins added',     textAr: 'يؤكد الموظف — تُضاف العملات الإضافية' },
     ],
   },
 ];
@@ -174,34 +179,39 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
     setStreakRewardClaimed(claimedDate === todayKey);
   }, [player?.dailyCheckin?.streakRewardClaimedDate, todayKey]);
 
+  // Real-time listener — task progress updates the moment any other tab
+  // calls trackDailyTask (chest opens, food orders, etc), so the CLAIM
+  // button appears immediately instead of waiting for the next 30 s poll.
   useEffect(() => {
     if (!player?.uid) return;
     const docRef = doc(db, 'daily-tasks', `${player.uid}_${todayKey}`);
-    const load = async () => {
-      const snap = await getDoc(docRef);
+    let initialized = false;
+
+    const unsub = onSnapshot(docRef, async (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         setTaskProgress(data.tasks || {});
         setFullBonusClaimed(!!data.fullBonusClaimed);
-      } else {
-        const initial: Record<string, { progress: number; claimed: boolean }> = {};
-        DAILY_TASKS.forEach(t => { initial[t.id] = { progress: t.id === 'daily_login' ? 1 : 0, claimed: false }; });
+        setLoaded(true);
+        return;
+      }
+      // Doc doesn't exist yet — create it once with initial progress so the
+      // listener has something to read on the next snapshot.
+      if (initialized) return;
+      initialized = true;
+      const initial: Record<string, { progress: number; claimed: boolean }> = {};
+      DAILY_TASKS.forEach(t => { initial[t.id] = { progress: t.id === 'daily_login' ? 1 : 0, claimed: false }; });
+      try {
         await setDoc(docRef, { tasks: initial, date: todayKey, playerId: player.uid, fullBonusClaimed: false });
-        setTaskProgress(initial);
-        setFullBonusClaimed(false);
+      } catch (err) {
+        console.error('Daily tasks init failed', err);
       }
+      setTaskProgress(initial);
+      setFullBonusClaimed(false);
       setLoaded(true);
-    };
-    load();
-    const interval = setInterval(async () => {
-      const s = await getDoc(docRef);
-      if (s.exists()) {
-        const d = s.data();
-        setTaskProgress(d.tasks || {});
-        setFullBonusClaimed(!!d.fullBonusClaimed);
-      }
-    }, 30000);
-    return () => clearInterval(interval);
+    }, (err) => console.error('Daily-tasks snapshot listener failed', err));
+
+    return () => unsub();
   }, [player?.uid, todayKey]);
 
   // Player taps "Request verification" in the social-bonus popup. Creates a doc
@@ -843,7 +853,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                             textDecoration: isClaimed ? 'line-through' : 'none',
                             fontStyle: 'italic',
                           }}>
-                          {task.title}
+                          {ar ? task.titleAr : task.title}
                         </span>
                         {(isClaimed || isComplete) && (
                           <span className="font-ninja text-[10px] tracking-[0.15em] px-3 py-1 rounded"
@@ -854,11 +864,11 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                               boxShadow: '0 0 8px rgba(57,255,20,0.15)',
                               fontStyle: 'italic',
                             }}>
-                            DONE
+                            {ar ? 'منجز' : 'DONE'}
                           </span>
                         )}
                       </div>
-                      <p className="font-body text-sm text-gray-500">{task.description}</p>
+                      <p className="font-body text-sm text-gray-500">{ar ? task.descriptionAr : task.description}</p>
 
                       {task.target > 1 && !isClaimed && (
                         <div className="mt-2.5 flex items-center gap-2">
@@ -895,7 +905,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                             boxShadow: `0 0 12px rgba(${task.glowColor},0.25)`,
                             textShadow: `0 0 6px rgba(${task.glowColor},0.5)`,
                           }}>
-                          {task.shortcutLabel} <ArrowRight size={13} />
+                          {(ar ? task.shortcutLabelAr : task.shortcutLabel) || task.shortcutLabel} <ArrowRight size={13} />
                         </motion.button>
                       )}
                       {/* Special: check_socials opens the verification popup */}
@@ -915,7 +925,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                             boxShadow: `0 0 12px rgba(${task.glowColor},0.25)`,
                             textShadow: `0 0 6px rgba(${task.glowColor},0.5)`,
                           }}>
-                          CHECK <ArrowRight size={13} />
+                          {ar ? 'تحقّق' : 'CHECK'} <ArrowRight size={13} />
                         </motion.button>
                       )}
 
@@ -930,7 +940,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                             background: `linear-gradient(135deg, ${task.color}, ${task.color}CC)`,
                             boxShadow: `0 0 12px rgba(${task.glowColor},0.4)`,
                           }}>
-                          {claiming === task.id ? <Loader2 size={14} className="animate-spin" /> : 'CLAIM'}
+                          {claiming === task.id ? <Loader2 size={14} className="animate-spin" /> : (ar ? 'استلم' : 'CLAIM')}
                         </motion.button>
                       )}
                     </div>
@@ -1166,9 +1176,9 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   <div className="flex-1 min-w-0">
                     <p className="font-ninja text-2xl text-white tracking-wider truncate"
                       style={{ textShadow: `0 0 12px rgba(${socialOpen.glow},0.4)` }}>
-                      {socialOpen.title}
+                      {ar ? socialOpen.titleAr : socialOpen.title}
                     </p>
-                    <p className="font-body text-xs text-gray-400 mt-1">{socialOpen.subtitle}</p>
+                    <p className="font-body text-xs text-gray-400 mt-1">{ar ? socialOpen.subtitleAr : socialOpen.subtitle}</p>
                   </div>
                   <div className="flex flex-col items-center px-3 py-2 rounded-lg flex-shrink-0"
                     style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.35)' }}>
@@ -1195,11 +1205,12 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                 <div className="rounded-lg p-3 mb-4"
                   style={{ background: 'rgba(251,191,36,0.06)', border: '1px solid rgba(251,191,36,0.25)' }}>
                   <p className="font-ninja text-[11px] tracking-wider text-yellow-400 mb-1">
-                    ⚠ MANUAL VERIFICATION
+                    {ar ? '⚠ تحقّق يدوي' : '⚠ MANUAL VERIFICATION'}
                   </p>
                   <p className="font-body text-xs text-gray-400 leading-relaxed">
-                    Coins are paid out by a worker after they confirm you completed the steps.
-                    Bring your phone to the desk OR send a screenshot in the kiosk chat.
+                    {ar
+                      ? 'تُمنح العملات بعد أن يؤكد الموظف أنك أتممت الخطوات. أحضر هاتفك إلى الكاشير أو أرسل لقطة شاشة في دردشة الكشك.'
+                      : 'Coins are paid out by a worker after they confirm you completed the steps. Bring your phone to the desk OR send a screenshot in the kiosk chat.'}
                   </p>
                 </div>
 
@@ -1216,7 +1227,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                         }}>{i + 1}</div>
                       <div className="flex-1 min-w-0 flex items-center gap-2">
                         <span style={{ color: socialOpen.color, opacity: 0.7 }}>{s.icon}</span>
-                        <span className="font-body text-xs text-gray-300">{s.text}</span>
+                        <span className="font-body text-xs text-gray-300">{ar ? s.textAr : s.text}</span>
                       </div>
                     </div>
                   ))}
@@ -1234,7 +1245,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                         color: socialOpen.color,
                         boxShadow: `0 0 14px rgba(${socialOpen.glow},0.25)`,
                       }}>
-                      <ExternalLink size={13} /> {socialOpen.primaryUrlLabel || 'OPEN LINK'}
+                      <ExternalLink size={13} /> {(ar ? socialOpen.primaryUrlLabelAr : socialOpen.primaryUrlLabel) || (ar ? 'افتح الرابط' : 'OPEN LINK')}
                     </motion.button>
                   )}
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
@@ -1245,7 +1256,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                       border: '1px solid rgba(57,255,20,0.3)',
                       color: '#39FF14',
                     }}>
-                    ALL LINKS
+                    {ar ? 'كل الروابط' : 'ALL LINKS'}
                   </motion.button>
                 </div>
 
@@ -1264,9 +1275,9 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                     color: socialSubmitted === socialOpen.id ? '#39FF14' : '#FBBF24',
                     boxShadow: socialSubmitted === socialOpen.id ? 'none' : '0 0 14px rgba(251,191,36,0.25)',
                   }}>
-                  {socialSubmitting ? <><Loader2 size={14} className="animate-spin" /> SENDING...</>
-                   : socialSubmitted === socialOpen.id ? <><CheckCircle2 size={14} /> SENT — WAIT FOR ADMIN</>
-                   : <>I DID IT — REQUEST VERIFICATION</>}
+                  {socialSubmitting ? <><Loader2 size={14} className="animate-spin" /> {ar ? 'جاري الإرسال...' : 'SENDING...'}</>
+                   : socialSubmitted === socialOpen.id ? <><CheckCircle2 size={14} /> {ar ? 'أُرسل — بانتظار الموظف' : 'SENT — WAIT FOR ADMIN'}</>
+                   : <>{ar ? 'أتممتها — اطلب التحقق' : 'I DID IT — REQUEST VERIFICATION'}</>}
                 </motion.button>
               </div>
             </motion.div>

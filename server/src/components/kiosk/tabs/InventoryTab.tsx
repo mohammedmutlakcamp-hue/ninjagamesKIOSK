@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
-import { RARITY_COLORS, VIP_CONFIG } from '@/lib/constants';
+import { RARITY_COLORS, VIP_CONFIG, CHESTS } from '@/lib/constants';
 import {
   Package, Coins, Zap, Coffee, Cookie, UtensilsCrossed, Trophy,
   Gift, Check, X, Send, Search, Lock, Loader2, Sparkles, Palette,
@@ -107,6 +107,31 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const highlightRef = useRef<HTMLDivElement | null>(null);
   const pendingHighlightRef = useRef<string | null>(null);
 
+  // One-time cleanup: persistently remove duplicate skin entries left over
+  // from the old probability-based chest engine. Runs once per inventory
+  // load. Only mutates Firestore if duplicates are actually found, so it's
+  // a no-op for already-clean accounts.
+  useEffect(() => {
+    if (!player?.uid) return;
+    const inv = (player.inventory || []) as any[];
+    if (inv.length === 0) return;
+    const seen = new Set<string>();
+    const cleaned: any[] = [];
+    let removed = 0;
+    for (const it of inv) {
+      if (it?.type === 'skin' && it?.skinId) {
+        if (seen.has(it.skinId)) { removed++; continue; }
+        seen.add(it.skinId);
+      }
+      cleaned.push(it);
+    }
+    if (removed > 0) {
+      updateDoc(doc(db, 'players', player.uid), { inventory: cleaned })
+        .catch(err => console.error('Skin de-dup cleanup failed', err));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player?.uid]);
+
   // Listen for "open-daily-chest" — fired from Daily Tasks after All Complete.
   // Auto-opens the most recent unused daily chest in the player's inventory.
   useEffect(() => {
@@ -162,10 +187,22 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const [sendSuccess, setSendSuccess] = useState('');
   const [sendLoading, setSendLoading] = useState(false);
 
-  // Combine regular inventory with default ninja skins
-  const regularInventory: InventoryItem[] = (player.inventory || []).filter((i: InventoryItem) => !i.used);
-  const existingSkinIds = new Set(regularInventory.filter(i => i.type === 'skin').map(i => i.skinId));
-  const defaultNinjasToAdd = DEFAULT_NINJAS.filter(n => !existingSkinIds.has(n.skinId));
+  // Combine regular inventory with default ninja skins.
+  // Skin de-dup: a player can only ever own ONE copy of a given skinId.
+  // If pre-fix data left multiple inventory entries for the same skinId we
+  // collapse them here (UI side) so duplicate cards don't render. The
+  // earliest-obtained entry wins; later duplicates are silently dropped.
+  const rawInventory: InventoryItem[] = (player.inventory || []).filter((i: InventoryItem) => !i.used);
+  const seenSkinIds = new Set<string>();
+  const regularInventory: InventoryItem[] = [];
+  for (const it of rawInventory) {
+    if (it.type === 'skin' && it.skinId) {
+      if (seenSkinIds.has(it.skinId)) continue;
+      seenSkinIds.add(it.skinId);
+    }
+    regularInventory.push(it);
+  }
+  const defaultNinjasToAdd = DEFAULT_NINJAS.filter(n => !seenSkinIds.has(n.skinId!));
   const inventory: InventoryItem[] = [...defaultNinjasToAdd, ...regularInventory];
 
   const catMatch = CATEGORIES.find(c => c.id === category)?.match || (() => true);
@@ -174,7 +211,33 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
     .filter(item => !searchQuery.trim() || item.name.toLowerCase().includes(searchQuery.toLowerCase()) || item.rarity.toLowerCase().includes(searchQuery.toLowerCase()) || (item.sentBy && item.sentBy.toLowerCase().includes(searchQuery.toLowerCase())))
     .sort((a, b) => rarityOrder.indexOf(a.rarity) - rarityOrder.indexOf(b.rarity));
 
-  const getSellValue = (item: InventoryItem) => Math.floor((item.value || 0) * 0.8);
+  // BULLETPROOF SELL VALUES — kiosk can never lose money to a buy/sell loop.
+  // Hard caps per type:
+  //   • skin     → 0  (cosmetics are permanent — can't be cashed out)
+  //   • voucher  → 0  (represent physical goods — must be redeemed at desk)
+  //   • chest    → floor(cost × 0.50) when unopened (cost looked up from CHESTS)
+  //   • coins    → floor(value × 0.25)
+  //   • item     → floor(value × 0.20)
+  // Reasoning: chest payout target is ~67% of cost (33% house edge). Even
+  // refunding 50% of an unopened chest still leaves the kiosk in profit.
+  // For everything that can come *out* of a chest the cap stays well under
+  // what the kiosk earned from the original chest.
+  const getSellValue = (item: InventoryItem) => {
+    if (!item) return 0;
+    if (item.tradeable === false) return 0;
+    if (item.type === 'skin')   return 0;
+    if (item.type === 'voucher') return 0;
+    if (item.type === 'chest') {
+      const tier = (item as any).chestTier || (item as any).tier;
+      const chest = CHESTS.find(c => c.tier === tier || c.id === tier);
+      const cost = chest?.cost ?? 0;
+      return Math.floor(cost * 0.50);
+    }
+    if (item.type === 'consumable' || item.type === 'coins') {
+      return Math.floor((item.value || 0) * 0.25);
+    }
+    return Math.floor((item.value || 0) * 0.20);
+  };
   const rarityColor = (rarity: string) => (RARITY_COLORS[rarity as keyof typeof RARITY_COLORS])?.bg || '#666';
   const rarityGlow = (rarity: string) => (RARITY_COLORS[rarity as keyof typeof RARITY_COLORS])?.glow || 'rgba(100,100,100,0.2)';
   const isEquipped = (item: InventoryItem) => item.type === 'skin' && item.skinId === player.ninjaType;
@@ -928,9 +991,33 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
               <div className="relative rounded-xl p-4 mb-5 space-y-2" style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid rgba(234,179,8,0.12)' }}>
                 <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '1px solid rgba(234,179,8,0.25)', borderLeft: '1px solid rgba(234,179,8,0.25)' }} />
                 <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '1px solid rgba(234,179,8,0.25)', borderRight: '1px solid rgba(234,179,8,0.25)' }} />
-                <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">{ar ? 'قيمة العنصر' : 'Item value'}</span><span className="font-body text-sm text-gray-300 flex items-center gap-1"><Coins size={12} className="text-yellow-500" /> {sellModal.value || 0}</span></div>
-                <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">{ar ? 'رسوم البيع (20%)' : 'Sell fee (20%)'}</span><span className="font-body text-sm text-red-400">-{Math.floor((sellModal.value || 0) * 0.2)}</span></div>
-                <div className="border-t border-white/10 pt-2 flex items-center justify-between"><span className="font-body text-xs text-gray-400 font-bold">{ar ? 'ستستلم' : 'You receive'}</span><span className="font-ninja text-lg text-yellow-400 flex items-center gap-1" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}><Coins size={14} /> {getSellValue(sellModal)}</span></div>
+                {(() => {
+                  const recv = getSellValue(sellModal);
+                  const refRaw = sellModal.type === 'chest'
+                    ? (CHESTS.find(c => c.tier === ((sellModal as any).chestTier || (sellModal as any).tier) || c.id === ((sellModal as any).chestTier || (sellModal as any).tier))?.cost ?? 0)
+                    : (sellModal.value || 0);
+                  const refLabel = sellModal.type === 'chest' ? (ar ? 'سعر الصندوق' : 'Chest cost') : (ar ? 'قيمة العنصر' : 'Item value');
+                  const fee = Math.max(0, refRaw - recv);
+                  const nonSellable = (sellModal.type === 'skin' || sellModal.type === 'voucher' || sellModal.tradeable === false);
+                  return (
+                    <>
+                      <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">{refLabel}</span><span className="font-body text-sm text-gray-300 flex items-center gap-1"><Coins size={12} className="text-yellow-500" /> {refRaw}</span></div>
+                      {!nonSellable && (
+                        <div className="flex items-center justify-between"><span className="font-body text-xs text-gray-500">{ar ? 'رسوم البيع' : 'Sell fee'}</span><span className="font-body text-sm text-red-400">-{fee}</span></div>
+                      )}
+                      {nonSellable && (
+                        <div className="text-[10px] text-red-400/80 leading-snug">
+                          {sellModal.type === 'skin'
+                            ? (ar ? 'الستايلات لا يمكن بيعها — تبقى معك للأبد.' : 'Skins are permanent and cannot be sold.')
+                            : sellModal.type === 'voucher'
+                              ? (ar ? 'الكوبونات تُستبدل عند الكاشير، ولا تُباع.' : 'Vouchers must be redeemed at the desk — not sellable.')
+                              : (ar ? 'هذا العنصر غير قابل للتداول.' : 'This item is bound and cannot be sold.')}
+                        </div>
+                      )}
+                      <div className="border-t border-white/10 pt-2 flex items-center justify-between"><span className="font-body text-xs text-gray-400 font-bold">{ar ? 'ستستلم' : 'You receive'}</span><span className="font-ninja text-lg text-yellow-400 flex items-center gap-1" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}><Coins size={14} /> {recv}</span></div>
+                    </>
+                  );
+                })()}
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setSellModal(null)} className="flex-1 py-3 rounded-xl font-ninja text-sm text-gray-400" style={{ border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.03)' }}>{ar ? 'إلغاء' : 'CANCEL'}</button>

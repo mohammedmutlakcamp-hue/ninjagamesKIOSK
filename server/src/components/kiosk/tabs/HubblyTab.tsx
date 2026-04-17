@@ -20,19 +20,21 @@ interface ShishaFlavor {
   popular?: boolean;
 }
 
+// Hookah base price = 2.5 JOD = 250 tokens (1 JOD = 100 tokens). Premium
+// flavors keep their previous proportional upcharge (rose +10%, mixed +20%).
 const SHISHA_FLAVORS: ShishaFlavor[] = [
-  { id: 'grape', name: 'Grape', icon: '🍇', color: '#8B5CF6', price: 50, popular: true },
-  { id: 'mint', name: 'Mint', icon: '🌿', color: '#10B981', price: 50 },
-  { id: 'double-apple', name: 'Double Apple', icon: '🍎', color: '#EF4444', price: 50, popular: true },
-  { id: 'watermelon', name: 'Watermelon', icon: '🍉', color: '#F472B6', price: 50 },
-  { id: 'blueberry', name: 'Blueberry', icon: '🫐', color: '#6366F1', price: 50 },
-  { id: 'peach', name: 'Peach', icon: '🍑', color: '#FB923C', price: 50 },
-  { id: 'lemon-mint', name: 'Lemon Mint', icon: '🍋', color: '#FACC15', price: 50 },
-  { id: 'strawberry', name: 'Strawberry', icon: '🍓', color: '#F43F5E', price: 50 },
-  { id: 'mango', name: 'Mango', icon: '🥭', color: '#F59E0B', price: 50 },
-  { id: 'mixed-fruits', name: 'Mixed Fruits', icon: '🍹', color: '#EC4899', price: 60, popular: true },
-  { id: 'rose', name: 'Rose', icon: '🌹', color: '#FB7185', price: 55 },
-  { id: 'gum', name: 'Gum', icon: '🫧', color: '#38BDF8', price: 50 },
+  { id: 'grape', name: 'Grape', icon: '🍇', color: '#8B5CF6', price: 250, popular: true },
+  { id: 'mint', name: 'Mint', icon: '🌿', color: '#10B981', price: 250 },
+  { id: 'double-apple', name: 'Double Apple', icon: '🍎', color: '#EF4444', price: 250, popular: true },
+  { id: 'watermelon', name: 'Watermelon', icon: '🍉', color: '#F472B6', price: 250 },
+  { id: 'blueberry', name: 'Blueberry', icon: '🫐', color: '#6366F1', price: 250 },
+  { id: 'peach', name: 'Peach', icon: '🍑', color: '#FB923C', price: 250 },
+  { id: 'lemon-mint', name: 'Lemon Mint', icon: '🍋', color: '#FACC15', price: 250 },
+  { id: 'strawberry', name: 'Strawberry', icon: '🍓', color: '#F43F5E', price: 250 },
+  { id: 'mango', name: 'Mango', icon: '🥭', color: '#F59E0B', price: 250 },
+  { id: 'mixed-fruits', name: 'Mixed Fruits', icon: '🍹', color: '#EC4899', price: 300, popular: true },
+  { id: 'rose', name: 'Rose', icon: '🌹', color: '#FB7185', price: 275 },
+  { id: 'gum', name: 'Gum', icon: '🫧', color: '#38BDF8', price: 250 },
 ];
 
 interface ActiveOrder {

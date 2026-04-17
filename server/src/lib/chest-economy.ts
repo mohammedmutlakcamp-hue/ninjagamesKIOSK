@@ -1,187 +1,323 @@
 // ═══════════════════════════════════════════════════════════════════
-//  Chest Economy — admin-controlled, profit-biased reward selection
+//  Chest Economy v2 — DETERMINISTIC profit-locked sequence
 // ───────────────────────────────────────────────────────────────────
-//  The house sets a profit threshold in `config/chest-economy`.
-//  Every time the player rolls for a chest reward:
-//    • We fetch the running ledger (total paid − total awarded value)
-//    • If the house is AHEAD of threshold, we nudge odds toward high-
-//      value rewards (players feel lucky → retention)
-//    • If the house is BEHIND, we nudge odds toward low-value rewards
-//      (protects margin)
+//  No probability rolling. Every reward is picked from a deterministic
+//  rotation that is gated by a per-tier ledger so the kiosk ALWAYS keeps
+//  at least HOUSE_RAKE (33% by default) of every token spent on chests.
 //
-//  Also handles the "one-of-each skin" rule: if the player already
-//  owns a rolled skin, it's converted to a coin reward of equivalent
-//  value (the SKIN_DUP_COIN_VALUE mapping below).
+//  How it works (per chest tier):
+//    • A Firestore doc `config/chest-ledger-{tier}` tracks
+//        { paid, awarded, opens, pity, cursor }
+//    • On every open we run a transaction:
+//        1. paid += chest.cost; opens++; pity++
+//        2. budget = paid * (1 - HOUSE_RAKE) - awarded
+//           (how many tokens we are allowed to give without breaking 33%)
+//        3. If pity ≥ TIER_PITY[tier] AND budget covers a jackpot in the
+//           pool, release the biggest affordable jackpot, reset pity.
+//        4. Else cycle through a small/medium rotation pool by `cursor`
+//           (deterministic — players cannot game it because the cursor
+//           is shared across every player on this kiosk).
+//        5. awarded += effectiveValue(reward); persist.
+//
+//  Skin handling:
+//    • effectiveValue(skin) = ninja's store price (or DUP value for
+//      mythics that can't be bought).
+//    • Duplicates auto-convert to a small coin pack (existing rule).
+//
+//  Result: kiosk profit margin is mathematically locked — every cycle
+//  of opens, the house keeps ~33% (or more if budget never overflows
+//  enough to unlock a jackpot).
 // ═══════════════════════════════════════════════════════════════════
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc, increment as fsIncrement } from 'firebase/firestore';
+import { doc, getDoc, runTransaction } from 'firebase/firestore';
 import type { Chest, ChestReward } from '@/types';
+import { CHESTS, NINJA_SKINS } from '@/lib/constants';
 
-// Coin value a duplicate skin is converted to, per rarity.
-// Tuned so players aren't wrecked but also not over-rewarded for dupes.
+// House keeps this fraction of every token spent on chests.
+export const HOUSE_RAKE = 0.33;
+
+// Opens since last jackpot before the next jackpot is allowed to fire
+// (only fires if budget covers it — pity alone never overrides budget).
+const TIER_PITY: Record<string, number> = {
+  common:    8,
+  rare:      8,
+  legendary: 10,
+  mythical:  12,
+};
+
+// Coin value when a duplicate skin lands.
 const SKIN_DUP_COIN_VALUE: Record<string, number> = {
-  common:    20,
-  uncommon:  30,
-  rare:      75,
-  epic:      150,
+  common:   20,
+  uncommon: 30,
+  rare:     75,
+  epic:     150,
   legendary: 300,
-  mythical:  600,
-  mythic:    600,
-  immortal:  1000,
+  mythic:   600,
+  mythical: 600,
+  immortal: 1000,
 };
 
-export interface ChestEconomyConfig {
-  // When house profit >= profitThreshold, boost high-value drops by boostFactor.
-  // When house profit <= -lossThreshold, dampen high-value drops by dampenFactor.
-  profitThreshold: number;   // default 3000
-  lossThreshold:   number;   // default 1000
-  boostFactor:     number;   // default 1.8 (× high-value weights when winning)
-  dampenFactor:    number;   // default 0.5 (× high-value weights when losing)
-  // What counts as "high value" for biasing. Rewards with value >= this
-  // threshold are biased. Skins always count as high value.
-  highValueThreshold: number; // default 100 coins
-  // Kill switch. If false, roll is pure RNG (ignore ledger).
-  biasEnabled:     boolean;
+interface TierLedger {
+  paid:    number; // cumulative tokens spent on this chest by all players
+  awarded: number; // cumulative effective value paid out
+  opens:   number; // total opens
+  pity:    number; // opens since last jackpot
+  cursor:  number; // rotation cursor for non-jackpot rewards
 }
 
-export const DEFAULT_ECONOMY: ChestEconomyConfig = {
-  profitThreshold: 3000,
-  lossThreshold:   1000,
-  boostFactor:     1.8,
-  dampenFactor:    0.5,
-  highValueThreshold: 100,
-  biasEnabled: true,
-};
+const blankLedger = (): TierLedger => ({
+  paid: 0, awarded: 0, opens: 0, pity: 0, cursor: 0,
+});
 
-// Cached in memory per tab. Listener in the chest component updates it.
-let cachedEconomy: ChestEconomyConfig = DEFAULT_ECONOMY;
-let cachedLedger: { paid: number; awarded: number } = { paid: 0, awarded: 0 };
+const ledgerDocId = (tier: string) => `chest-ledger-${tier}`;
 
-export function setEconomyConfig(cfg: ChestEconomyConfig) {
-  cachedEconomy = { ...DEFAULT_ECONOMY, ...cfg };
-}
+// In-memory cache of last-known ledger state for read-only UI.
+const cache: Record<string, TierLedger> = {};
 
-export function setLedger(paid: number, awarded: number) {
-  cachedLedger = { paid: paid || 0, awarded: awarded || 0 };
+export function getCachedLedger(tier: string): TierLedger {
+  return cache[tier] || blankLedger();
 }
 
 export function getLedgerProfit(): number {
-  return cachedLedger.paid - cachedLedger.awarded;
+  // Sum across all tiers for the global "house profit" stat.
+  return Object.values(cache).reduce((s, l) => s + (l.paid - l.awarded), 0);
 }
 
-// ─── Core: roll a reward from a chest, applying bias + dedup rules ──
-// `ownedSkinIds` is player.ownedNinjas — if a rolled skin is owned,
-// we re-roll up to MAX_REROLL times until we land a non-duplicate.
-// Only if the player literally owns every skin in the pool do we fall
-// back to converting to a coin reward.
-const MAX_REROLL = 12;
+// Effective value for budget math. Skins use store price.
+function effectiveValue(r: ChestReward): number {
+  if (r.type === 'skin') {
+    const skin = NINJA_SKINS.find(s => s.id === r.skinId);
+    if (skin && skin.price > 0) return skin.price;
+    return SKIN_DUP_COIN_VALUE[r.rarity] || 100;
+  }
+  return r.value || 0;
+}
 
+// Rotation pool = small/medium rewards only. Skins and immortal/mythical-
+// tier coin packs go through the jackpot gate instead.
+function rotationPool(chest: Chest): ChestReward[] {
+  return chest.rewards.filter(r => {
+    if (r.type === 'skin') return false;
+    if (r.rarity === 'mythical' || r.rarity === 'immortal') return false;
+    return true;
+  });
+}
+
+// Heavy hitters available only via the pity gate.
+function jackpotPool(chest: Chest): ChestReward[] {
+  return chest.rewards.filter(r => {
+    if (r.type === 'skin') return true;
+    if (r.rarity === 'mythical' || r.rarity === 'immortal') return true;
+    return false;
+  });
+}
+
+export interface OpenResult {
+  reward:            ChestReward;
+  wasDuplicateSkin:  boolean;
+  originalSkinId?:   string;
+  isJackpot:         boolean;
+  ledger:            TierLedger; // post-update snapshot, useful for admin UI
+}
+
+// Main entry point. Atomically charges the chest, picks a reward, and
+// updates the ledger inside a Firestore transaction.
+export async function pickChestReward(
+  chest: Chest,
+  ownedSkinIds: string[] = [],
+): Promise<OpenResult> {
+  const tier   = chest.tier;
+  const ledRef = doc(db, 'config', ledgerDocId(tier));
+  const ownedSet = new Set(ownedSkinIds);
+
+  const result = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ledRef);
+    const led: TierLedger = snap.exists()
+      ? { ...blankLedger(), ...(snap.data() as any) }
+      : blankLedger();
+
+    led.paid  += chest.cost;
+    led.opens += 1;
+    led.pity  += 1;
+
+    const budget = led.paid * (1 - HOUSE_RAKE) - led.awarded;
+
+    let chosen: ChestReward | null = null;
+    let isJackpot = false;
+
+    // 1. JACKPOT GATE — biggest affordable reward, only if pity exhausted.
+    if (led.pity >= (TIER_PITY[tier] ?? 10)) {
+      const cand = jackpotPool(chest)
+        .filter(r => effectiveValue(r) <= budget)
+        .filter(r => r.type !== 'skin' || !ownedSet.has(r.skinId!))
+        .sort((a, b) => effectiveValue(b) - effectiveValue(a));
+      if (cand.length > 0) {
+        chosen = cand[0];
+        isJackpot = true;
+        led.pity = 0;
+      }
+    }
+
+    // 2. ROTATION — walk the small/medium pool deterministically until
+    //    we find one that fits the budget. If nothing fits, give the
+    //    cheapest reward in the pool (defensive — should never happen
+    //    once a few opens have built up the budget).
+    if (!chosen) {
+      const pool = rotationPool(chest);
+      if (pool.length > 0) {
+        for (let attempt = 0; attempt < pool.length; attempt++) {
+          const cand = pool[(led.cursor + attempt) % pool.length];
+          if (effectiveValue(cand) <= Math.max(budget, 0)) {
+            chosen = cand;
+            led.cursor = (led.cursor + attempt + 1) % pool.length;
+            break;
+          }
+        }
+        if (!chosen) {
+          chosen = [...pool].sort((a, b) => effectiveValue(a) - effectiveValue(b))[0];
+          led.cursor = (led.cursor + 1) % pool.length;
+        }
+      } else {
+        chosen = chest.rewards[0];
+      }
+    }
+
+    // 3. SKIN DEDUP — convert duplicate skin to a small coin pack.
+    let wasDup = false;
+    let dupId: string | undefined;
+    if (chosen.type === 'skin' && chosen.skinId && ownedSet.has(chosen.skinId)) {
+      wasDup = true;
+      dupId = chosen.skinId;
+      const cv = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
+      chosen = {
+        id: `${chosen.id}_dup_coins`,
+        type: 'coins',
+        name: `${cv} Tokens`,
+        description: `Duplicate skin converted to tokens`,
+        rarity: chosen.rarity,
+        value: cv,
+        icon: 'coins',
+        image: '/img/reward-coins-150.png',
+        dropRate: 0,
+      } as ChestReward;
+    }
+
+    led.awarded += effectiveValue(chosen);
+    tx.set(ledRef, led);
+
+    return { reward: chosen, wasDuplicateSkin: wasDup, originalSkinId: dupId, isJackpot, ledger: led };
+  });
+
+  cache[tier] = result.ledger;
+  return result;
+}
+
+// ─── Backwards-compat shims ────────────────────────────────────────
+//
+// The old API was: recordChestPaid(cost) → rollChestReward(chest) → recordChestAwarded(value).
+// The new model handles the entire ledger update inside pickChestReward,
+// so the old record* functions become no-ops. rollChestReward is kept as
+// a thin sync shim around pickChestReward — but it's NOT recommended for
+// new code; await pickChestReward instead.
+
+export async function loadEconomyOnce(): Promise<void> {
+  // Hydrate the local cache for the admin dashboard. Errors are non-fatal.
+  await Promise.all(CHESTS.map(async (c) => {
+    try {
+      const snap = await getDoc(doc(db, 'config', ledgerDocId(c.tier)));
+      cache[c.tier] = snap.exists()
+        ? { ...blankLedger(), ...(snap.data() as any) }
+        : blankLedger();
+    } catch {
+      cache[c.tier] = blankLedger();
+    }
+  }));
+}
+
+export function recordChestPaid(_amount: number): void {
+  // No-op: ledger is updated transactionally inside pickChestReward.
+}
+
+export function recordChestAwarded(_amount: number): void {
+  // No-op: ledger is updated transactionally inside pickChestReward.
+}
+
+// Synchronous shim. Prefer pickChestReward (async, transactional). This
+// version reads the cache and fires the transaction in the background;
+// if you need the post-update ledger, use pickChestReward directly.
 export function rollChestReward(
   chest: Chest,
   ownedSkinIds: string[] = [],
 ): { reward: ChestReward; wasDuplicateSkin: boolean; originalSkinId?: string; rerolls: number } {
-  const pool = chest.rewards;
+  // Run the transaction in the background; UI gets a best-effort sync
+  // pick from the cached ledger. The transaction's authoritative result
+  // overwrites the cache when it lands.
+  void pickChestReward(chest, ownedSkinIds).catch((err) =>
+    console.error('pickChestReward background failed', err),
+  );
+
+  // Best-effort sync mirror of the same logic against the cached ledger.
+  // Used only for instant UI feedback; the persisted state is always the
+  // transaction's result.
+  const tier = chest.tier;
+  const led: TierLedger = { ...(cache[tier] || blankLedger()) };
+  led.paid  += chest.cost;
+  led.opens += 1;
+  led.pity  += 1;
+  const budget = led.paid * (1 - HOUSE_RAKE) - led.awarded;
   const ownedSet = new Set(ownedSkinIds);
-  const profit = getLedgerProfit();
-  const cfg = cachedEconomy;
 
-  // Compute biased weight per reward (shared across attempts)
-  const weighted: { r: ChestReward; w: number }[] = pool.map(r => {
-    let w = r.dropRate;
-    if (cfg.biasEnabled) {
-      const isHighValue = r.type === 'skin' || (r.value || 0) >= cfg.highValueThreshold;
-      if (isHighValue) {
-        if (profit >= cfg.profitThreshold) w *= cfg.boostFactor;
-        else if (profit <= -cfg.lossThreshold) w *= cfg.dampenFactor;
-      } else {
-        if (profit >= cfg.profitThreshold) w *= (1 / Math.sqrt(cfg.boostFactor));
-        else if (profit <= -cfg.lossThreshold) w *= Math.sqrt(1 / cfg.dampenFactor);
+  let chosen: ChestReward | null = null;
+  if (led.pity >= (TIER_PITY[tier] ?? 10)) {
+    const cand = jackpotPool(chest)
+      .filter(r => effectiveValue(r) <= budget)
+      .filter(r => r.type !== 'skin' || !ownedSet.has(r.skinId!))
+      .sort((a, b) => effectiveValue(b) - effectiveValue(a));
+    if (cand.length) chosen = cand[0];
+  }
+  if (!chosen) {
+    const pool = rotationPool(chest);
+    if (pool.length) {
+      for (let a = 0; a < pool.length; a++) {
+        const c = pool[(led.cursor + a) % pool.length];
+        if (effectiveValue(c) <= Math.max(budget, 0)) { chosen = c; break; }
       }
+      if (!chosen) chosen = [...pool].sort((a, b) => effectiveValue(a) - effectiveValue(b))[0];
+    } else {
+      chosen = chest.rewards[0];
     }
-    return { r, w: Math.max(0.0001, w) };
-  });
-
-  const total = weighted.reduce((s, x) => s + x.w, 0);
-  let chosen: ChestReward = pool[pool.length - 1];
-  let lastDupSkinId: string | undefined;
-  let rerolls = 0;
-
-  // Spin up to MAX_REROLL times; accept the first non-duplicate reward.
-  for (let attempt = 0; attempt <= MAX_REROLL; attempt++) {
-    let roll = Math.random() * total;
-    for (const { r, w } of weighted) {
-      roll -= w;
-      if (roll <= 0) { chosen = r; break; }
-    }
-    // Not a skin, or it's a skin the player doesn't own yet → keep it.
-    if (chosen.type !== 'skin' || !chosen.skinId || !ownedSet.has(chosen.skinId)) {
-      return { reward: chosen, wasDuplicateSkin: false, rerolls };
-    }
-    // Duplicate — remember it, try again.
-    lastDupSkinId = chosen.skinId;
-    rerolls++;
   }
-
-  // Player owns every skin that keeps dropping (or MAX_REROLL exhausted).
-  // Fall back to a coin conversion so the chest still gives something useful.
-  const coinValue = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
-  const replacement: ChestReward = {
-    id: `${chosen.id}_dup_coins`,
-    type: 'coins',
-    name: `${coinValue} Tokens`,
-    description: `All ${chosen.rarity} skins owned — converted to tokens`,
-    rarity: chosen.rarity,
-    value: coinValue,
-    icon: 'coins',
-    image: '/img/reward-coins-150.png',
-    dropRate: 0,
-  } as ChestReward;
-  return { reward: replacement, wasDuplicateSkin: true, originalSkinId: lastDupSkinId, rerolls };
+  let dup = false;
+  let dupId: string | undefined;
+  if (chosen.type === 'skin' && chosen.skinId && ownedSet.has(chosen.skinId)) {
+    dup = true; dupId = chosen.skinId;
+    const cv = SKIN_DUP_COIN_VALUE[chosen.rarity] || 50;
+    chosen = { ...chosen, type: 'coins', name: `${cv} Tokens`, value: cv, dropRate: 0 } as ChestReward;
+  }
+  return { reward: chosen, wasDuplicateSkin: dup, originalSkinId: dupId, rerolls: 0 };
 }
 
-// ─── Ledger updates ─────────────────────────────────────────────────
-// Call these from the chest-open handler. We persist a single running
-// counter doc at config/chest-ledger so admin can see live P&L.
-export async function recordChestPaid(amount: number) {
-  if (!amount || amount <= 0) return;
-  cachedLedger.paid += amount;
-  try {
-    await setDoc(doc(db, 'config', 'chest-ledger'), {
-      totalPaid: fsIncrement(amount),
-      lastUpdate: Date.now(),
-    }, { merge: true });
-  } catch (err) {
-    console.error('recordChestPaid failed', err);
-  }
+// Legacy economy-config shape kept for the admin Settings UI.
+// All fields are now informational only — the actual policy is the
+// HOUSE_RAKE constant + per-tier ledger.
+export interface ChestEconomyConfig {
+  profitThreshold:    number;
+  lossThreshold:      number;
+  boostFactor:        number;
+  dampenFactor:       number;
+  highValueThreshold: number;
+  biasEnabled:        boolean;
 }
 
-export async function recordChestAwarded(value: number) {
-  if (!value || value <= 0) return;
-  cachedLedger.awarded += value;
-  try {
-    await setDoc(doc(db, 'config', 'chest-ledger'), {
-      totalAwarded: fsIncrement(value),
-      lastUpdate: Date.now(),
-    }, { merge: true });
-  } catch (err) {
-    console.error('recordChestAwarded failed', err);
-  }
-}
+export const DEFAULT_ECONOMY: ChestEconomyConfig = {
+  profitThreshold: 3000, lossThreshold: 1000,
+  boostFactor: 1.0, dampenFactor: 1.0,
+  highValueThreshold: 100, biasEnabled: false,
+};
 
-// ─── One-shot fetch on component mount (cheaper than a listener) ────
-export async function loadEconomyOnce() {
-  try {
-    const [cfgSnap, ledSnap] = await Promise.all([
-      getDoc(doc(db, 'config', 'chest-economy')),
-      getDoc(doc(db, 'config', 'chest-ledger')),
-    ]);
-    if (cfgSnap.exists()) setEconomyConfig(cfgSnap.data() as ChestEconomyConfig);
-    if (ledSnap.exists()) {
-      const d = ledSnap.data() as any;
-      setLedger(d.totalPaid || 0, d.totalAwarded || 0);
-    }
-  } catch (err) {
-    console.error('loadEconomyOnce failed', err);
-  }
+export function setEconomyConfig(_cfg: ChestEconomyConfig) { /* informational only */ }
+export function setLedger(paid: number, awarded: number) {
+  // Aggregate into the "common" tier slot so the old admin stat panel still has something to show.
+  cache['_legacy'] = { ...blankLedger(), paid, awarded };
 }

@@ -953,12 +953,14 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             <>
               {/* Top row: Language — Avatar — Settings */}
               <div className="flex items-center justify-between mb-2">
-                {/* Language button in chrome circle */}
+                {/* Language button in chrome circle — flag fits inside the
+                    border using a small inset so it doesn't bleed past the
+                    circle, and object-contain so the whole flag is visible. */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
-                  className="w-11 h-11 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110"
+                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110 p-[3px]"
                   style={{ border: '2px solid rgba(57,255,20,0.4)', background: 'radial-gradient(circle, rgba(168,85,247,0.1) 0%, rgba(0,0,0,0.4) 70%)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                  <img src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-sa.svg'} alt={lang.toUpperCase()} className="w-full h-full rounded-full object-cover" />
+                  <img src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-sa.svg'} alt={lang.toUpperCase()} className="w-full h-full rounded-full object-contain" />
                 </button>
 
                 {/* Center — Big avatar in octagonal sci-fi frame */}
@@ -1003,10 +1005,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
                 {/* Settings button in chrome/cyan circle */}
                 <button onClick={() => setActivePopup('profile')}
-                  className="w-11 h-11 rounded-full flex items-center justify-center transition-all hover:scale-110"
+                  className="w-12 h-12 rounded-full flex items-center justify-center transition-all hover:scale-110"
                   style={{ border: '2px solid rgba(0,200,255,0.3)', background: 'radial-gradient(circle, rgba(0,200,255,0.1) 0%, rgba(0,0,0,0.4) 70%)', boxShadow: '0 0 10px rgba(0,200,255,0.15)' }}
                   title={lang === 'ar' ? 'الإعدادات' : 'Settings'}>
-                  <Settings size={18} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 4px rgba(0,200,255,0.5))' }} />
+                  <Settings size={22} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 4px rgba(0,200,255,0.5))' }} />
                 </button>
               </div>
 

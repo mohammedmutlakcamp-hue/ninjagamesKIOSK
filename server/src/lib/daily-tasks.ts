@@ -2,7 +2,7 @@
 // Import and call trackDailyTask() from any component to update progress
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { doc, runTransaction } from 'firebase/firestore';
 
 function getTodayKey() {
   const d = new Date();
@@ -58,42 +58,45 @@ export async function trackDailyTask(playerId: string, action: TaskAction, amoun
   const taskIds = ACTION_TO_TASKS[action] || [];
   if (taskIds.length === 0) return;
 
+  // Transaction so concurrent writes (e.g. bulk chest opens that fire
+  // multiple trackDailyTask calls in parallel) don't clobber each other.
   try {
-    const snap = await getDoc(docRef);
-    let tasks: Record<string, { progress: number; claimed: boolean }>;
-    let isNew = false;
+    await runTransaction(db, async (tx) => {
+      const snap = await tx.get(docRef);
+      let tasks: Record<string, { progress: number; claimed: boolean }>;
+      let isNew = false;
 
-    if (snap.exists()) {
-      tasks = { ...(snap.data().tasks || {}) };
-    } else {
-      // Auto-init with every known task at progress 0 (daily_login = 1).
-      tasks = {};
-      DEFAULT_TASK_IDS.forEach(id => {
-        tasks[id] = { progress: id === 'daily_login' ? 1 : 0, claimed: false };
-      });
-      isNew = true;
-    }
+      if (snap.exists()) {
+        tasks = { ...(snap.data().tasks || {}) };
+      } else {
+        tasks = {};
+        DEFAULT_TASK_IDS.forEach(id => {
+          tasks[id] = { progress: id === 'daily_login' ? 1 : 0, claimed: false };
+        });
+        isNew = true;
+      }
 
-    let changed = false;
-    for (const taskId of taskIds) {
-      const task = tasks[taskId];
-      if (!task || task.claimed) continue;
-      tasks[taskId] = { ...task, progress: (task.progress || 0) + amount };
-      changed = true;
-    }
+      let changed = false;
+      for (const taskId of taskIds) {
+        const task = tasks[taskId];
+        if (!task || task.claimed) continue;
+        tasks[taskId] = { ...task, progress: (task.progress || 0) + amount };
+        changed = true;
+      }
 
-    if (!changed && !isNew) return;
+      if (!changed && !isNew) return;
 
-    if (isNew) {
-      await setDoc(docRef, {
-        tasks,
-        date: todayKey,
-        playerId,
-        fullBonusClaimed: false,
-      });
-    } else {
-      await setDoc(docRef, { tasks }, { merge: true });
-    }
+      if (isNew) {
+        tx.set(docRef, {
+          tasks,
+          date: todayKey,
+          playerId,
+          fullBonusClaimed: false,
+        });
+      } else {
+        tx.set(docRef, { tasks }, { merge: true });
+      }
+    });
   } catch (err) {
     console.error('Failed to track daily task:', err);
   }

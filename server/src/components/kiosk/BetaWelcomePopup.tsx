@@ -5,10 +5,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Coins, AlertCircle, X } from 'lucide-react';
 
 const LS_KEY = 'beta-welcome-dismissed-v1';
+const HOLD_SECONDS = 7;
 
 export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
   const [open, setOpen] = useState(false);
   const [dontShow, setDontShow] = useState(false);
+  // Countdown ticks down from HOLD_SECONDS to 0. The X button is locked
+  // and shows the remaining seconds until 0; only then can the popup close.
+  const [secondsLeft, setSecondsLeft] = useState(HOLD_SECONDS);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -19,7 +23,19 @@ export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
     }
   }, [playerId]);
 
+  // Tick the countdown only while the popup is on-screen.
+  useEffect(() => {
+    if (!open) return;
+    setSecondsLeft(HOLD_SECONDS);
+    const id = setInterval(() => {
+      setSecondsLeft(s => (s <= 1 ? 0 : s - 1));
+    }, 1000);
+    return () => clearInterval(id);
+  }, [open]);
+
+  const canClose = secondsLeft <= 0;
   const close = () => {
+    if (!canClose) return; // unskippable until countdown finishes
     if (dontShow) localStorage.setItem(LS_KEY, '1');
     setOpen(false);
   };
@@ -33,7 +49,9 @@ export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
           exit={{ opacity: 0 }}
           className="fixed inset-0 z-[10000] flex items-center justify-center"
           style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)' }}
-          onClick={close}
+          /* Backdrop click is intentionally ignored until countdown finishes
+             so the popup is truly unskippable for the first HOLD_SECONDS. */
+          onClick={canClose ? close : undefined}
         >
           <motion.div
             initial={{ scale: 0.85, opacity: 0, y: 20 }}
@@ -56,12 +74,24 @@ export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
             <div className="absolute bottom-2 left-2 w-4 h-4" style={{ borderBottom: '2px solid #39FF14', borderLeft: '2px solid #39FF14' }} />
             <div className="absolute bottom-2 right-2 w-4 h-4" style={{ borderBottom: '2px solid #39FF14', borderRight: '2px solid #39FF14' }} />
 
+            {/* Close control. While the countdown is running the X is
+                replaced by the remaining seconds and is non-interactive. */}
             <button
               onClick={close}
-              aria-label="close"
-              className="absolute top-3 right-3 z-10 text-gray-500 hover:text-white transition"
+              disabled={!canClose}
+              aria-label={canClose ? 'close' : `wait ${secondsLeft}s`}
+              className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition"
+              style={{
+                background: canClose ? 'transparent' : 'rgba(57,255,20,0.08)',
+                border: canClose ? 'none' : '1px solid rgba(57,255,20,0.35)',
+                color: canClose ? '#9CA3AF' : '#39FF14',
+                cursor: canClose ? 'pointer' : 'not-allowed',
+                textShadow: canClose ? 'none' : '0 0 8px rgba(57,255,20,0.5)',
+              }}
             >
-              <X size={20} />
+              {canClose
+                ? <X size={20} />
+                : <span className="font-ninja text-sm tracking-wider">{secondsLeft}</span>}
             </button>
 
             <div className="px-10 pt-10 pb-7">
@@ -141,9 +171,10 @@ export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
                 </label>
                 <button
                   onClick={close}
-                  className="ninja-btn ninja-btn-green px-8 py-2 font-ninja tracking-wider text-sm"
+                  disabled={!canClose}
+                  className="ninja-btn ninja-btn-green px-8 py-2 font-ninja tracking-wider text-sm disabled:opacity-40 disabled:cursor-not-allowed"
                 >
-                  GOT IT · حسناً
+                  {canClose ? 'GOT IT · حسناً' : `${secondsLeft}s · ${secondsLeft} ث`}
                 </button>
               </div>
             </div>

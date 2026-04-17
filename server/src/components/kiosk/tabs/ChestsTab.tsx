@@ -10,7 +10,7 @@ import { Coins, Sparkles, Star, Zap, Gift, Coffee, Cookie, UtensilsCrossed, Trop
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { useEscapeKey } from '@/lib/useEscapeKey';
-import { rollChestReward, loadEconomyOnce, recordChestPaid, recordChestAwarded } from '@/lib/chest-economy';
+import { pickChestReward, loadEconomyOnce } from '@/lib/chest-economy';
 
 interface Props { player: any; }
 
@@ -105,9 +105,11 @@ export function ChestsTab({ player }: Props) {
   // Pull the admin-controlled economy config + ledger once when tab mounts.
   useEffect(() => { loadEconomyOnce(); }, []);
 
-  const rollReward = (chest: Chest): ChestReward => {
+  // Pick a reward through the deterministic engine (transactional ledger
+  // update happens inside pickChestReward so the 33% house edge is locked).
+  const rollReward = async (chest: Chest): Promise<ChestReward> => {
     const owned = (player?.ownedNinjas || []) as string[];
-    const { reward } = rollChestReward(chest, owned);
+    const { reward } = await pickChestReward(chest, owned);
     return reward;
   };
 
@@ -117,13 +119,27 @@ export function ChestsTab({ player }: Props) {
       if (won.type === 'coins' && won.value) {
         await updateDoc(doc(db, 'players', player.uid), { coins: increment(won.value) });
       } else if (won.type === 'skin' && won.skinId) {
-        await updateDoc(doc(db, 'players', player.uid), {
-          ownedNinjas: arrayUnion(won.skinId),
-          inventory: arrayUnion({ id: `${won.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: won.type, name: won.name, rarity: won.rarity, skinId: won.skinId, value: won.value || 0, obtainedAt: Date.now(), used: false }),
-        });
+        // Defensive: skip the inventory push if the skinId is already in
+        // player.inventory. The chest engine should already convert duplicate
+        // skins to a coin pack (see pickChestReward), but if state has drifted
+        // we don't want to leave duplicate skin cards in the bag.
+        const alreadyInInventory = (player.inventory || []).some(
+          (it: any) => it?.type === 'skin' && it?.skinId === won.skinId,
+        );
+        const update: any = { ownedNinjas: arrayUnion(won.skinId) };
+        if (!alreadyInInventory) {
+          update.inventory = arrayUnion({
+            id: `${won.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`,
+            type: won.type, name: won.name, rarity: won.rarity, skinId: won.skinId,
+            value: won.value || 0, obtainedAt: Date.now(), used: false, tradeable: false,
+          });
+        }
+        await updateDoc(doc(db, 'players', player.uid), update);
       } else {
+        // Vouchers and other items — mark non-tradeable so they can't be re-sold for tokens.
+        const nonSellable = won.type === 'voucher';
         await updateDoc(doc(db, 'players', player.uid), {
-          inventory: arrayUnion({ id: `${won.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: won.type, name: won.name, rarity: won.rarity, value: won.value || 0, obtainedAt: Date.now(), used: false }),
+          inventory: arrayUnion({ id: `${won.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: won.type, name: won.name, rarity: won.rarity, value: won.value || 0, obtainedAt: Date.now(), used: false, tradeable: !nonSellable }),
         });
       }
       await addDoc(collection(db, 'chest-drops'), {
@@ -133,8 +149,7 @@ export function ChestsTab({ player }: Props) {
         rewardValue: won.value || 0,
         chestTier: chest.tier, timestamp: Date.now(),
       }).catch(() => {});
-      // House ledger — track coin value awarded for profit analysis
-      await recordChestAwarded(won.value || 0);
+      // Ledger update is handled inside pickChestReward — no manual call needed.
     } catch (err) { console.error('Save reward failed:', err); }
   };
 
@@ -146,9 +161,8 @@ export function ChestsTab({ player }: Props) {
     try {
       await updateDoc(doc(db, 'players', player.uid), { coins: increment(-cost), totalCoinsSpent: increment(cost), 'stats.chestsOpened': increment(1) });
       trackDailyTask(player.uid, 'open_chest');
-      await recordChestPaid(cost);
     } catch { setProcessing(false); return; }
-    const won = rollReward(chest);
+    const won = await rollReward(chest);
     setReward(won);
     const items: ChestReward[] = [];
     for (let i = 0; i < 40; i++) items.push(chest.rewards[Math.floor(Math.random() * chest.rewards.length)]);
@@ -170,11 +184,10 @@ export function ChestsTab({ player }: Props) {
     try {
       await updateDoc(doc(db, 'players', player.uid), { coins: increment(-cost), totalCoinsSpent: increment(cost), 'stats.chestsOpened': increment(count) });
       for (let i = 0; i < count; i++) trackDailyTask(player.uid, 'open_chest');
-      await recordChestPaid(cost);
     } catch { setProcessing(false); return; }
     const results: ChestReward[] = [];
     for (let i = 0; i < count; i++) {
-      const won = rollReward(chest);
+      const won = await rollReward(chest);
       results.push(won);
       await saveReward(won, chest);
     }
@@ -382,11 +395,18 @@ export function ChestsTab({ player }: Props) {
                     />
                   </div>
 
-                  <p className="font-ninja text-sm text-center tracking-wider relative z-[1]" style={{ color: chest.color, textShadow: `0 0 10px ${chest.color}40` }}>
-                    {chest.name.toUpperCase()}
+                  <p
+                    dir={ar ? 'rtl' : 'ltr'}
+                    className="font-ninja text-sm text-center tracking-wider relative z-[1] px-2"
+                    style={{ color: chest.color, textShadow: `0 0 10px ${chest.color}40` }}>
+                    {ar ? (chest.nameAr || chest.name) : chest.name.toUpperCase()}
                   </p>
-                  <p className="font-body text-xs text-center text-gray-500 mt-0.5 relative z-[1]">
-                    {chest.rewards.length} {ar ? 'مكافأة فريدة' : 'unique rewards'}
+                  <p
+                    dir={ar ? 'rtl' : 'ltr'}
+                    className="font-body text-xs text-center text-gray-500 mt-0.5 relative z-[1] px-2">
+                    {ar
+                      ? `${chest.rewards.length} مكافأة فريدة`
+                      : `${chest.rewards.length} unique rewards`}
                   </p>
 
                   {/* Cost — HUD badge */}
@@ -563,10 +583,17 @@ export function ChestsTab({ player }: Props) {
           </div>
 
           {/* Chest name */}
-          <h2 className="font-ninja text-2xl tracking-[0.15em] mb-0.5" style={{ color: selectedChest.color, textShadow: `0 0 20px ${selectedChest.glowColor}` }}>
-            {selectedChest.name.toUpperCase()}
+          <h2
+            dir={ar ? 'rtl' : 'ltr'}
+            className="font-ninja text-2xl tracking-[0.15em] mb-0.5 text-center"
+            style={{ color: selectedChest.color, textShadow: `0 0 20px ${selectedChest.glowColor}` }}>
+            {ar ? (selectedChest.nameAr || selectedChest.name) : selectedChest.name.toUpperCase()}
           </h2>
-          <p className="font-body text-xs text-gray-500 mb-1">{selectedChest.rewards.length} {ar ? 'مكافأة محتملة' : 'possible rewards'}</p>
+          <p dir={ar ? 'rtl' : 'ltr'} className="font-body text-xs text-gray-500 mb-1 text-center">
+            {ar
+              ? `${selectedChest.rewards.length} مكافأة محتملة`
+              : `${selectedChest.rewards.length} possible rewards`}
+          </p>
           <div className="flex items-center gap-2 mb-2">
             <span className="font-ninja text-xl flex items-center gap-1.5" style={{ color: selectedChest.color }}>
               <Coins size={18} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' }} />
@@ -631,7 +658,11 @@ export function ChestsTab({ player }: Props) {
             <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(0,0,0,0.3)', borderLeft: '2px solid rgba(0,0,0,0.3)' }} />
             <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(0,0,0,0.3)', borderRight: '2px solid rgba(0,0,0,0.3)' }} />
             {processing ? <span className="animate-spin w-5 h-5 border-2 border-black border-t-transparent rounded-full" /> : <Package size={22} />}
-            {processing ? (ar ? 'جاري الفتح...' : 'OPENING...') : (ar ? `افتح ${openCount > 1 ? `${openCount}x ` : ''}${selectedChest.name.toUpperCase()}` : `OPEN ${openCount > 1 ? `${openCount}x ` : ''}${selectedChest.name.toUpperCase()}`)}
+            {processing
+              ? (ar ? 'جاري الفتح...' : 'OPENING...')
+              : (ar
+                  ? `افتح ${openCount > 1 ? `${openCount}× ` : ''}${selectedChest.nameAr || selectedChest.name}`
+                  : `OPEN ${openCount > 1 ? `${openCount}x ` : ''}${selectedChest.name.toUpperCase()}`)}
           </motion.button>
 
           {/* REWARDS GRID — HUD framed */}
@@ -691,8 +722,9 @@ export function ChestsTab({ player }: Props) {
           <div className="absolute inset-0 pointer-events-none pcb-grid-fade" style={{ backgroundImage: 'linear-gradient(rgba(57,255,20,0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(57,255,20,0.03) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
           <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at 50% 30%, rgba(57,255,20,0.06) 0%, transparent 50%)' }} />
           <motion.p initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}
-            className="font-ninja text-2xl mb-8 tracking-[0.2em] relative z-10" style={{ color: selectedChest.color, textShadow: `0 0 30px ${selectedChest.glowColor}` }}>
-            {selectedChest.name.toUpperCase()}
+            dir={ar ? 'rtl' : 'ltr'}
+            className="font-ninja text-2xl mb-8 tracking-[0.2em] relative z-10 text-center" style={{ color: selectedChest.color, textShadow: `0 0 30px ${selectedChest.glowColor}` }}>
+            {ar ? (selectedChest.nameAr || selectedChest.name) : selectedChest.name.toUpperCase()}
           </motion.p>
           <div className="relative w-full max-w-[850px] z-10">
             {/* Center indicator */}
@@ -787,7 +819,9 @@ export function ChestsTab({ player }: Props) {
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="w-full max-w-4xl px-6 text-center">
             <motion.h3 initial={{ y: -20 }} animate={{ y: 0 }}
               className="font-ninja text-2xl mb-3 tracking-wider" style={{ color: selectedChest.color }}>
-              {ar ? `تم فتح ${bulkResults.length}x ${selectedChest.name.toUpperCase()}!` : `${bulkResults.length}x ${selectedChest.name.toUpperCase()} OPENED!`}
+              {ar
+                ? `تم فتح ${bulkResults.length}× ${selectedChest.nameAr || selectedChest.name}!`
+                : `${bulkResults.length}x ${selectedChest.name.toUpperCase()} OPENED!`}
             </motion.h3>
 
             <div className="flex gap-3 justify-center mb-5 flex-wrap">

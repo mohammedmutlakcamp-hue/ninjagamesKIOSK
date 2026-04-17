@@ -5,7 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
 import { Lang, t } from '@/lib/translations';
-import { CHEST_REWARDS } from '@/lib/constants';
+import { CHEST_REWARDS, CHESTS } from '@/lib/constants';
+import { pickChestReward } from '@/lib/chest-economy';
 import {
   Package, Gem, Palette, Zap, Filter, ChevronRight, Sparkles, Trash2, Check, Coins, X, 
   Send, Users, Gift, Play, ArrowRight, Loader2, Star, Crown
@@ -70,14 +71,23 @@ const cardPop = {
 // ═══════════════════════════════════════════════════════════════
 //  COMPONENT
 // ═══════════════════════════════════════════════════════════════
-// Sell values per item type
-const SELL_VALUES: Record<string, number> = {
-  chest: 5,
-  skin: 10,
-  consumable: 3,
-  item: 2,
-  voucher: 8,
-};
+// BULLETPROOF SELL VALUES — kiosk can never lose money to a buy/sell loop.
+// (Mirrors InventoryTab.getSellValue. See that file for the full reasoning.)
+function getSellValue(item: InventoryItem): number {
+  if (!item) return 0;
+  if (item.tradeable === false) return 0;
+  if (item.type === 'skin')   return 0; // permanent cosmetic
+  if (item.type === 'voucher') return 0; // redeem at desk only
+  if (item.type === 'chest') {
+    const tier = (item as any).chestTier || item.tier;
+    const chest = CHESTS.find(c => c.tier === tier || c.id === tier);
+    return Math.floor((chest?.cost ?? 0) * 0.50);
+  }
+  if (item.type === 'consumable') {
+    return Math.floor((item.value || 0) * 0.25);
+  }
+  return Math.floor((item.value || 0) * 0.20);
+}
 
 export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
@@ -98,7 +108,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
   const [chestReward, setChestReward] = useState<any>(null);
 
   const inventory: InventoryItem[] = useMemo(() => {
-    const items: InventoryItem[] = (player?.inventory || []).map((item: any, i: number) => ({
+    const raw: InventoryItem[] = (player?.inventory || []).map((item: any, i: number) => ({
       id: item.id || `item-${i}`,
       name: item.name || 'Unknown Item',
       type: item.type || 'item',
@@ -112,9 +122,18 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
       tradeable: item.tradeable,
       skinId: item.skinId,
     }));
-    // Add default ninjas that aren't already in inventory
-    const existingSkinIds = new Set(items.filter(i => i.type === 'skin').map(i => i.skinId));
-    const defaultNinjasToAdd = DEFAULT_NINJAS.filter(n => !existingSkinIds.has(n.skinId));
+    // Skin de-dup — one card per skinId max. Collapses any pre-fix duplicate
+    // skin entries so the inventory grid never shows the same skin twice.
+    const seenSkinIds = new Set<string>();
+    const items: InventoryItem[] = [];
+    for (const it of raw) {
+      if (it.type === 'skin' && it.skinId) {
+        if (seenSkinIds.has(it.skinId)) continue;
+        seenSkinIds.add(it.skinId);
+      }
+      items.push(it);
+    }
+    const defaultNinjasToAdd = DEFAULT_NINJAS.filter(n => !seenSkinIds.has(n.skinId!));
     return [...defaultNinjasToAdd, ...items];
   }, [player?.inventory]);
 
@@ -156,9 +175,9 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
   ];
 
   const toggleSelect = (id: string) => {
-    // Don't allow selecting non-tradeable items
+    // Block selection of anything that cannot be sold (sell value would be 0).
     const item = inventory.find(i => i.id === id);
-    if (item?.tradeable === false) return;
+    if (!item || getSellValue(item) === 0) return;
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -175,7 +194,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
     let total = 0;
     selectedIds.forEach(id => {
       const item = inventory.find(i => i.id === id);
-      if (item) total += SELL_VALUES[item.type] || 2;
+      if (item) total += getSellValue(item);
     });
     return total;
   }, [selectedIds, inventory]);
@@ -195,36 +214,34 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
     setSelling(false);
   }
 
-  // Open chest function
+  // Open chest — routes through the deterministic chest engine so the
+  // 33% house edge is enforced even from the mobile UI.
   async function handleOpenChest(item: InventoryItem) {
     if (item.type !== 'chest' || item.used || !player?.uid) return;
-    
+
+    const tier = (item as any).chestTier || item.tier;
+    const chest = CHESTS.find(c => c.tier === tier || c.id === tier);
+    if (!chest) return;
+
     setOpeningChest(item);
-    
-    // Roll reward from chest's reward pool
-    const chestRewards = CHEST_REWARDS[item.tier as keyof typeof CHEST_REWARDS];
-    if (!chestRewards || !Array.isArray(chestRewards) || !chestRewards.length) return;
-    
-    const totalWeight = chestRewards.reduce((sum, r) => sum + r.dropRate, 0);
-    let roll = Math.random() * totalWeight;
-    let won = chestRewards[chestRewards.length - 1];
-    
-    for (const reward of chestRewards) {
-      roll -= reward.dropRate;
-      if (roll <= 0) {
-        won = reward;
-        break;
-      }
+    let won;
+    try {
+      const ownedSkinIds = (player.ownedNinjas || []) as string[];
+      const result = await pickChestReward(chest, ownedSkinIds);
+      won = result.reward;
+    } catch (err) {
+      console.error('pickChestReward failed', err);
+      setOpeningChest(null);
+      return;
     }
-    
+
     // Mark chest as used
-    const updatedInventory = (player.inventory || []).map((invItem: any) => 
-      invItem.id === item.id ? { ...invItem, used: true } : invItem
+    const updatedInventory = (player.inventory || []).map((invItem: any) =>
+      invItem.id === item.id ? { ...invItem, used: true } : invItem,
     );
-    
-    // Apply reward
+
     const updates: any = { inventory: updatedInventory };
-    
+
     if (won.type === 'coins') {
       updates.coins = increment(won.value || 0);
     } else if (won.type === 'voucher') {
@@ -233,18 +250,29 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
         type: 'voucher',
         name: won.name,
         rarity: won.rarity,
+        value: won.value || 0,
         used: false,
+        tradeable: false, // voucher must be redeemed at the desk, not sold
         earnedAt: Date.now(),
       });
+    } else if (won.type === 'skin' && won.skinId) {
+      // Award skin to ownedNinjas (deterministic engine handles dedup).
+      updates.ownedNinjas = arrayUnionSafe(player.ownedNinjas || [], won.skinId);
     }
-    
+
     await updateDoc(doc(db, 'players', player.uid), updates);
     setChestReward(won);
-    
+
     setTimeout(() => {
       setOpeningChest(null);
       setChestReward(null);
     }, 2000);
+  }
+
+  // Local helper — Firestore arrayUnion would require an extra import; this
+  // works because we already write the whole `ownedNinjas` field below.
+  function arrayUnionSafe<T>(arr: T[], val: T): T[] {
+    return arr.includes(val) ? arr : [...arr, val];
   }
 
   // Use item function

@@ -67,6 +67,35 @@ service cloud.firestore {
     match /pin-reset-requests/{id}     { allow read, write: if isAuthed(); }
     match /social-verification-requests/{id} { allow read, write: if isAuthed(); }
     match /debug-logs/{id}             { allow read, write: if isAuthed(); }
+    // Daily-task progress + admin-chat support flow + ancillary collections
+    // referenced by the kiosk + admin UIs. Without these the default-deny
+    // rule below blocks every write (e.g. admin-chat replies vanish silently).
+    match /daily-tasks/{id}            { allow read, write: if isAuthed(); }
+    match /support-chats/{id}          { allow read, write: if isAuthed(); }
+    match /support-messages/{id}       { allow read, write: if isAuthed(); }
+    match /announcements/{id}          { allow read, write: if isAuthed(); }
+    match /campaigns/{id}              { allow read, write: if isAuthed(); }
+    match /coin-transfers/{id}         { allow read, write: if isAuthed(); }
+    match /command-history/{id}        { allow read, write: if isAuthed(); }
+    match /discount-codes/{id}         { allow read, write: if isAuthed(); }
+    match /giftcard-requests/{id}      { allow read, write: if isAuthed(); }
+    match /group-chats/{id}            { allow read, write: if isAuthed(); }
+    match /mini-game-scores/{id}       { allow read, write: if isAuthed(); }
+    match /ninja-arena-matches/{id}    { allow read, write: if isAuthed(); }
+    match /player-reports/{id}         { allow read, write: if isAuthed(); }
+    match /profile-comments/{id}       { allow read, write: if isAuthed(); }
+    match /receipts/{id}               { allow read, write: if isAuthed(); }
+    match /shifts/{id}                 { allow read, write: if isAuthed(); }
+    match /club-invites/{id}           { allow read, write: if isAuthed(); }
+    match /vip-requests/{id}           { allow read, write: if isAuthed(); }
+    // Voice calls — ICE candidate subcollections need explicit nested match
+    // (rules don't cascade) just like the regular `calls` collection above.
+    match /voice-calls/{callId} {
+      allow read, write: if isAuthed();
+      match /{subcol}/{candId} {
+        allow read, write: if isAuthed();
+      }
+    }
 
     // Admin-only: requires custom claim `admin == true`.
     match /admins/{id}                 { allow read: if isAuthed(); allow write: if isAdmin(); }

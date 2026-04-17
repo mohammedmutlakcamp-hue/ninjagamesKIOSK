@@ -167,6 +167,7 @@ export interface Chest {
   id: string;
   tier: ChestTier;
   name: string;
+  nameAr?: string;
   cost: number; // coins
   color: string;
   glowColor: string;
