@@ -1589,23 +1589,18 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className={`${activePopup === 'dailytasks' ? 'relative overflow-y-auto overflow-x-hidden' : activePopup === 'leaderboard' ? 'relative overflow-visible' : 'kiosk-popup-panel relative'} ${activePopup === 'chests' || activePopup === 'store' ? 'overflow-hidden' : activePopup !== 'dailytasks' && activePopup !== 'leaderboard' ? 'overflow-y-auto overflow-x-hidden' : ''} ${activePopup === 'food' || activePopup === 'hubbly' || activePopup === 'dailytasks' ? 'kiosk-popup-large' : activePopup === 'chests' || activePopup === 'store' ? 'kiosk-popup-max' : 'kiosk-popup-full'}`}
+                className={`${activePopup === 'dailytasks' ? 'relative overflow-y-auto overflow-x-hidden' : activePopup === 'leaderboard' ? 'relative overflow-visible' : 'kiosk-popup-panel relative'} ${activePopup === 'chests' || activePopup === 'store' ? 'overflow-hidden' : activePopup !== 'dailytasks' && activePopup !== 'leaderboard' ? 'overflow-y-auto overflow-x-hidden' : ''} ${activePopup === 'dailytasks' ? 'kiosk-popup-compact' : activePopup === 'food' || activePopup === 'hubbly' ? 'kiosk-popup-large' : activePopup === 'chests' || activePopup === 'store' ? 'kiosk-popup-max' : 'kiosk-popup-full'}`}
                 onClick={(e) => e.stopPropagation()}
                 style={
                   activePopup === 'dailytasks'
                     ? ({
-                        // zoom: 0.8 dropped — the layout measures the un-zoomed
-                        // content height, so the popup was reporting itself as
-                        // way taller than the viewport and scrolling off-screen.
+                        // Sizing comes from .kiosk-popup-compact (height: auto,
+                        // max-height: calc(100vh - 80px)). Inline only handles
+                        // chrome — keep transparent so the inner panel renders
+                        // its own border/glow.
                         background: 'transparent',
                         border: 'none',
                         boxShadow: 'none',
-                        width: '760px',
-                        maxWidth: '92vw',
-                        // Cap at the viewport so the inner content scrolls
-                        // inside the popup instead of spilling below the
-                        // bottom edge of the screen.
-                        maxHeight: '90vh',
                       } as React.CSSProperties)
                     : activePopup === 'leaderboard'
                     ? ({
