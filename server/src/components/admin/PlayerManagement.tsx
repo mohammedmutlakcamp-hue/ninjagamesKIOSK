@@ -521,8 +521,73 @@ export function PlayerManagement() {
     return NINJA_SKINS.filter(s => !owned.includes(s.id));
   }, [selected?.ownedNinjas]);
 
+  // Tinasoft-import salvage: any migrated player whose remainingPlaytime
+  // (legacy minute balance) is > 0 but coins is 0 has lost their balance
+  // because the kiosk economy is coins-only. We can mint the equivalent
+  // coins (1 min = 2.5 coins). Show a count + one-click bulk-convert.
+  const legacyPending = useMemo(() => {
+    return players.filter((p: any) => {
+      const rem = Number(p.remainingPlaytime || 0);
+      const coins = Number(p.coins || 0);
+      return rem > 0 && coins <= 0;
+    });
+  }, [players]);
+
+  const [legacyConverting, setLegacyConverting] = useState(false);
+  const [legacyConvertMsg, setLegacyConvertMsg] = useState('');
+
+  const convertLegacyTimeBulk = async () => {
+    if (legacyPending.length === 0 || legacyConverting) return;
+    if (!confirm(`Convert legacy Tinasoft time → coins for ${legacyPending.length} player(s)? This adds the equivalent coin balance and clears the old field.`)) return;
+    setLegacyConverting(true);
+    setLegacyConvertMsg('');
+    let ok = 0;
+    for (const p of legacyPending) {
+      const rem = Math.floor(Number(p.remainingPlaytime || 0));
+      const mint = Math.floor(rem * (COINS_PER_MINUTE || 2.5));
+      try {
+        await updateDoc(doc(db, 'players', p.uid), {
+          coins: mint,
+          remainingPlaytime: 0,
+          legacyRemainingMinutes: rem, // audit trail
+        });
+        ok++;
+      } catch (err) { console.error('legacy convert failed for', p.uid, err); }
+    }
+    setLegacyConvertMsg(`Converted ${ok}/${legacyPending.length} players.`);
+    setLegacyConverting(false);
+    setTimeout(() => setLegacyConvertMsg(''), 3500);
+  };
+
   return (
     <div>
+      {/* Legacy-time salvage banner — only renders when there's something to fix */}
+      {legacyPending.length > 0 && (
+        <div className="mb-4 rounded-2xl p-4 flex items-center gap-3 bg-[#ff9500]/8 border border-[#ff9500]/30">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+            style={{ background: 'rgba(255,149,0,0.15)', border: '1px solid rgba(255,149,0,0.3)' }}>
+            <AlertTriangle size={18} className="text-[#ff9500]" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-[#1d1d1f]">
+              {legacyPending.length} migrated player{legacyPending.length === 1 ? '' : 's'} still have unconverted Tinasoft time
+            </p>
+            <p className="text-xs text-[#86868b] mt-0.5">
+              Their <code className="px-1 py-0.5 rounded bg-white border border-[#e5e5ea] text-[10px]">remainingPlaytime</code> is set but <code className="px-1 py-0.5 rounded bg-white border border-[#e5e5ea] text-[10px]">coins</code> is 0, so the kiosk shows them as having no time. Convert at 2.5 coins/min (= 150 coins/hr).
+            </p>
+          </div>
+          {legacyConvertMsg && <span className="text-xs text-[#34c759] font-medium">{legacyConvertMsg}</span>}
+          <button
+            onClick={convertLegacyTimeBulk}
+            disabled={legacyConverting}
+            className="flex-shrink-0 px-4 py-2 rounded-xl bg-[#ff9500] text-white font-medium text-sm hover:bg-[#e68a00] disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            {legacyConverting ? <RotateCcw size={14} className="animate-spin" /> : <Coins size={14} />}
+            Convert all
+          </button>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
@@ -599,6 +664,12 @@ export function PlayerManagement() {
                   <Clock size={10} /> {Math.floor((player.totalPlaytime || 0) / 60)}h played
                 </p>
               </div>
+              {/* Legacy Tinasoft time still pending conversion */}
+              {Number(player.remainingPlaytime || 0) > 0 && Number(player.coins || 0) <= 0 && (
+                <span className="px-2 py-1 bg-[#ff9500]/10 text-[#ff9500] text-xs rounded-full font-medium border border-[#ff9500]/25 flex items-center gap-1" title="Tinasoft balance not yet converted to coins. Use 'Convert all' at the top of the list.">
+                  <AlertTriangle size={10} /> {formatTimeLeft(Math.floor(Number(player.remainingPlaytime) * (COINS_PER_MINUTE || 2.5)))} legacy
+                </span>
+              )}
               {player.banned && (
                 <span className="px-2 py-1 bg-[#ff3b30]/10 text-[#ff3b30] text-xs rounded-full font-medium">BANNED</span>
               )}

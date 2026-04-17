@@ -70,6 +70,12 @@ def build_player(row):
     used_min      = int(row.KULLANILANSURE or 0)
     aktif         = bool(row.AKTIF) if row.AKTIF is not None else True
 
+    # New kiosk has no separate "time balance" — it only has coins, and
+    # coins convert at 2.5 / minute (= 150 / hour). So preserve the player's
+    # Tinasoft time by minting the equivalent coin balance.
+    COINS_PER_MIN = 2.5
+    initial_coins = int(remaining_min * COINS_PER_MIN)
+
     player = {
         "username": username,
         "phone": phone,
@@ -81,9 +87,13 @@ def build_player(row):
         "isLegacyUser": True,
         "legacyPassword": raw_pwd,
 
-        "coins": 0,
+        "coins": initial_coins,
         "totalCoinsSpent": 0,
-        "remainingPlaytime": remaining_min,
+        # Keep the original minute balance for audit, but the live system
+        # only reads `coins`. Set to 0 so an idempotent re-import doesn't
+        # double-credit on top of the converted coin balance.
+        "remainingPlaytime": 0,
+        "legacyRemainingMinutes": remaining_min,
         "totalPlaytime": used_min,
 
         "ninjaType": DEFAULT_NINJA_TYPE,
