@@ -355,6 +355,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
 
   // Daily tasks unclaimed rewards count (notification bubble)
   const [unclaimedTaskCount, setUnclaimedTaskCount] = useState(0);
+  const [allTasksComplete, setAllTasksComplete] = useState(false);
 
   useEffect(() => {
     if (!player?.uid) return;
@@ -364,6 +365,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       if (!snap.exists()) {
         // No tasks doc yet — daily login is auto-completed on first open, so 1 unclaimed
         setUnclaimedTaskCount(1);
+        setAllTasksComplete(false);
         return;
       }
       const data = snap.data();
@@ -389,6 +391,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       const lastClaim = player?.lastFreeChest || 0;
       if (Date.now() - lastClaim >= FREE_CHEST_COOLDOWN) count++;
       setUnclaimedTaskCount(count);
+      setAllTasksComplete(totalTasks > 0 && claimedTasks === totalTasks);
     });
     return () => unsub();
   }, [player?.uid, player?.lastFreeChest]);
@@ -908,6 +911,43 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     <Clock size={14} className="text-gray-500" />
                     <span className="font-ninja text-sm text-gray-400">{formatCooldown(freeChestCooldown)}</span>
                   </div>
+                ) : allTasksComplete ? (
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    animate={{
+                      boxShadow: [
+                        '0 0 20px rgba(255,215,0,0.4), 0 0 40px rgba(255,140,0,0.3), inset 0 0 15px rgba(255,215,0,0.15)',
+                        '0 0 40px rgba(255,215,0,0.8), 0 0 80px rgba(255,140,0,0.6), inset 0 0 25px rgba(255,215,0,0.3)',
+                        '0 0 20px rgba(255,215,0,0.4), 0 0 40px rgba(255,140,0,0.3), inset 0 0 15px rgba(255,215,0,0.15)',
+                      ],
+                    }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                    onClick={claimFreeChest}
+                    disabled={claimingFreeChest}
+                    className="relative w-full flex items-center justify-center gap-2 py-3 text-sm font-ninja tracking-[0.1em] rounded-md transition-all overflow-hidden disabled:opacity-60"
+                    style={{
+                      background: 'linear-gradient(135deg, rgba(255,215,0,0.35), rgba(255,140,0,0.2))',
+                      border: '2px solid rgba(255,215,0,0.9)',
+                      color: '#FFD700',
+                      textShadow: '0 0 10px rgba(255,215,0,0.8)',
+                    }}
+                  >
+                    {/* Shimmer sweep */}
+                    <motion.div
+                      className="absolute inset-0 pointer-events-none"
+                      animate={{ x: ['-100%', '100%'] }}
+                      transition={{ duration: 2.2, repeat: Infinity, ease: 'linear' }}
+                      style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.35), transparent)' }}
+                    />
+                    <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid #FFD700', borderLeft: '2px solid #FFD700' }} />
+                    <div className="absolute top-0 right-0 w-2 h-2" style={{ borderTop: '2px solid #FFD700', borderRight: '2px solid #FFD700' }} />
+                    <div className="absolute bottom-0 left-0 w-2 h-2" style={{ borderBottom: '2px solid #FFD700', borderLeft: '2px solid #FFD700' }} />
+                    <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid #FFD700', borderRight: '2px solid #FFD700' }} />
+                    <div className="absolute top-0 left-[15%] right-[15%] h-[2px]" style={{ background: '#FFD700', boxShadow: '0 0 8px #FFD700' }} />
+                    <Gift size={16} style={{ filter: 'drop-shadow(0 0 6px rgba(255,215,0,0.9))' }} />
+                    {claimingFreeChest ? (ar ? 'جارٍ الاستلام...' : 'CLAIMING...') : (ar ? 'استلم الصندوق' : 'CLAIM CHEST')}
+                  </motion.button>
                 ) : (
                   <motion.button whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                     onClick={() => window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'dailytasks' }))}
