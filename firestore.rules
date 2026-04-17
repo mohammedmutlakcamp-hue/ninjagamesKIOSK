@@ -49,7 +49,16 @@ service cloud.firestore {
     match /friend-requests/{id}        { allow read, write: if isAuthed(); }
     match /chests/{id}                 { allow read, write: if isAuthed(); }
     match /clubs/{id}                  { allow read, write: if isAuthed(); }
-    match /calls/{id}                  { allow read, write: if isAuthed(); }
+    // Calls need access to ICE-candidate subcollections (callerCandidates,
+    // receiverCandidates). Firestore rules DO NOT cascade — without the nested
+    // match below, every candidate write is denied and the call "connects" at
+    // the signaling layer but media never flows (classic silent-call bug).
+    match /calls/{callId} {
+      allow read, write: if isAuthed();
+      match /{subcol}/{candId} {
+        allow read, write: if isAuthed();
+      }
+    }
     match /messages/{id}               { allow read, write: if isAuthed(); }
     match /group-messages/{id}         { allow read, write: if isAuthed(); }
     match /groups/{id}                 { allow read, write: if isAuthed(); }
