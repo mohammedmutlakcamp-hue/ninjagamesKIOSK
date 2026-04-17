@@ -8,6 +8,7 @@ import {
   query, where, orderBy, limit, getDocs
 } from 'firebase/firestore';
 import { PC, PCStatus, KioskCommand } from '@/types';
+import { pcIsOnline, pcLastSeenLabel } from '@/lib/pc-status';
 import {
   Monitor, Lock, Unlock, RotateCcw, Power, X, User, Coins, Clock,
   Wifi, WifiOff, AlertTriangle, Shield, ShieldOff,
@@ -249,7 +250,38 @@ export function PCManagement() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
   const [searchQuery, setSearchQuery] = useState('');
-  const [confirmAction, setConfirmAction] = useState<{ pc: PC; action: string; label: string } | null>(null);
+  const [confirmAction, setConfirmAction] = useState<{
+    pc: PC;
+    action: string;
+    label: string;
+    detail?: string;
+    danger?: boolean; // red button (destructive) vs blue (informational)
+    onConfirm?: () => void | Promise<void>;
+  } | null>(null);
+
+  // Sugar for "wrap any sendCommand in a confirmation modal".
+  // Single place to add new destructive commands; the visual modal
+  // below handles all of them via onConfirm.
+  const askThenSend = (
+    pc: PC,
+    action: string,
+    label: string,
+    opts?: { data?: string; detail?: string; postUpdate?: Record<string, any>; danger?: boolean },
+  ) => {
+    setConfirmAction({
+      pc,
+      action,
+      label,
+      detail: opts?.detail,
+      danger: opts?.danger ?? true,
+      onConfirm: async () => {
+        await sendCommand(pc.id, action, opts?.data);
+        if (opts?.postUpdate) {
+          try { await updateDoc(doc(db, 'pcs', pc.id), opts.postUpdate); } catch {}
+        }
+      },
+    });
+  };
   const [bulkConfirm, setBulkConfirm] = useState<string | null>(null);
 
   const [detailTab, setDetailTab] = useState<DetailTab>('controls');
@@ -458,13 +490,9 @@ export function PCManagement() {
   const loadProcesses = useCallback(() => { if (!selectedPC) return; setProcessLoading(true); sendCommand(selectedPC.id, 'list-processes'); }, [selectedPC, sendCommand]);
   const loadSystemInfo = useCallback(() => { if (!selectedPC) return; setSystemInfoLoading(true); sendCommand(selectedPC.id, 'system-info'); }, [selectedPC, sendCommand]);
 
-  function isOnline(pc: PC): boolean {
-    const lastHb = (pc as any)?.lastSeen || pc?.lastHeartbeat || 0;
-    let ms = lastHb;
-    if (typeof lastHb === 'object' && lastHb.seconds) ms = lastHb.seconds * 1000;
-    else if (typeof lastHb === 'object' && lastHb.toDate) ms = lastHb.toDate().getTime();
-    return ms > 0 && Date.now() - ms < 90000;
-  }
+  // Single canonical online check — see lib/pc-status.ts. Same logic +
+  // 90s window is reused by GameReport, Install Games, and PC Updates.
+  const isOnline = (pc: PC): boolean => pcIsOnline(pc);
 
   function getHealth(pc: PC): { cpu: number; ram: number; disk: number } | null {
     const h = (pc as any).health;
@@ -594,8 +622,8 @@ export function PCManagement() {
               onSelect={() => setSelectedPC(pc)}
               onQuickAction={(action) => {
                 if (action === 'lock') toggleLock(pc);
-                else if (action === 'restart') sendCommand(pc.id, 'restart');
-                else if (action === 'shutdown') setConfirmAction({ pc, action: 'shutdown', label: `Shutdown ${pc.name}?` });
+                else if (action === 'restart') askThenSend(pc, 'restart', `Restart ${pc.name}?`, { detail: 'PC will reboot in ~5 seconds.' });
+                else if (action === 'shutdown') askThenSend(pc, 'shutdown', `Shutdown ${pc.name}?`, { detail: 'PC will power off in ~5 seconds.', postUpdate: { status: 'offline' as PCStatus } });
               }}
             />
           ))}
@@ -607,9 +635,18 @@ export function PCManagement() {
               onSelect={() => setSelectedPC(pc)}
               onQuickAction={(action) => {
                 if (action === 'lock') toggleLock(pc);
-                else if (action === 'restart') sendCommand(pc.id, 'restart');
-                else if (action === 'shutdown') setConfirmAction({ pc, action: 'shutdown', label: `Shutdown ${pc.name}?` });
-                else if (action === 'force-logout') forceLogout(pc);
+                else if (action === 'restart') askThenSend(pc, 'restart', `Restart ${pc.name}?`, { detail: 'PC will reboot in ~5 seconds.' });
+                else if (action === 'shutdown') askThenSend(pc, 'shutdown', `Shutdown ${pc.name}?`, { detail: 'PC will power off in ~5 seconds.', postUpdate: { status: 'offline' as PCStatus } });
+                else if (action === 'force-logout') {
+                  setConfirmAction({
+                    pc,
+                    action: 'force-logout',
+                    label: `Force-logout player on ${pc.name}?`,
+                    detail: `Player ${(pc as any).currentPlayerName || ''} will be kicked immediately.`,
+                    danger: true,
+                    onConfirm: async () => { await forceLogout(pc); },
+                  });
+                }
               }}
             />
           ))}
@@ -720,15 +757,22 @@ export function PCManagement() {
                     <div className="rounded-2xl bg-[#f5f5f7] border border-[#e5e5ea]/60 p-4">
                       <h4 className="text-xs font-semibold text-[#86868b] mb-3 flex items-center gap-1.5"><Power size={12} className="text-[#0071e3]" /> Power & Session</h4>
                       <div className="grid grid-cols-3 gap-2">
-                        <ActionButton onClick={() => sendCommand(selectedPC.id, 'restart')} disabled={!isOnline(selectedPC)} icon={<RotateCcw size={13} />} label="Restart" color="blue" loading={commandSending} />
-                        <ActionButton onClick={() => setConfirmAction({ pc: selectedPC, action: 'shutdown', label: `Shutdown ${selectedPC.name}?` })} disabled={!isOnline(selectedPC)} icon={<Power size={13} />} label="Shutdown" color="red" />
-                        <ActionButton onClick={() => sendCommand(selectedPC.id, 'sleep')} disabled={!isOnline(selectedPC)} icon={<Moon size={13} />} label="Sleep" color="purple" />
-                        <ActionButton onClick={() => sendCommand(selectedPC.id, 'logoff')} disabled={!isOnline(selectedPC)} icon={<LogOut size={13} />} label="Log Off" color="orange" />
+                        <ActionButton onClick={() => askThenSend(selectedPC, 'restart', `Restart ${selectedPC.name}?`, { detail: 'PC will reboot in ~5 seconds.' })} disabled={!isOnline(selectedPC)} icon={<RotateCcw size={13} />} label="Restart" color="blue" loading={commandSending} />
+                        <ActionButton onClick={() => askThenSend(selectedPC, 'shutdown', `Shutdown ${selectedPC.name}?`, { detail: 'PC will power off in ~5 seconds.', postUpdate: { status: 'offline' as PCStatus } })} disabled={!isOnline(selectedPC)} icon={<Power size={13} />} label="Shutdown" color="red" />
+                        <ActionButton onClick={() => askThenSend(selectedPC, 'sleep', `Sleep ${selectedPC.name}?`, { detail: 'Player will lose their session.' })} disabled={!isOnline(selectedPC)} icon={<Moon size={13} />} label="Sleep" color="purple" />
+                        <ActionButton onClick={() => askThenSend(selectedPC, 'logoff', `Log off ${selectedPC.name}?`, { detail: 'Windows session will end immediately.' })} disabled={!isOnline(selectedPC)} icon={<LogOut size={13} />} label="Log Off" color="orange" />
                         <ActionButton onClick={() => toggleLock(selectedPC)} disabled={!isOnline(selectedPC)} icon={selectedPC.status === 'locked' ? <Unlock size={13} /> : <Lock size={13} />} label={selectedPC.status === 'locked' ? 'Unlock' : 'Lock'} color={selectedPC.status === 'locked' ? 'green' : 'orange'} />
                         <ActionButton onClick={() => sendCommand(selectedPC.id, 'screenshot')} disabled={!isOnline(selectedPC)} icon={<Camera size={13} />} label="Screenshot" color="gray" />
                       </div>
                       {selectedPC.status === 'occupied' && (
-                        <button onClick={() => forceLogout(selectedPC)}
+                        <button onClick={() => setConfirmAction({
+                          pc: selectedPC,
+                          action: 'force-logout',
+                          label: `Force-logout player on ${selectedPC.name}?`,
+                          detail: `${(selectedPC as any).currentPlayerName || 'Current player'} will be kicked immediately.`,
+                          danger: true,
+                          onConfirm: async () => { await forceLogout(selectedPC); },
+                        })}
                           className="w-full mt-2 py-2.5 rounded-xl font-medium text-xs flex items-center justify-center gap-1.5 bg-[#ff3b30]/5 text-[#ff3b30] border border-[#ff3b30]/15 hover:bg-[#ff3b30]/10 transition-all">
                           <LogOut size={13} /> Force Logout Player
                         </button>
@@ -762,8 +806,18 @@ export function PCManagement() {
                       <div className="flex gap-2">
                         <input type="text" value={freezeMessage} onChange={e => setFreezeMessage(e.target.value)} placeholder="Freeze message (optional)"
                           className="flex-1 px-3 py-2 rounded-xl bg-white border border-[#d2d2d7] text-[#1d1d1f] text-xs placeholder-[#86868b] focus:outline-none focus:border-[#5ac8fa]"
-                          onKeyDown={e => { if (e.key === 'Enter') { sendCommand(selectedPC.id, 'freeze', freezeMessage || 'PC frozen by admin.'); setFreezeMessage(''); } }} />
-                        <button onClick={() => { sendCommand(selectedPC.id, 'freeze', freezeMessage || 'PC frozen by admin.'); setFreezeMessage(''); }} disabled={!isOnline(selectedPC)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter') {
+                              const msg = freezeMessage || 'PC frozen by admin.';
+                              askThenSend(selectedPC, 'freeze', `Freeze ${selectedPC.name}?`, { data: msg, detail: `Player will see: "${msg}"` });
+                              setFreezeMessage('');
+                            }
+                          }} />
+                        <button onClick={() => {
+                          const msg = freezeMessage || 'PC frozen by admin.';
+                          askThenSend(selectedPC, 'freeze', `Freeze ${selectedPC.name}?`, { data: msg, detail: `Player will see: "${msg}"` });
+                          setFreezeMessage('');
+                        }} disabled={!isOnline(selectedPC)}
                           className="px-4 py-2 rounded-xl font-medium text-xs bg-[#5ac8fa]/10 text-[#5ac8fa] border border-[#5ac8fa]/20 hover:bg-[#5ac8fa]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
                           <Snowflake size={12} /> Freeze
                         </button>
@@ -821,8 +875,20 @@ export function PCManagement() {
                       <div className="flex gap-2">
                         <input type="text" value={killAppName} onChange={e => setKillAppName(e.target.value)} placeholder="e.g. chrome.exe or chrome"
                           className="flex-1 px-3 py-2 rounded-xl bg-white border border-[#d2d2d7] text-[#1d1d1f] font-mono text-xs placeholder-[#86868b] focus:outline-none focus:border-[#ff3b30]"
-                          onKeyDown={e => { if (e.key === 'Enter' && killAppName.trim()) { sendCommand(selectedPC.id, 'kill-app', killAppName.trim()); setKillAppName(''); } }} />
-                        <button onClick={() => { if (killAppName.trim()) { sendCommand(selectedPC.id, 'kill-app', killAppName.trim()); setKillAppName(''); } }} disabled={!killAppName.trim() || !isOnline(selectedPC)}
+                          onKeyDown={e => {
+                            if (e.key === 'Enter' && killAppName.trim()) {
+                              const app = killAppName.trim();
+                              askThenSend(selectedPC, 'kill-app', `Kill "${app}" on ${selectedPC.name}?`, { data: app, detail: 'Process will be terminated immediately.' });
+                              setKillAppName('');
+                            }
+                          }} />
+                        <button onClick={() => {
+                          if (killAppName.trim()) {
+                            const app = killAppName.trim();
+                            askThenSend(selectedPC, 'kill-app', `Kill "${app}" on ${selectedPC.name}?`, { data: app, detail: 'Process will be terminated immediately.' });
+                            setKillAppName('');
+                          }
+                        }} disabled={!killAppName.trim() || !isOnline(selectedPC)}
                           className="px-4 py-2 rounded-xl font-medium text-xs bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/20 hover:bg-[#ff3b30]/20 transition-all disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5">
                           <Square size={12} /> Kill
                         </button>
@@ -1185,18 +1251,39 @@ export function PCManagement() {
             <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
               className="bg-white rounded-2xl p-6 w-[400px] shadow-[0_20px_60px_rgba(0,0,0,0.15)] border border-[#e5e5ea]/60" onClick={e => e.stopPropagation()}>
               <div className="text-center mb-5">
-                <div className="w-12 h-12 mx-auto mb-3 rounded-full bg-[#ff3b30]/10 flex items-center justify-center border border-[#ff3b30]/20"><AlertTriangle size={24} className="text-[#ff3b30]" /></div>
+                <div className={`w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center border ${
+                  confirmAction.danger === false
+                    ? 'bg-[#0071e3]/10 border-[#0071e3]/20'
+                    : 'bg-[#ff3b30]/10 border-[#ff3b30]/20'
+                }`}>
+                  <AlertTriangle size={24} className={confirmAction.danger === false ? 'text-[#0071e3]' : 'text-[#ff3b30]'} />
+                </div>
                 <h3 className="text-lg font-semibold text-[#1d1d1f]">{confirmAction.label}</h3>
-                {confirmAction.action === 'shutdown' && confirmAction.pc.status === 'occupied' && (<p className="text-[#ff3b30] text-xs mt-2">This PC is occupied by {(confirmAction.pc as any).currentPlayerName}!</p>)}
+                <p className="text-[#86868b] text-xs mt-1">PC: <span className="font-medium text-[#1d1d1f]">{confirmAction.pc.name}</span></p>
+                {confirmAction.detail && <p className="text-[#86868b] text-xs mt-1">{confirmAction.detail}</p>}
+                {(['shutdown', 'restart', 'sleep', 'logoff'].includes(confirmAction.action)) && confirmAction.pc.status === 'occupied' && (
+                  <p className="text-[#ff3b30] text-xs mt-2 font-medium">⚠ This PC is occupied by {(confirmAction.pc as any).currentPlayerName}!</p>
+                )}
                 {confirmAction.action === 'delete' && (<p className="text-[#86868b] text-xs mt-2">The PC will re-appear if kiosk software is still running.</p>)}
               </div>
               <div className="flex gap-3">
                 <button onClick={() => setConfirmAction(null)} className="flex-1 py-2.5 border border-[#d2d2d7] rounded-xl text-[#86868b] text-sm hover:bg-[#f5f5f7] transition-all">Cancel</button>
                 <button onClick={async () => {
-                  if (confirmAction.action === 'shutdown') { await sendCommand(confirmAction.pc.id, 'shutdown'); await updateDoc(doc(db, 'pcs', confirmAction.pc.id), { status: 'offline' as PCStatus }); }
-                  else if (confirmAction.action === 'delete') { await deletePC(confirmAction.pc); }
+                  // Generic path: any caller that supplied an onConfirm runs through this branch.
+                  if (confirmAction.onConfirm) {
+                    await confirmAction.onConfirm();
+                  } else if (confirmAction.action === 'shutdown') {
+                    await sendCommand(confirmAction.pc.id, 'shutdown');
+                    await updateDoc(doc(db, 'pcs', confirmAction.pc.id), { status: 'offline' as PCStatus });
+                  } else if (confirmAction.action === 'delete') {
+                    await deletePC(confirmAction.pc);
+                  }
                   setConfirmAction(null);
-                }} className="flex-1 py-2.5 rounded-xl font-medium text-sm bg-[#ff3b30] text-white hover:bg-[#ff3b30]/90 transition-all">Confirm</button>
+                }} className={`flex-1 py-2.5 rounded-xl font-medium text-sm text-white transition-all ${
+                  confirmAction.danger === false
+                    ? 'bg-[#0071e3] hover:bg-[#0077ED]'
+                    : 'bg-[#ff3b30] hover:bg-[#ff3b30]/90'
+                }`}>Confirm</button>
               </div>
             </motion.div>
           </motion.div>

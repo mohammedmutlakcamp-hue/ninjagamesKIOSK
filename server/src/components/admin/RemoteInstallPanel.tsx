@@ -24,6 +24,7 @@ import {
   INSTALL_SOURCES, SOURCE_BADGE, buildInstallShellCommand,
   type InstallSource,
 } from '@/lib/install-sources';
+import { pcIsOnline as sharedPcIsOnline } from '@/lib/pc-status';
 import {
   Download, Monitor, Search, Send, Check, Loader2, Wifi, WifiOff,
   Gamepad2, Plus, X, ExternalLink,
@@ -40,22 +41,9 @@ interface PCDoc {
   zone?: string;
 }
 
-// Firestore Timestamp → ms (or pass-through if it's already a number)
-function tsToMs(ts: any): number {
-  if (!ts) return 0;
-  if (typeof ts === 'number') return ts;
-  if (typeof ts === 'object' && 'seconds' in ts) return ts.seconds * 1000;
-  if (typeof ts === 'string') { const t = Date.parse(ts); return isNaN(t) ? 0 : t; }
-  return 0;
-}
-
-// PC counts as online if EITHER the explicit `online` flag is true AND
-// heartbeat is fresh, OR the heartbeat alone is within 60 s.
-function pcIsOnline(p: PCDoc): boolean {
-  const ms = tsToMs(p.lastSeen) || (p.lastHeartbeat || 0);
-  if (!ms) return false;
-  return Date.now() - ms < 60_000;
-}
+// Reuse the project-wide canonical online check (lib/pc-status.ts).
+// Same logic + same 90s window as PCManagement / GameReport.
+const pcIsOnline = sharedPcIsOnline;
 
 export function RemoteInstallPanel() {
   const [pcs, setPcs] = useState<PCDoc[]>([]);

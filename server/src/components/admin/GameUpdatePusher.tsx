@@ -7,6 +7,7 @@ import {
   collection, onSnapshot, doc, updateDoc, addDoc, query, orderBy, limit, getDocs, Timestamp
 } from 'firebase/firestore';
 import { PC } from '@/types';
+import { pcIsOnline } from '@/lib/pc-status';
 import { Download, HardDrive, Terminal, Send, Monitor, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface CommandHistoryEntry {
@@ -80,9 +81,8 @@ export function GameUpdatePusher() {
     loadHistory();
   }, [lastSent]);
 
-  const isOnline = (pc: PC) => {
-    return pc.lastHeartbeat && (Date.now() - pc.lastHeartbeat) < 60000;
-  };
+  // Same canonical online check as every other admin panel — see lib/pc-status.ts
+  const isOnline = (pc: PC) => pcIsOnline(pc);
 
   const getTargetPCs = (): PC[] => {
     if (target === 'all') return pcs;

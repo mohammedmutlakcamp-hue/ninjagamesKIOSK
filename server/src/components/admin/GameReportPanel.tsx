@@ -29,6 +29,7 @@ import { GAMES_CATALOG } from '@/lib/games-catalog';
 import {
   INSTALL_SOURCES, SOURCE_BADGE, buildInstallShellCommand,
 } from '@/lib/install-sources';
+import { pcIsOnline as sharedPcIsOnline, pcLastSeenLabel } from '@/lib/pc-status';
 import {
   ClipboardList, RefreshCw, Monitor, Wifi, WifiOff, ChevronDown, ChevronRight,
   Check, X, Download, Loader2, FolderOpen, Info, Search, Gamepad2, AlertCircle,
@@ -54,19 +55,17 @@ interface PCDoc {
   installedGamesScannedAt?: any;
 }
 
+// Reuse the project-wide canonical helpers so this panel agrees with
+// PCManagement, RemoteInstallPanel, and GameUpdatePusher about whether
+// a PC is online (90s window, multi-format heartbeat parsing).
+const pcIsOnline = sharedPcIsOnline;
 function tsToMs(ts: any): number | null {
   if (!ts) return null;
   if (typeof ts === 'number') return ts;
   if (typeof ts === 'object' && 'seconds' in ts) return ts.seconds * 1000;
+  if (typeof ts === 'object' && typeof ts.toDate === 'function') return ts.toDate().getTime();
   if (typeof ts === 'string') { const t = Date.parse(ts); return isNaN(t) ? null : t; }
   return null;
-}
-
-// PC counts as online when its kiosk heartbeat lands within 60 s.
-function pcIsOnline(p: PCDoc): boolean {
-  const ms = tsToMs(p.lastSeen) ?? (p.lastHeartbeat || 0);
-  if (!ms) return false;
-  return Date.now() - ms < 60_000;
 }
 
 function fmtAge(ms: number | null): string {
