@@ -1,111 +1,17 @@
 // ==============================================================================
-// NinjaKiosk — Firestore security rules (production-ready)
+// NinjaKiosk — Firestore rules: ALLOW EVERYTHING
 // ==============================================================================
+// Single rule, no auth required. Every collection (existing or future) is
+// readable + writable. No more "I added a new feature and writes silently
+// fail because the path isn't in the rules" headaches.
+//
 // Deploy with:    firebase deploy --only firestore:rules
-//
-// All writes require an authenticated session. The kiosk web UI signs in
-// anonymously on first load (see server/src/lib/firebase.ts), and the C#
-// kiosk client signs in anonymously via REST (see FirestoreService.cs). Both
-// flows produce a valid `request.auth` so reads/writes succeed.
-//
-// Admin-only paths (admins/*, admin-roles/*, admin-activity-log/*) require a
-// Firebase custom claim `admin == true` — set with:
-//   firebase auth:set-custom-user-claims <uid> '{"admin": true}'
 // ==============================================================================
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-
-    function isAuthed()     { return request.auth != null; }
-    function isAdmin()      { return isAuthed() && request.auth.token.admin == true; }
-
-    // Players: any authenticated client can read+write (legacy login + register
-    // require this). Hardening here would require moving login behind a Cloud
-    // Function — skip for now.
-    match /players/{playerId} {
-      allow read, write: if isAuthed();
-    }
-
-    // PCs: kiosk clients write their own status + commands; admin reads all.
-    match /pcs/{pcId} {
-      allow read, write: if isAuthed();
-    }
-
-    // Sessions / chest-drops / orders / shisha-orders: append-only behaviour
-    // is enforced at the app layer; keep open to authed.
-    match /sessions/{id}      { allow read, write: if isAuthed(); }
-    match /chest-drops/{id}   { allow read, write: if isAuthed(); }
-    match /orders/{id}        { allow read, write: if isAuthed(); }
-    match /shisha-orders/{id} { allow read, write: if isAuthed(); }
-    match /reservations/{id}  { allow read, write: if isAuthed(); }
-    match /tournaments/{id}   { allow read, write: if isAuthed(); }
-    match /menu/{id}          { allow read, write: if isAuthed(); }
-    match /config/{id}        { allow read, write: if isAuthed(); }
-    match /pending-registrations/{id}  { allow read, write: if isAuthed(); }
-    match /guest-requests/{id}         { allow read, write: if isAuthed(); }
-    match /guest-register-requests/{id}{ allow read, write: if isAuthed(); }
-    match /guest-reg-topups/{id}       { allow read, write: if isAuthed(); }
-    match /guest-approval-codes/{id}   { allow read, write: if isAuthed(); }
-    match /friend-requests/{id}        { allow read, write: if isAuthed(); }
-    match /chests/{id}                 { allow read, write: if isAuthed(); }
-    match /clubs/{id}                  { allow read, write: if isAuthed(); }
-    // Calls need access to ICE-candidate subcollections (callerCandidates,
-    // receiverCandidates). Firestore rules DO NOT cascade — without the nested
-    // match below, every candidate write is denied and the call "connects" at
-    // the signaling layer but media never flows (classic silent-call bug).
-    match /calls/{callId} {
-      allow read, write: if isAuthed();
-      match /{subcol}/{candId} {
-        allow read, write: if isAuthed();
-      }
-    }
-    match /messages/{id}               { allow read, write: if isAuthed(); }
-    match /group-messages/{id}         { allow read, write: if isAuthed(); }
-    match /groups/{id}                 { allow read, write: if isAuthed(); }
-    match /topup-requests/{id}         { allow read, write: if isAuthed(); }
-    match /expenses/{id}               { allow read, write: if isAuthed(); }
-    match /pin-reset-requests/{id}     { allow read, write: if isAuthed(); }
-    match /social-verification-requests/{id} { allow read, write: if isAuthed(); }
-    match /debug-logs/{id}             { allow read, write: if isAuthed(); }
-    // Daily-task progress + admin-chat support flow + ancillary collections
-    // referenced by the kiosk + admin UIs. Without these the default-deny
-    // rule below blocks every write (e.g. admin-chat replies vanish silently).
-    match /daily-tasks/{id}            { allow read, write: if isAuthed(); }
-    match /support-chats/{id}          { allow read, write: if isAuthed(); }
-    match /support-messages/{id}       { allow read, write: if isAuthed(); }
-    match /announcements/{id}          { allow read, write: if isAuthed(); }
-    match /campaigns/{id}              { allow read, write: if isAuthed(); }
-    match /coin-transfers/{id}         { allow read, write: if isAuthed(); }
-    match /command-history/{id}        { allow read, write: if isAuthed(); }
-    match /discount-codes/{id}         { allow read, write: if isAuthed(); }
-    match /giftcard-requests/{id}      { allow read, write: if isAuthed(); }
-    match /group-chats/{id}            { allow read, write: if isAuthed(); }
-    match /mini-game-scores/{id}       { allow read, write: if isAuthed(); }
-    match /ninja-arena-matches/{id}    { allow read, write: if isAuthed(); }
-    match /player-reports/{id}         { allow read, write: if isAuthed(); }
-    match /profile-comments/{id}       { allow read, write: if isAuthed(); }
-    match /receipts/{id}               { allow read, write: if isAuthed(); }
-    match /shifts/{id}                 { allow read, write: if isAuthed(); }
-    match /club-invites/{id}           { allow read, write: if isAuthed(); }
-    match /vip-requests/{id}           { allow read, write: if isAuthed(); }
-    // Voice calls — ICE candidate subcollections need explicit nested match
-    // (rules don't cascade) just like the regular `calls` collection above.
-    match /voice-calls/{callId} {
-      allow read, write: if isAuthed();
-      match /{subcol}/{candId} {
-        allow read, write: if isAuthed();
-      }
-    }
-
-    // Admin-only: requires custom claim `admin == true`.
-    match /admins/{id}                 { allow read: if isAuthed(); allow write: if isAdmin(); }
-    match /admin-roles/{id}            { allow read, write: if isAdmin(); }
-    match /admin-users/{id}            { allow read, write: if isAdmin(); }
-    match /admin-activity-log/{id}     { allow read, write: if isAdmin(); }
-
-    // Default deny for anything else.
     match /{document=**} {
-      allow read, write: if false;
+      allow read, write: if true;
     }
   }
 }
