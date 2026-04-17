@@ -371,15 +371,21 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       const data = snap.data();
       const tasks = data.tasks || {};
       let count = 0;
-      // Check each task: completed (progress >= target) but not claimed
+      // Only count the 6 tasks shown in the DailyTasksTab UI. The Firestore
+      // doc is seeded with 11 task IDs (trackDailyTask's DEFAULT_TASK_IDS),
+      // but 5 of those are hidden / not claimable in the UI. Iterating all
+      // of them broke the "all claimed" check and inflated the badge count.
       const TASK_TARGETS: Record<string, number> = {
         daily_login: 1, open_chest: 1, send_coins: 1,
         order_food: 1, check_socials: 1, play_30_min: 75,
       };
+      const UI_TASK_IDS = Object.keys(TASK_TARGETS);
       let totalTasks = 0;
       let claimedTasks = 0;
-      for (const [taskId, tp] of Object.entries(tasks) as [string, any][]) {
-        const target = TASK_TARGETS[taskId] || 1;
+      for (const taskId of UI_TASK_IDS) {
+        const tp = tasks[taskId];
+        if (!tp) continue;
+        const target = TASK_TARGETS[taskId];
         totalTasks++;
         if (tp.claimed) claimedTasks++;
         if (tp.progress >= target && !tp.claimed) count++;
@@ -391,7 +397,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       const lastClaim = player?.lastFreeChest || 0;
       if (Date.now() - lastClaim >= FREE_CHEST_COOLDOWN) count++;
       setUnclaimedTaskCount(count);
-      setAllTasksComplete(totalTasks > 0 && claimedTasks === totalTasks);
+      setAllTasksComplete(totalTasks === UI_TASK_IDS.length && claimedTasks === totalTasks);
     });
     return () => unsub();
   }, [player?.uid, player?.lastFreeChest]);
