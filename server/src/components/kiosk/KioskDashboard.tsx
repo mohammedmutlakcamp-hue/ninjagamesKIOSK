@@ -953,27 +953,58 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             <>
               {/* Top row: Language — Avatar — Settings */}
               <div className="flex items-center justify-between mb-2">
-                {/* Language button — flag clipped to the circle. We zoom the
-                    image (object-cover + scale-150) so the meaningful part of
-                    the flag (the stripes/text) fills the circle WITHOUT
-                    transparent gaps. Both PNG and SVG sources fit the same
-                    way regardless of original aspect ratio. */}
+                {/* Language switcher — inline SVG flags drawn to fill the
+                    circle perfectly. No external image, no aspect-ratio
+                    fitting bugs, no transparent gutters. Stripes for the
+                    USA flag, green field + shahada-style band for Saudi. */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
                   className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110 relative"
-                  style={{ border: '2px solid rgba(57,255,20,0.4)', background: '#000', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
+                  style={{ border: '2px solid rgba(57,255,20,0.4)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                  <img
-                    src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-ar.png'}
-                    alt={lang.toUpperCase()}
-                    className="absolute inset-0 w-full h-full object-cover"
-                    style={{ transform: 'scale(1.05)' }}
-                    onError={(e) => {
-                      // Fallback to SVG if the PNG variant 404s.
-                      const t = e.currentTarget as HTMLImageElement;
-                      const svg = '/img/flag-sa.svg';
-                      if (lang === 'ar' && !t.src.endsWith(svg)) t.src = svg;
-                    }}
-                  />
+                  {lang === 'en' ? (
+                    // USA flag — 13 red/white stripes + blue canton with stars
+                    <svg viewBox="0 0 60 60" className="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-label="EN">
+                      <defs>
+                        <clipPath id="usaCircle"><circle cx="30" cy="30" r="30" /></clipPath>
+                      </defs>
+                      <g clipPath="url(#usaCircle)">
+                        {/* 13 stripes */}
+                        {Array.from({ length: 13 }).map((_, i) => (
+                          <rect key={i} x="0" y={i * (60 / 13)} width="60" height={60 / 13}
+                            fill={i % 2 === 0 ? '#B22234' : '#FFFFFF'} />
+                        ))}
+                        {/* Blue canton (top-left) */}
+                        <rect x="0" y="0" width="30" height={(60 / 13) * 7} fill="#3C3B6E" />
+                        {/* Stars (simplified — 9 white dots in a 3x3 grid) */}
+                        {Array.from({ length: 3 }).flatMap((_, r) =>
+                          Array.from({ length: 3 }).map((__, c) => (
+                            <circle key={`${r}-${c}`} cx={6 + c * 9} cy={5 + r * 8} r="1.4" fill="#FFFFFF" />
+                          ))
+                        )}
+                      </g>
+                    </svg>
+                  ) : (
+                    // Saudi Arabia flag — green field + white shahada band
+                    <svg viewBox="0 0 60 60" className="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-label="AR">
+                      <defs>
+                        <clipPath id="saCircle"><circle cx="30" cy="30" r="30" /></clipPath>
+                      </defs>
+                      <g clipPath="url(#saCircle)">
+                        <rect x="0" y="0" width="60" height="60" fill="#006C35" />
+                        {/* Stylised shahada band (white) */}
+                        <rect x="8" y="22" width="44" height="3" fill="#FFFFFF" rx="1" />
+                        <rect x="8" y="28" width="44" height="2" fill="#FFFFFF" rx="1" opacity="0.8" />
+                        {/* Sword underline */}
+                        <line x1="10" y1="40" x2="50" y2="40" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
+                        <polygon points="50,40 46,38 46,42" fill="#FFFFFF" />
+                      </g>
+                    </svg>
+                  )}
+                  {/* Country code chip in corner so it's instantly readable */}
+                  <span className="absolute bottom-0 right-0 text-[8px] font-ninja font-bold leading-none px-1 py-0.5 rounded-tl"
+                    style={{ background: 'rgba(0,0,0,0.7)', color: '#fff' }}>
+                    {lang === 'en' ? 'EN' : 'AR'}
+                  </span>
                 </button>
 
                 {/* Center — Big avatar in octagonal sci-fi frame */}
