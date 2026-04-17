@@ -41,6 +41,7 @@ import { AchievementsManager } from './AchievementsManager';
 import { PCReservation } from './PCReservation';
 import { PlayerSwap } from './PlayerSwap';
 import { GameUpdatePusher } from './GameUpdatePusher';
+import { DebugLogsPanel } from './DebugLogsPanel';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -50,7 +51,7 @@ import {
   BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs';
 
 interface Props {
   admin: any;
@@ -637,6 +638,7 @@ export function AdminDashboard({ admin }: Props) {
         { id: 'pricing', label: 'Pricing', icon: <Tag size={18} /> },
         { id: 'updates', label: 'PC Updates', icon: <Download size={18} /> },
         { id: 'scheduled', label: 'Scheduled', icon: <CalendarClock size={18} /> },
+        { id: 'debuglogs', label: 'Debug Logs', icon: <Activity size={18} /> },
         { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
       ]
     },
@@ -779,6 +781,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'reservations' && <PCReservation />}
           {tab === 'swap' && <PlayerSwap />}
           {tab === 'updates' && <GameUpdatePusher />}
+          {tab === 'debuglogs' && <DebugLogsPanel />}
         </motion.div>
       </div>
 
