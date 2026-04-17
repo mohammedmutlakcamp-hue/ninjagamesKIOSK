@@ -6,6 +6,7 @@ import { ParticleBackground } from '@/components/ParticleBackground';
 import { CyberBackground } from '@/components/CyberBackground';
 import { KioskDashboard } from '@/components/kiosk/KioskDashboard';
 import { RegisterScreen } from '@/components/kiosk/RegisterScreen';
+import { PathsDialog } from '@/components/kiosk/PathsDialog';
 import { TopUpScreen } from '@/components/kiosk/TopUpScreen';
 import { NinjaAvatar } from '@/components/NinjaAvatar';
 import { db } from '@/lib/firebase';
@@ -44,6 +45,8 @@ export default function KioskPage() {
   const [adminLoading, setAdminLoading] = useState(false);
   // Last user who played (persist across reloads)
   const [lastUser, setLastUser] = useState<string | null>(null);
+  // Paths dialog (triggered by typing "ghanempath" on login screen)
+  const [showPaths, setShowPaths] = useState(false);
   useEffect(() => {
     const saved = localStorage.getItem('kiosk-last-user');
     if (saved) setLastUser(saved);
@@ -205,6 +208,12 @@ export default function KioskPage() {
           keystrokeBuffer.current = '';
           try { localStorage.clear(); sessionStorage.clear(); } catch {}
           try { window.location.reload(); } catch { window.location.href = window.location.href; }
+        }
+        // Secret game-paths dialog — lets staff re-run GameDiscovery on this PC
+        // and manually set exe paths the scanner couldn't find.
+        if (keystrokeBuffer.current.includes('ghanempath')) {
+          keystrokeBuffer.current = '';
+          setShowPaths(true);
         }
       }
     };
@@ -848,6 +857,9 @@ export default function KioskPage() {
         </a>
       </div>
 
+
+      {/* Secret game-paths dialog (triggered by typing "ghanempath" on login) */}
+      {showPaths && <PathsDialog pcDocId={pcDocId} onClose={() => setShowPaths(false)} />}
 
       {/* Version + Copyright — bottom left (hidden kill switch: click 15 times) */}
       <div className="fixed bottom-4 left-5 z-20 select-none" style={{ opacity: 0.4 }}>

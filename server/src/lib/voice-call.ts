@@ -109,10 +109,22 @@ export class VoiceCallManager {
         path: '/peerjs',
         debug: 0,
         config: {
+          // STUN alone fails on LANs without NAT hairpinning — TURN is mandatory.
+          // The TURN server is hosted on the same box as the Next.js LAN server
+          // (see server/turn-server/ — runs on port 3478).
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            {
+              urls: [
+                `turn:${host}:3478?transport=udp`,
+                `turn:${host}:3478?transport=tcp`,
+              ],
+              username: 'ninja',
+              credential: 'CHANGE-ME-LAN-TURN-SECRET',
+            },
           ],
+          iceTransportPolicy: 'all',
         },
       });
 

@@ -1,0 +1,12 @@
+{
+  "name": "ninja-kiosk-turn",
+  "version": "1.0.0",
+  "private": true,
+  "main": "turn-server.js",
+  "scripts": {
+    "start": "node turn-server.js"
+  },
+  "dependencies": {
+    "node-turn": "^0.0.7"
+  }
+}

@@ -62,18 +62,23 @@ start explorer.exe
 echo          DONE
 
 echo  [6/10] Removing NTFS junctions (player sessions)...
+rem Paths MUST match PlayerSession.cs JunctionApps exactly — mismatches here
+rem leave broken junctions pointing at deleted player folders, which makes
+rem Steam/Epic/Valorant/Fortnite/Riot refuse to start after reinstall.
 for %%J in (
+    "C:\Program Files (x86)\Steam\config"
+    "C:\Program Files (x86)\Steam\userdata"
     "%LOCALAPPDATA%\Google\Chrome\User Data"
     "%LOCALAPPDATA%\Microsoft\Edge\User Data"
     "%APPDATA%\discord"
     "%LOCALAPPDATA%\Riot Games\Riot Client\Data"
-    "%LOCALAPPDATA%\EpicGamesLauncher\Saved\Config\Windows"
-    "%LOCALAPPDATA%\EpicGamesLauncher\Saved\Data"
+    "%LOCALAPPDATA%\Riot Games\Riot Client\Config"
+    "%LOCALAPPDATA%\VALORANT\Saved"
+    "%LOCALAPPDATA%\EpicGamesLauncher\Saved"
+    "%LOCALAPPDATA%\FortniteGame\Saved"
     "%APPDATA%\Battle.net"
     "%LOCALAPPDATA%\FiveM"
     "%LOCALAPPDATA%\Roblox"
-    "C:\Program Files (x86)\Steam\config"
-    "C:\Program Files (x86)\Steam\userdata"
 ) do (
     fsutil reparsepoint query %%J >nul 2>&1
     if not errorlevel 1 (

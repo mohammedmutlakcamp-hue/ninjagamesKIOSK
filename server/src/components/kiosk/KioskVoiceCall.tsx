@@ -10,11 +10,23 @@ import { Phone, PhoneOff, PhoneIncoming, PhoneCall, Mic, MicOff, Volume2, Volume
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
+// STUN alone fails on LANs without NAT hairpinning. TURN is mandatory as fallback.
+// Replace TURN creds with your own (self-hosted coturn on the server PC, or a provider
+// like metered.ca / Twilio). Free tier on metered.ca is enough for a gaming cafe.
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    {
+      urls: [
+        'turn:YOUR_TURN_HOST:3478?transport=udp',
+        'turn:YOUR_TURN_HOST:3478?transport=tcp',
+      ],
+      username: 'YOUR_TURN_USER',
+      credential: 'YOUR_TURN_PASSWORD',
+    },
   ],
+  iceTransportPolicy: 'all',
 };
 
 // ─── Types ──────────────────────────────────────────────────────────────────
@@ -162,10 +174,19 @@ export function KioskVoiceCall({ player }: Props) {
         ringRef.current = null;
       };
 
-      // 4. Collect ICE candidates BEFORE creating offer
+      // 4. Collect ICE candidates BEFORE creating offer (+ log type: host/srflx/relay)
       const tempCandidates: any[] = [];
+      const candTypes = { host: 0, srflx: 0, relay: 0, prflx: 0 };
       pc.onicecandidate = (event) => {
-        if (event.candidate) tempCandidates.push(event.candidate.toJSON());
+        if (event.candidate) {
+          const t = (event.candidate.candidate.split(' ')[7] || 'unknown') as keyof typeof candTypes;
+          if (t in candTypes) candTypes[t]++;
+          console.log('[VOICE] local candidate type=', t, 'tally=', candTypes);
+          tempCandidates.push(event.candidate.toJSON());
+        } else {
+          console.log('[VOICE] ICE gathering complete. Summary:', candTypes,
+            candTypes.relay === 0 ? '⚠ NO RELAY CANDIDATES — TURN unreachable' : '');
+        }
       };
 
       // 5. Create offer FIRST, before writing to Firestore
@@ -316,10 +337,19 @@ export function KioskVoiceCall({ player }: Props) {
         }
       };
 
-      // 4. Collect ICE candidates
+      // 4. Collect ICE candidates (+ log type: host/srflx/relay)
       const receiverCandidates = collection(db, 'calls', call.id, 'receiverCandidates');
+      const candTypes = { host: 0, srflx: 0, relay: 0, prflx: 0 };
       pc.onicecandidate = (event) => {
-        if (event.candidate) addDoc(receiverCandidates, event.candidate.toJSON());
+        if (event.candidate) {
+          const t = (event.candidate.candidate.split(' ')[7] || 'unknown') as keyof typeof candTypes;
+          if (t in candTypes) candTypes[t]++;
+          console.log('[VOICE] local candidate type=', t, 'tally=', candTypes);
+          addDoc(receiverCandidates, event.candidate.toJSON());
+        } else {
+          console.log('[VOICE] ICE gathering complete. Summary:', candTypes,
+            candTypes.relay === 0 ? '⚠ NO RELAY CANDIDATES — TURN unreachable' : '');
+        }
       };
 
       // 5. Get the offer from Firestore (with retry — offer might not be written yet)
