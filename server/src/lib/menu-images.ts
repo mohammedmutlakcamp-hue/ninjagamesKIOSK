@@ -14,45 +14,76 @@
 //    3. category default (drinks → cola.jpg, snacks → chips.jpg, food → sandwich.jpg)
 // ═══════════════════════════════════════════════════════════════════
 
-// EXACT id → image. Mirrors MENU_ITEMS in lib/constants.ts but the
-// canonical list lives here so you can update images without touching
-// pricing data.
+// EXACT id → image. Covers BOTH the dashed ids (lib/constants.ts) AND
+// the underscored ids (api/seed-menu/route.ts) — Firestore was seeded
+// with underscores, so without these aliases the lookup falls through
+// to the keyword regex and picks the wrong picture.
 export const MENU_IMAGE_BY_ID: Record<string, string> = {
-  // ── DRINKS ──
-  'cola-sm':       '/img/menu/cola.jpg',
-  'cola-lg':       '/img/menu/cola.jpg',
-  'iced-coffee':   '/img/menu/iced-coffee.jpg',
-  'energy-drink':  '/img/menu/energy-drink.jpg',
-  'energy-xl':     '/img/menu/energy-drink.jpg',
-  'energy-bm':     '/img/menu/energy-drink.jpg',
-  'zaki-juice':    '/img/menu/juice.jpg',
-  'hot-chocolate': '/img/menu/hot-chocolate.jpg',
-  'karak-tea':     '/img/menu/karak-tea.jpg',
-  'tea':           '/img/menu/tea.jpg',
-  'coffee':        '/img/menu/coffee.jpg',
-  'water-sm':      '/img/menu/water.jpg',
-  'water-lg':      '/img/menu/water.jpg',
-  'lemon-mint':    '/img/menu/lemon-mint.jpg',
-  'cocktail':      '/img/menu/cocktail.jpg',
+  // ── DRINKS — dashed (constants) + underscored (seed) ──
+  'cola-sm':         '/img/menu/cola.jpg',
+  'cola_small':      '/img/menu/cola.jpg',
+  'cola-lg':         '/img/menu/cola.jpg',
+  'cola_large':      '/img/menu/cola.jpg',
+
+  'iced-coffee':     '/img/menu/iced-coffee.jpg',
+  'iced_coffee':     '/img/menu/iced-coffee.jpg',
+
+  'energy-drink':    '/img/menu/energy-drink.jpg',
+  'energy_drink':    '/img/menu/energy-drink.jpg',
+  'energy-xl':       '/img/menu/energy-drink.jpg',
+  'energy_drink_xl': '/img/menu/energy-drink.jpg',
+  'energy-bm':       '/img/menu/energy-drink.jpg',
+  'energy_drink_bm': '/img/menu/energy-drink.jpg',
+
+  'zaki-juice':      '/img/menu/juice.jpg',
+  'zaki_juice':      '/img/menu/juice.jpg',
+
+  'hot-chocolate':   '/img/menu/hot-chocolate.jpg',
+  'hot_chocolate':   '/img/menu/hot-chocolate.jpg',
+
+  'karak-tea':       '/img/menu/karak-tea.jpg',
+  'karak_tea':       '/img/menu/karak-tea.jpg',
+
+  'tea':             '/img/menu/tea.jpg',
+  'coffee':          '/img/menu/coffee.jpg',
+
+  'water-sm':        '/img/menu/water.jpg',
+  'water_small':     '/img/menu/water.jpg',
+  'water-lg':        '/img/menu/water.jpg',
+  'water_large':     '/img/menu/water.jpg',
+
+  'lemon-mint':      '/img/menu/lemon-mint.jpg',
+  'lemon_mint':      '/img/menu/lemon-mint.jpg',
+
+  'cocktail':        '/img/menu/cocktail.jpg',
 
   // ── SNACKS ──
-  'molto':         '/img/menu/molto.jpg',
-  'chips':         '/img/menu/chips.jpg',
-  'chocolate-bar': '/img/menu/chocolate.jpg',
-  'biscuits':      '/img/menu/biscuits.jpg',
-  'fries-sm':      '/img/menu/fries.jpg',
-  'fries-lg':      '/img/menu/fries.jpg',
+  'molto':           '/img/menu/molto.jpg',
+  'chips':           '/img/menu/chips.jpg',
+  'chocolate-bar':   '/img/menu/chocolate.jpg',
+  'chocolate_bar':   '/img/menu/chocolate.jpg',
+  'biscuits':        '/img/menu/biscuits.jpg',
+  'fries-sm':        '/img/menu/fries.jpg',
+  'fries_small':     '/img/menu/fries.jpg',
+  'fries-lg':        '/img/menu/fries.jpg',
+  'fries_large':     '/img/menu/fries.jpg',
 
   // ── FOOD ──
-  'ninja-ninja':    '/img/menu/sandwich.jpg',
-  'salohy':         '/img/menu/sandwich.jpg',
-  'zanzon':         '/img/menu/sandwich.jpg',
-  'amory':          '/img/menu/sandwich.jpg',
-  'abo-mahmad':     '/img/menu/sandwich.jpg',
-  'chicken-burger': '/img/menu/chicken-burger.jpg',
-  'beef-burger':    '/img/menu/burger.jpg',
-  'hot-dog':        '/img/menu/hotdog.jpg',
-  'kabab':          '/img/menu/kabab.jpg',
+  'ninja-ninja':     '/img/menu/sandwich.jpg',
+  'ninja_ninja':     '/img/menu/sandwich.jpg',
+  'salohy':          '/img/menu/sandwich.jpg',
+  'zanzon':          '/img/menu/sandwich.jpg',
+  'amory':           '/img/menu/sandwich.jpg',
+  'abo-mahmad':      '/img/menu/sandwich.jpg',
+  'abo_mahmmad':     '/img/menu/sandwich.jpg', // seed has typo (double m)
+  'abo_mahmad':      '/img/menu/sandwich.jpg',
+  'chicken-burger':  '/img/menu/chicken-burger.jpg',
+  'chicken_burger':  '/img/menu/chicken-burger.jpg',
+  'beef-burger':     '/img/menu/burger.jpg',
+  'beef_burger':     '/img/menu/burger.jpg',
+  'hot-dog':         '/img/menu/hotdog.jpg',
+  'hotdog':          '/img/menu/hotdog.jpg',
+  'kabab':           '/img/menu/kabab.jpg',
 };
 
 // Keyword → image. Used for admin-added items whose id isn't in the

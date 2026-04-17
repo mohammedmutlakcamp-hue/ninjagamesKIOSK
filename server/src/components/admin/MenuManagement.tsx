@@ -5,10 +5,38 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { MenuItem } from '@/types';
+import { getMenuImage } from '@/lib/menu-images';
 import {
   Plus, CupSoda, Cookie, Pizza, UtensilsCrossed, Pencil,
-  Trash2, ToggleLeft, ToggleRight, Coins, X
+  Trash2, ToggleLeft, ToggleRight, Coins, X, Image as ImageIcon, Link2, Folder, AlertTriangle
 } from 'lucide-react';
+
+// Bundled stock images shipped in /public/img/menu — admin can pick one
+// instead of pasting a URL. Add new files here when you drop them in the
+// folder so the picker exposes them.
+const BUNDLED_MENU_IMAGES = [
+  '/img/menu/cola.jpg',
+  '/img/menu/iced-coffee.jpg',
+  '/img/menu/energy-drink.jpg',
+  '/img/menu/juice.jpg',
+  '/img/menu/hot-chocolate.jpg',
+  '/img/menu/karak-tea.jpg',
+  '/img/menu/tea.jpg',
+  '/img/menu/coffee.jpg',
+  '/img/menu/water.jpg',
+  '/img/menu/lemon-mint.jpg',
+  '/img/menu/cocktail.jpg',
+  '/img/menu/molto.jpg',
+  '/img/menu/chips.jpg',
+  '/img/menu/chocolate.jpg',
+  '/img/menu/biscuits.jpg',
+  '/img/menu/fries.jpg',
+  '/img/menu/sandwich.jpg',
+  '/img/menu/burger.jpg',
+  '/img/menu/chicken-burger.jpg',
+  '/img/menu/hotdog.jpg',
+  '/img/menu/kabab.jpg',
+];
 
 export function MenuManagement() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -231,6 +259,57 @@ export function MenuManagement() {
                   <label className="text-[#86868b] text-sm font-medium mb-1 block">Prep Time (minutes)</label>
                   <input type="number" value={formPrepTime} onChange={(e) => setFormPrepTime(e.target.value)}
                     className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none" />
+                </div>
+
+                {/* IMAGE — paste URL or pick a bundled photo. Preview is live. */}
+                <div>
+                  <label className="text-[#86868b] text-sm font-medium mb-1 block flex items-center gap-1.5">
+                    <ImageIcon size={13} /> Image
+                  </label>
+                  <div className="flex items-stretch gap-3">
+                    {/* Live preview — falls back to the smart auto-pick if the URL fails */}
+                    <div className="w-24 h-24 rounded-xl overflow-hidden bg-[#f5f5f7] border border-[#d2d2d7] flex items-center justify-center flex-shrink-0">
+                      <img
+                        key={formImage}
+                        src={formImage || getMenuImage({ name: formName, category: formCategory })}
+                        alt="preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          const t = e.currentTarget as HTMLImageElement;
+                          const fb = getMenuImage({ name: formName, category: formCategory });
+                          if (t.src !== window.location.origin + fb) t.src = fb;
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 flex flex-col gap-2">
+                      <div className="relative">
+                        <Link2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" />
+                        <input
+                          value={formImage}
+                          onChange={(e) => setFormImage(e.target.value)}
+                          placeholder="Paste image URL or /img/menu/your-photo.jpg"
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl pl-9 pr-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                        />
+                      </div>
+                      <div className="relative">
+                        <Folder size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
+                        <select
+                          value={BUNDLED_MENU_IMAGES.includes(formImage) ? formImage : ''}
+                          onChange={(e) => { if (e.target.value) setFormImage(e.target.value); }}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl pl-9 pr-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] outline-none appearance-none cursor-pointer"
+                        >
+                          <option value="">— Pick from bundled library —</option>
+                          {BUNDLED_MENU_IMAGES.map((p) => (
+                            <option key={p} value={p}>{p.replace('/img/menu/', '')}</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-[10px] text-[#86868b] mt-2 leading-relaxed flex items-start gap-1">
+                    <AlertTriangle size={11} className="text-[#ff9500] mt-0.5 flex-shrink-0" />
+                    For real product photos, host the image (Imgur, Drive public link, your website) and paste the URL — or drop the file into <code className="px-1 py-0.5 rounded bg-[#f5f5f7] border border-[#e5e5ea] text-[10px]">server/public/img/menu/</code> and reference <code className="px-1 py-0.5 rounded bg-[#f5f5f7] border border-[#e5e5ea] text-[10px]">/img/menu/yourfile.jpg</code>.
+                  </p>
                 </div>
               </div>
 

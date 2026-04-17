@@ -157,10 +157,12 @@ export function FoodTab({ player }: Props) {
 
   const renderCard = (item: any, i: number) => {
     const inCart = cart[item.id] || 0;
-    // Always pick the canonical image for this item (id → keyword → category
-    // fallback). Ignore Firestore's `item.image` because seeded data is
-    // missing/wrong for many items.
-    const imageSrc = getMenuImage(item);
+    // Image priority:
+    //   1. item.image (admin-uploaded URL via Menu admin) — REAL product photo
+    //   2. getMenuImage(item) — id/keyword/category lookup of bundled stock
+    //   3. onError → category-default fallback (handled below)
+    const customImage = (item.image || '').trim();
+    const imageSrc = customImage || getMenuImage(item);
     const selected = inCart > 0;
 
     return (
