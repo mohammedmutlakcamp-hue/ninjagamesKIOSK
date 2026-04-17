@@ -8,6 +8,7 @@ import { CHESTS, COIN_PACKAGES, NINJA_SKINS, RARITY_COLORS, VIP_CONFIG, TIME_PAC
 import { Chest, ChestReward, NinjaSkin } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { trackDailyTask } from '@/lib/daily-tasks';
+import { useFeatureFlags } from '@/lib/feature-flags';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { ChestDropsPanels } from '@/components/kiosk/ChestDropsPanels';
 import {
@@ -60,10 +61,10 @@ const JOD_PACKAGES = COIN_PACKAGES.map(p => ({
 type SubTab = 'skins' | 'chests' | 'giftcards' | 'time' | 'coins' | 'vip';
 type CategoryFilter = 'all' | 'starter' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
-const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode; comingSoon?: boolean }[] = [
+const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
   { id: 'skins',     label: 'SKINS',     icon: <Swords size={18} /> },
   { id: 'chests',    label: 'CHESTS',    icon: <Package size={18} /> },
-  { id: 'giftcards', label: 'GIFT CARDS', icon: <CreditCard size={18} />, comingSoon: true },
+  { id: 'giftcards', label: 'GIFT CARDS', icon: <CreditCard size={18} /> },
   { id: 'time',      label: 'TIME',      icon: <Timer size={18} /> },
   { id: 'coins',     label: 'COINS',     icon: <Coins size={18} /> },
 ];
@@ -402,6 +403,7 @@ function BrandLogo({ logos, alt, className, style }: { logos: string[]; alt: str
 export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
+  const flags = useFeatureFlags();
   const [subTab, setSubTab] = useState<SubTab>((initialSubTab as SubTab) || 'skins');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('rare');
   const [selectedSkin, setSelectedSkin] = useState<NinjaSkin | null>(null);
@@ -753,7 +755,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
      RENDER
   ═���══════════════════════════════════════════════════════════════════════════ */
   return (
-    <div className="flex h-full w-full gap-0 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #030508 0%, #04070e 20%, #050a14 50%, #04070e 80%, #030508 100%)' }}>
+    <div className="flex h-full w-full gap-3 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #030508 0%, #04070e 20%, #050a14 50%, #04070e 80%, #030508 100%)' }}>
       {/* ═══ Cyberpunk BG effects ═══ */}
       <div className="absolute inset-0 pointer-events-none z-0 sidebar-glow-breathe" />
       <div className="absolute inset-0 pointer-events-none z-0 pcb-grid-fade" style={{
@@ -843,7 +845,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         <div className="flex flex-col gap-1.5">
           {SUB_TABS.map(tab => {
             const active = subTab === tab.id;
-            const soon = tab.comingSoon === true;
+            // "Coming soon" comes from the live feature-flags doc — admin
+            // toggles it on/off in the Feature Flags panel without a redeploy.
+            const soon = (tab.id === 'giftcards' && !flags.giftCards);
             return (
               <motion.button key={tab.id}
                 onClick={() => { if (!soon) setSubTab(tab.id); }}
@@ -891,7 +895,10 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
       </div>
 
       {/* ── MAIN CONTENT ───────────────────────────────────────────────────── */}
-      <div className="relative flex-1 overflow-hidden p-6 z-10 h-full flex flex-col">
+      {/* Extra left padding (pl-8) gives a small but visible gap between the
+          sidebar's right edge and the cards/content. Coming-soon banner is
+          unaffected — it lives inside this same container. */}
+      <div className="relative flex-1 overflow-hidden pl-8 pr-6 py-6 z-10 h-full flex flex-col">
         <div className="flex-1 min-h-0 relative">
         <AnimatePresence mode="wait">
 
@@ -1198,11 +1205,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              GIFT CARDS TAB — COMING SOON (locked)
-              Sidebar button is disabled, but if someone deep-links here we
-              still render a coming-soon banner instead of the live brand grid.
+              GIFT CARDS TAB — coming-soon banner OR live brand grid.
+              Banner shown whenever the feature-flag is OFF; real grid only
+              renders when admin flips `giftCards` on in the Feature Flags
+              panel. Sidebar button disabled by the same flag above.
           ══════════════════════════════════════════════════════════════════ */}
-          {subTab === 'giftcards' && (
+          {subTab === 'giftcards' && !flags.giftCards && (
             <motion.div key="giftcards-soon" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="h-full overflow-y-auto flex items-center justify-center">
               <div className="relative w-full max-w-[520px] mx-auto rounded-2xl p-8 text-center"
                 style={{
@@ -1235,7 +1243,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
               </div>
             </motion.div>
           )}
-          {false && subTab === 'giftcards' && (
+          {subTab === 'giftcards' && flags.giftCards && (
             <motion.div key="giftcards" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="h-full overflow-y-auto">
               {/* Header */}
               <div className="flex items-center gap-2 mb-4">

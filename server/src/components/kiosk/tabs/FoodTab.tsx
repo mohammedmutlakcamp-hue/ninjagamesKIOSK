@@ -7,6 +7,7 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, increment, query, where
 import { MenuItem } from '@/types';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { VIP_CONFIG } from '@/lib/constants';
+import { useFeatureFlags } from '@/lib/feature-flags';
 import { notifyAdmin } from '@/lib/notify-admin';
 import { findBundleRuleWithFallback, getBundleSuggestions, type BundleRule } from '@/lib/bundles';
 import {
@@ -35,6 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; labelAr: string; color: str
 export function FoodTab({ player }: Props) {
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
+  const flags = useFeatureFlags();
   const [items, setItems] = useState<MenuItem[]>([]);
   const [category, setCategory] = useState<'all' | 'drinks' | 'snacks' | 'food'>('all');
   const [cart, setCart] = useState<Record<string, number>>({});
@@ -273,12 +275,13 @@ export function FoodTab({ player }: Props) {
         </div>
       </div>
 
-      {/* Category pills — Food is disabled (coming soon). Tapping it does
-          nothing; visual styling shows it's locked. */}
+      {/* Category pills — Food is gated by the live `foodMenu` feature
+          flag. Admin can flip it on/off in the Feature Flags admin panel
+          without a redeploy. */}
       <div className="flex gap-1.5 px-5 pb-3 shrink-0">
         {([
           { id: 'all' as const,    label: ar ? 'الكل' : 'All',          icon: <UtensilsCrossed size={11} />, disabled: false },
-          { id: 'food' as const,   label: ar ? 'طعام' : 'Food',         icon: <Sandwich size={11} />,        disabled: true  },
+          { id: 'food' as const,   label: ar ? 'طعام' : 'Food',         icon: <Sandwich size={11} />,        disabled: !flags.foodMenu },
           { id: 'drinks' as const, label: ar ? 'مشروبات' : 'Drinks',    icon: <Coffee size={11} />,          disabled: false },
           { id: 'snacks' as const, label: ar ? 'سناكات' : 'Snacks',     icon: <Cookie size={11} />,          disabled: false },
         ]).map(cat => {
@@ -319,22 +322,26 @@ export function FoodTab({ player }: Props) {
         <div className="flex-1 overflow-y-auto px-5 pb-4">
           {category === 'all' ? (
             <>
-              {/* Food section locked behind a "coming soon" banner */}
-              <div className="mb-4 rounded-xl p-4 flex items-center gap-3"
-                style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.06), rgba(255,184,0,0.02))', border: '1px solid rgba(255,184,0,0.20)' }}>
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
-                  style={{ background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.25)' }}>
-                  <Sandwich size={18} className="text-[#FFB800]" />
+              {/* Food section: live banner when flag is OFF, real list when ON. */}
+              {!flags.foodMenu ? (
+                <div className="mb-4 rounded-xl p-4 flex items-center gap-3"
+                  style={{ background: 'linear-gradient(135deg, rgba(255,184,0,0.06), rgba(255,184,0,0.02))', border: '1px solid rgba(255,184,0,0.20)' }}>
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0"
+                    style={{ background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.25)' }}>
+                    <Sandwich size={18} className="text-[#FFB800]" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-ninja text-sm" style={{ color: '#FFB800' }}>
+                      {ar ? 'الطعام والسندويشات — قريباً' : 'FOOD & SANDWICHES — COMING SOON'}
+                    </p>
+                    <p className="font-body text-[11px] text-gray-500 mt-0.5">
+                      {ar ? 'المطبخ غير متاح حالياً. المشروبات والسناكات متوفرة.' : 'Kitchen is offline right now. Drinks & Snacks are still available.'}
+                    </p>
+                  </div>
                 </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-ninja text-sm" style={{ color: '#FFB800' }}>
-                    {ar ? 'الطعام والسندويشات — قريباً' : 'FOOD & SANDWICHES — COMING SOON'}
-                  </p>
-                  <p className="font-body text-[11px] text-gray-500 mt-0.5">
-                    {ar ? 'المطبخ غير متاح حالياً. المشروبات والسناكات متوفرة.' : 'Kitchen is offline right now. Drinks & Snacks are still available.'}
-                  </p>
-                </div>
-              </div>
+              ) : (
+                renderSection(ar ? 'الطعام والسندويشات' : 'FOOD & SANDWICHES', foodItems, '#ef4444')
+              )}
               {renderSection(ar ? 'المشروبات' : 'DRINKS', drinkItems, '#3b82f6')}
               {renderSection(ar ? 'السناكات' : 'SNACKS', snackItems, '#f59e0b')}
             </>

@@ -42,16 +42,19 @@ import { PCReservation } from './PCReservation';
 import { PlayerSwap } from './PlayerSwap';
 import { GameUpdatePusher } from './GameUpdatePusher';
 import { DebugLogsPanel } from './DebugLogsPanel';
+import { FeatureFlagsPanel } from './FeatureFlagsPanel';
+import { RemoteInstallPanel } from './RemoteInstallPanel';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
   UserPlus, ShieldCheck, X as XIcon, Phone, Bell, Crown, Gamepad2, Package,
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
-  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check
+  BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check,
+  ToggleRight, HardDriveDownload
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall';
 
 interface Props {
   admin: any;
@@ -637,6 +640,8 @@ export function AdminDashboard({ admin }: Props) {
       items: [
         { id: 'pricing', label: 'Pricing', icon: <Tag size={18} /> },
         { id: 'updates', label: 'PC Updates', icon: <Download size={18} /> },
+        { id: 'remoteinstall', label: 'Install Games', icon: <HardDriveDownload size={18} /> },
+        { id: 'flags', label: 'Feature Flags', icon: <ToggleRight size={18} /> },
         { id: 'scheduled', label: 'Scheduled', icon: <CalendarClock size={18} /> },
         { id: 'debuglogs', label: 'Debug Logs', icon: <Activity size={18} /> },
         { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
@@ -782,6 +787,8 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'swap' && <PlayerSwap />}
           {tab === 'updates' && <GameUpdatePusher />}
           {tab === 'debuglogs' && <DebugLogsPanel />}
+          {tab === 'flags' && <FeatureFlagsPanel />}
+          {tab === 'remoteinstall' && <RemoteInstallPanel />}
         </motion.div>
       </div>
 
