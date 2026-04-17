@@ -80,6 +80,10 @@ export function PlayerManagement() {
   const [removeCoinsLoading, setRemoveCoinsLoading] = useState(false);
   const [removeCoinsMsg, setRemoveCoinsMsg] = useState('');
   const [removeCoinsConfirm, setRemoveCoinsConfirm] = useState(false);
+  const [addTimeAmount, setAddTimeAmount] = useState('');
+  const [addTimeLoading, setAddTimeLoading] = useState(false);
+  const [addTimeMsg, setAddTimeMsg] = useState('');
+  const [addTimeConfirm, setAddTimeConfirm] = useState(false);
 
   // Inventory
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -311,6 +315,32 @@ export function PlayerManagement() {
       setAddCoinsMsg('Failed: ' + (err.message || 'Unknown error'));
     }
     setAddCoinsLoading(false);
+  };
+
+  const addTimeToPlayer = async () => {
+    if (!selected) return;
+    const minutes = parseInt(addTimeAmount);
+    if (!minutes || minutes <= 0) { setAddTimeMsg('Enter a valid amount of minutes'); return; }
+    if (!addTimeConfirm) {
+      setAddTimeConfirm(true);
+      const label = minutes >= 60
+        ? `${Math.floor(minutes / 60)}h${minutes % 60 ? ` ${minutes % 60}m` : ''}`
+        : `${minutes}m`;
+      setAddTimeMsg(`Confirm: Add ${label} to ${selected.username}?`);
+      return;
+    }
+    setAddTimeLoading(true);
+    setAddTimeMsg('');
+    setAddTimeConfirm(false);
+    try {
+      const currentTime = Number(selected.remainingPlaytime || 0);
+      await updateDoc(doc(db, 'players', selected.uid), { remainingPlaytime: currentTime + minutes });
+      setAddTimeMsg(`+${minutes} min added!`);
+      setAddTimeAmount('');
+    } catch (err: any) {
+      setAddTimeMsg('Failed: ' + (err.message || 'Unknown error'));
+    }
+    setAddTimeLoading(false);
   };
 
   const removeCoinsFromPlayer = async () => {
@@ -1189,6 +1219,52 @@ export function PlayerManagement() {
                     </div>
                     {removeCoinsMsg && (
                       <p className={`text-xs mt-2 ${removeCoinsMsg.startsWith('-') ? 'text-[#ff3b30]' : removeCoinsMsg.startsWith('Confirm') ? 'text-[#ff9500]' : 'text-[#ff3b30]'}`}>{removeCoinsMsg}</p>
+                    )}
+                  </div>
+
+                  {/* Add Time */}
+                  <div className="bg-[#f5f5f7] rounded-2xl p-4 border border-[#34c759]/10">
+                    <h4 className="text-sm font-semibold text-[#34c759] mb-3 flex items-center gap-2"><Clock size={14} /> Add Time</h4>
+                    <p className="text-xs text-[#86868b] mb-2">
+                      Current time: <span className="text-[#34c759] font-semibold">{formatMinutes(Math.floor(Number(selected.remainingPlaytime || 0)))}</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <input
+                        type="number"
+                        value={addTimeAmount}
+                        onChange={(e) => setAddTimeAmount(e.target.value)}
+                        placeholder="Minutes..."
+                        className="flex-1 bg-white border border-[#d2d2d7] rounded-xl px-3 py-2 text-[#1d1d1f] text-sm focus:border-[#34c759] outline-none"
+                        onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && addTimeToPlayer()}
+                      />
+                      <button
+                        onClick={addTimeToPlayer}
+                        disabled={addTimeLoading}
+                        className={`px-4 py-2 rounded-xl font-medium text-sm transition-all disabled:opacity-50 ${
+                          addTimeConfirm ? 'bg-[#ff9500] text-white hover:bg-[#ff9500]/90' : 'bg-[#34c759] text-white hover:bg-[#34c759]/90'
+                        }`}
+                      >
+                        {addTimeLoading ? '...' : addTimeConfirm ? 'Confirm' : 'Add'}
+                      </button>
+                      {addTimeConfirm && (
+                        <button onClick={() => { setAddTimeConfirm(false); setAddTimeMsg(''); }}
+                          className="px-3 py-2 border border-[#d2d2d7] rounded-xl text-[#86868b] text-sm hover:bg-white">Cancel</button>
+                      )}
+                    </div>
+                    <div className="flex gap-1.5 mt-2">
+                      {[
+                        { label: '+30m', val: 30 },
+                        { label: '+1h', val: 60 },
+                        { label: '+2h', val: 120 },
+                        { label: '+3h', val: 180 },
+                        { label: '+5h', val: 300 },
+                      ].map(preset => (
+                        <button key={preset.label} onClick={() => setAddTimeAmount(String(preset.val))}
+                          className="flex-1 py-1 rounded-xl bg-white text-[#86868b] text-[10px] hover:bg-[#e8e8ed] hover:text-[#1d1d1f] transition-all border border-[#e5e5ea]">{preset.label}</button>
+                      ))}
+                    </div>
+                    {addTimeMsg && (
+                      <p className={`text-xs mt-2 ${addTimeMsg.startsWith('+') ? 'text-[#34c759]' : addTimeMsg.startsWith('Confirm') ? 'text-[#ff9500]' : 'text-[#ff3b30]'}`}>{addTimeMsg}</p>
                     )}
                   </div>
 
