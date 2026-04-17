@@ -9,6 +9,7 @@ import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, COIN_PACKA
 import { launchOnPc } from '@/lib/launch';
 import { installLifecycleListeners, dlog } from '@/lib/debug-logger';
 import { DebugOverlay } from './DebugOverlay';
+import { BetaWelcomePopup } from './BetaWelcomePopup';
 import { GamesTab } from './tabs/GamesTab';
 import { ChestsTab } from './tabs/ChestsTab';
 import { FoodTab } from './tabs/FoodTab';
@@ -782,6 +783,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       className="min-h-screen bg-[#0a0a0a] flex"
     >
       <DebugOverlay visible={showDebug} onClose={() => setShowDebug(false)} />
+      <BetaWelcomePopup playerId={player?.uid} />
       {/* Maintenance Mode Overlay */}
       {maintenanceMode?.active && (
         <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
