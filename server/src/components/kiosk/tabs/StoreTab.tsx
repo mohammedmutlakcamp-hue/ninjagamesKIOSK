@@ -60,10 +60,10 @@ const JOD_PACKAGES = COIN_PACKAGES.map(p => ({
 type SubTab = 'skins' | 'chests' | 'giftcards' | 'time' | 'coins' | 'vip';
 type CategoryFilter = 'all' | 'starter' | 'rare' | 'epic' | 'legendary' | 'mythic';
 
-const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode }[] = [
+const SUB_TABS: { id: SubTab; label: string; icon: React.ReactNode; comingSoon?: boolean }[] = [
   { id: 'skins',     label: 'SKINS',     icon: <Swords size={18} /> },
   { id: 'chests',    label: 'CHESTS',    icon: <Package size={18} /> },
-  { id: 'giftcards', label: 'GIFT CARDS', icon: <CreditCard size={18} /> },
+  { id: 'giftcards', label: 'GIFT CARDS', icon: <CreditCard size={18} />, comingSoon: true },
   { id: 'time',      label: 'TIME',      icon: <Timer size={18} /> },
   { id: 'coins',     label: 'COINS',     icon: <Coins size={18} /> },
 ];
@@ -843,24 +843,37 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         <div className="flex flex-col gap-1.5">
           {SUB_TABS.map(tab => {
             const active = subTab === tab.id;
+            const soon = tab.comingSoon === true;
             return (
-              <motion.button key={tab.id} onClick={() => setSubTab(tab.id)}
-                className="relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all overflow-hidden group"
-                whileHover={{ x: 2 }} whileTap={{ scale: 0.97 }}
+              <motion.button key={tab.id}
+                onClick={() => { if (!soon) setSubTab(tab.id); }}
+                disabled={soon}
+                className={`relative flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-all overflow-hidden group ${soon ? 'cursor-not-allowed' : ''}`}
+                whileHover={!soon ? { x: 2 } : undefined}
+                whileTap={!soon ? { scale: 0.97 } : undefined}
                 style={{
-                  background: active ? 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(57,255,20,0.05))' : 'linear-gradient(135deg, rgba(57,255,20,0.04), transparent)',
-                  border: active ? '1px solid rgba(57,255,20,0.4)' : '1px solid rgba(57,255,20,0.1)',
-                  boxShadow: active ? '0 0 18px rgba(57,255,20,0.12), inset 0 0 15px rgba(57,255,20,0.05)' : '0 0 6px rgba(57,255,20,0.04)',
+                  background: soon
+                    ? 'linear-gradient(135deg, rgba(255,255,255,0.02), transparent)'
+                    : (active ? 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(57,255,20,0.05))' : 'linear-gradient(135deg, rgba(57,255,20,0.04), transparent)'),
+                  border: soon ? '1px solid rgba(255,255,255,0.06)' : (active ? '1px solid rgba(57,255,20,0.4)' : '1px solid rgba(57,255,20,0.1)'),
+                  boxShadow: soon ? 'none' : (active ? '0 0 18px rgba(57,255,20,0.12), inset 0 0 15px rgba(57,255,20,0.05)' : '0 0 6px rgba(57,255,20,0.04)'),
+                  opacity: soon ? 0.45 : 1,
                 }}>
-                {active && <>
+                {!soon && active && <>
                   <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '2px solid #39FF14', borderLeft: '2px solid #39FF14' }} />
                   <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '2px solid #39FF14', borderRight: '2px solid #39FF14' }} />
                   <motion.div layoutId="sidebarActive" className="absolute left-0 top-[15%] bottom-[15%] w-[3px]" style={{ background: '#39FF14', boxShadow: '0 0 10px #39FF14, 0 0 18px rgba(57,255,20,0.4)' }} transition={{ type: 'spring', stiffness: 350, damping: 30 }} />
                 </>}
-                <div className="w-7 h-7 rounded flex items-center justify-center" style={{ background: active ? 'rgba(57,255,20,0.15)' : 'rgba(57,255,20,0.06)', border: active ? '1px solid rgba(57,255,20,0.35)' : '1px solid rgba(57,255,20,0.12)' }}>
-                  <span style={{ color: active ? '#39FF14' : '#39FF1480', filter: active ? 'drop-shadow(0 0 4px #39FF14)' : 'none' }}>{tab.icon}</span>
+                <div className="w-7 h-7 rounded flex items-center justify-center" style={{ background: soon ? 'rgba(255,255,255,0.04)' : (active ? 'rgba(57,255,20,0.15)' : 'rgba(57,255,20,0.06)'), border: soon ? '1px solid rgba(255,255,255,0.08)' : (active ? '1px solid rgba(57,255,20,0.35)' : '1px solid rgba(57,255,20,0.12)') }}>
+                  <span style={{ color: soon ? 'rgba(255,255,255,0.4)' : (active ? '#39FF14' : '#39FF1480'), filter: !soon && active ? 'drop-shadow(0 0 4px #39FF14)' : 'none' }}>{tab.icon}</span>
                 </div>
-                <span className="font-ninja text-xs tracking-wider" style={{ color: active ? '#39FF14' : 'rgba(200,200,200,0.6)', textShadow: active ? '0 0 8px rgba(57,255,20,0.4)' : 'none' }}>{ar ? (tab.id === 'skins' ? 'السكنز' : tab.id === 'chests' ? 'الصناديق' : tab.id === 'giftcards' ? 'بطاقات الهدايا' : tab.id === 'time' ? 'الوقت' : tab.id === 'coins' ? 'التوكنز' : tab.label) : tab.label}</span>
+                <span className="font-ninja text-xs tracking-wider flex-1" style={{ color: soon ? 'rgba(255,255,255,0.45)' : (active ? '#39FF14' : 'rgba(200,200,200,0.6)'), textShadow: !soon && active ? '0 0 8px rgba(57,255,20,0.4)' : 'none' }}>{ar ? (tab.id === 'skins' ? 'السكنز' : tab.id === 'chests' ? 'الصناديق' : tab.id === 'giftcards' ? 'بطاقات الهدايا' : tab.id === 'time' ? 'الوقت' : tab.id === 'coins' ? 'التوكنز' : tab.label) : tab.label}</span>
+                {soon && (
+                  <span className="font-ninja text-[8px] tracking-wider px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(255,184,0,0.15)', color: '#FFB800', border: '1px solid rgba(255,184,0,0.3)' }}>
+                    {ar ? 'قريباً' : 'SOON'}
+                  </span>
+                )}
               </motion.button>
             );
           })}
@@ -1185,9 +1198,44 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
           )}
 
           {/* ══════════════════════════════════════════════════════════════════
-              GIFT CARDS TAB
+              GIFT CARDS TAB — COMING SOON (locked)
+              Sidebar button is disabled, but if someone deep-links here we
+              still render a coming-soon banner instead of the live brand grid.
           ══════════════════════════════════════════════════════════════════ */}
           {subTab === 'giftcards' && (
+            <motion.div key="giftcards-soon" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="h-full overflow-y-auto flex items-center justify-center">
+              <div className="relative w-full max-w-[520px] mx-auto rounded-2xl p-8 text-center"
+                style={{
+                  background: 'linear-gradient(180deg, rgba(255,184,0,0.06) 0%, #040608 50%, #030508 100%)',
+                  border: '1px solid rgba(255,184,0,0.25)',
+                  boxShadow: '0 0 30px rgba(255,184,0,0.08)',
+                }}>
+                <div className="absolute top-0 left-0 w-4 h-4" style={{ borderTop: '2px solid #FFB800', borderLeft: '2px solid #FFB800' }} />
+                <div className="absolute top-0 right-0 w-4 h-4" style={{ borderTop: '2px solid #FFB800', borderRight: '2px solid #FFB800' }} />
+                <div className="absolute bottom-0 left-0 w-4 h-4" style={{ borderBottom: '2px solid #FFB800', borderLeft: '2px solid #FFB800' }} />
+                <div className="absolute bottom-0 right-0 w-4 h-4" style={{ borderBottom: '2px solid #FFB800', borderRight: '2px solid #FFB800' }} />
+                <div className="absolute top-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #FFB800, transparent)' }} />
+
+                <div className="w-16 h-16 mx-auto mb-5 rounded-xl flex items-center justify-center"
+                  style={{ background: 'rgba(255,184,0,0.12)', border: '1px solid rgba(255,184,0,0.3)' }}>
+                  <CreditCard size={28} className="text-[#FFB800]" style={{ filter: 'drop-shadow(0 0 8px rgba(255,184,0,0.6))' }} />
+                </div>
+                <h3 className="font-ninja text-2xl tracking-[0.18em] mb-2" style={{ color: '#FFB800', textShadow: '0 0 14px rgba(255,184,0,0.45)' }}>
+                  {ar ? 'بطاقات الهدايا — قريباً' : 'GIFT CARDS — COMING SOON'}
+                </h3>
+                <p className="font-body text-sm text-gray-400 leading-relaxed max-w-[420px] mx-auto">
+                  {ar
+                    ? 'بطاقات هدايا PSN و Xbox و Roblox و Google Play والمزيد — قيد الإعداد. ترقّب الإطلاق قريباً.'
+                    : 'PSN, Xbox, Roblox, Google Play and more digital gift cards are on the way. Stay tuned for launch.'}
+                </p>
+                <div className="mt-6 inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[10px] font-ninja tracking-[0.25em]"
+                  style={{ background: 'rgba(255,184,0,0.08)', border: '1px solid rgba(255,184,0,0.3)', color: '#FFB800' }}>
+                  {ar ? 'الإطلاق قريباً' : 'LAUNCHING SOON'}
+                </div>
+              </div>
+            </motion.div>
+          )}
+          {false && subTab === 'giftcards' && (
             <motion.div key="giftcards" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="h-full overflow-y-auto">
               {/* Header */}
               <div className="flex items-center gap-2 mb-4">
