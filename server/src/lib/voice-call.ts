@@ -109,19 +109,20 @@ export class VoiceCallManager {
         path: '/peerjs',
         debug: 0,
         config: {
-          // STUN alone fails on LANs without NAT hairpinning — TURN is mandatory.
-          // The TURN server is hosted on the same box as the Next.js LAN server
-          // (see server/turn-server/ — runs on port 3478).
+          // Kiosks hit the cloud (ninjagamesjo.com), so TURN must be public.
+          // metered.ca free public TURN is enough for gaming-cafe scale.
           iceServers: [
             { urls: 'stun:stun.l.google.com:19302' },
             { urls: 'stun:stun1.l.google.com:19302' },
+            { urls: 'stun:openrelay.metered.ca:80' },
             {
               urls: [
-                `turn:${host}:3478?transport=udp`,
-                `turn:${host}:3478?transport=tcp`,
+                'turn:openrelay.metered.ca:80',
+                'turn:openrelay.metered.ca:443',
+                'turn:openrelay.metered.ca:443?transport=tcp',
               ],
-              username: 'ninja',
-              credential: 'CHANGE-ME-LAN-TURN-SECRET',
+              username: 'openrelayproject',
+              credential: 'openrelayproject',
             },
           ],
           iceTransportPolicy: 'all',

@@ -10,20 +10,23 @@ import { Phone, PhoneOff, PhoneIncoming, PhoneCall, Mic, MicOff, Volume2, Volume
 
 // ─── Config ─────────────────────────────────────────────────────────────────
 
-// STUN alone fails on LANs without NAT hairpinning. TURN is mandatory as fallback.
-// Replace TURN creds with your own (self-hosted coturn on the server PC, or a provider
-// like metered.ca / Twilio). Free tier on metered.ca is enough for a gaming cafe.
+// Kiosks connect to ninjagamesjo.com (cloud), so TURN must be publicly reachable.
+// Using metered.ca's free public TURN (openrelay) — enough for gaming-cafe scale.
+// For production scale, swap to your own TURN account (metered.ca paid / Twilio /
+// Cloudflare) and keep the same shape.
 const ICE_SERVERS: RTCConfiguration = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
     { urls: 'stun:stun1.l.google.com:19302' },
+    { urls: 'stun:openrelay.metered.ca:80' },
     {
       urls: [
-        'turn:YOUR_TURN_HOST:3478?transport=udp',
-        'turn:YOUR_TURN_HOST:3478?transport=tcp',
+        'turn:openrelay.metered.ca:80',
+        'turn:openrelay.metered.ca:443',
+        'turn:openrelay.metered.ca:443?transport=tcp',
       ],
-      username: 'YOUR_TURN_USER',
-      credential: 'YOUR_TURN_PASSWORD',
+      username: 'openrelayproject',
+      credential: 'openrelayproject',
     },
   ],
   iceTransportPolicy: 'all',
