@@ -953,14 +953,27 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             <>
               {/* Top row: Language — Avatar — Settings */}
               <div className="flex items-center justify-between mb-2">
-                {/* Language button in chrome circle — flag fits inside the
-                    border using a small inset so it doesn't bleed past the
-                    circle, and object-contain so the whole flag is visible. */}
+                {/* Language button — flag clipped to the circle. We zoom the
+                    image (object-cover + scale-150) so the meaningful part of
+                    the flag (the stripes/text) fills the circle WITHOUT
+                    transparent gaps. Both PNG and SVG sources fit the same
+                    way regardless of original aspect ratio. */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
-                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110 p-[3px]"
-                  style={{ border: '2px solid rgba(57,255,20,0.4)', background: 'radial-gradient(circle, rgba(168,85,247,0.1) 0%, rgba(0,0,0,0.4) 70%)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
+                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110 relative"
+                  style={{ border: '2px solid rgba(57,255,20,0.4)', background: '#000', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                  <img src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-sa.svg'} alt={lang.toUpperCase()} className="w-full h-full rounded-full object-contain" />
+                  <img
+                    src={lang === 'en' ? '/img/flag-en.png' : '/img/flag-ar.png'}
+                    alt={lang.toUpperCase()}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ transform: 'scale(1.05)' }}
+                    onError={(e) => {
+                      // Fallback to SVG if the PNG variant 404s.
+                      const t = e.currentTarget as HTMLImageElement;
+                      const svg = '/img/flag-sa.svg';
+                      if (lang === 'ar' && !t.src.endsWith(svg)) t.src = svg;
+                    }}
+                  />
                 </button>
 
                 {/* Center — Big avatar in octagonal sci-fi frame */}

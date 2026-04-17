@@ -434,26 +434,26 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
         </button>
       )}
 
-      <div className="relative z-10 px-5 pt-5 pb-16">
-        {/* ═══ HEADER ═══ */}
-        <div className="flex items-center justify-between mb-5">
+      <div className="relative z-10 px-4 pt-3 pb-4">
+        {/* ═══ HEADER ═══ (compact — fits popup without scroll) */}
+        <div className="flex items-center justify-between mb-3">
           <div>
             <motion.h1 initial={{ opacity: 0, x: -30 }} animate={{ opacity: 1, x: 0 }}
-              className="font-ninja text-5xl tracking-wider mb-2"
+              className="font-ninja text-3xl tracking-wider mb-0.5"
               style={{ color: '#39FF14', textShadow: '0 0 30px rgba(57,255,20,0.3), 0 0 60px rgba(57,255,20,0.1)' }}>
               {ar ? 'المهام اليومية' : 'DAILY TASKS'}
             </motion.h1>
             <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.2 }}
-              className="font-body text-gray-500 text-sm">
+              className="font-body text-gray-500 text-[11px]">
               {ar ? 'أنجز كل المهام لفتح عملات إضافية + صندوقك اليومي المجاني' : 'Finish ALL tasks to unlock bonus coins + your FREE DAILY CHEST'}
             </motion.p>
           </div>
 
-          {/* Streak Badge - Hexagonal (offset so the close button doesn't overlap it) */}
+          {/* Streak Badge - Hexagonal (compacter, offset for close button) */}
           <motion.div initial={{ opacity: 0, scale: 0, rotate: -30 }} animate={{ opacity: 1, scale: 1, rotate: 0 }}
             transition={{ delay: 0.3, type: 'spring', stiffness: 120 }}
-            className="mr-16">
-            <div className="relative w-20 h-20">
+            className="mr-14">
+            <div className="relative w-14 h-14">
               {/* Hex shape */}
               <div className="absolute inset-0 flex items-center justify-center"
                 style={{
@@ -466,8 +466,8 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                     clipPath: 'polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)',
                     background: 'linear-gradient(180deg, #1a0f00, #0d0800)',
                   }}>
-                  <Flame size={18} className="text-orange-400 mb-0.5" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.8))' }} />
-                  <span className="font-ninja text-2xl text-orange-400" style={{ textShadow: '0 0 10px rgba(249,115,22,0.6)' }}>{streak || 1}</span>
+                  <Flame size={13} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.8))' }} />
+                  <span className="font-ninja text-base text-orange-400 leading-none mt-0.5" style={{ textShadow: '0 0 10px rgba(249,115,22,0.6)' }}>{streak || 1}</span>
                 </div>
               </div>
               {/* STREAK label */}
@@ -486,12 +486,12 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.15 }}
-          className="mb-5 relative"
+          className="mb-3 relative"
           style={{
             background: 'linear-gradient(135deg, rgba(249,115,22,0.08), rgba(0,15,25,0.6))',
             border: '2px solid rgba(249,115,22,0.25)',
             borderRadius: '12px',
-            padding: '16px 20px',
+            padding: '10px 14px',
           }}
         >
           {/* HUD corners - orange */}
@@ -503,15 +503,15 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           ))}
 
           {/* Header */}
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-2">
             <div className="flex items-center gap-2">
-              <Flame size={18} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.8))' }} />
-              <span className="font-ninja text-base text-orange-300 tracking-wider">
+              <Flame size={14} className="text-orange-400" style={{ filter: 'drop-shadow(0 0 6px rgba(249,115,22,0.8))' }} />
+              <span className="font-ninja text-xs text-orange-300 tracking-wider">
                 {ar ? `سلسلة الدخول — اليوم ${streakDay || 1}/7` : `LOGIN STREAK — DAY ${streakDay || 1}/7`}
               </span>
             </div>
             {!checkinClaimed && (
-              <span className="font-body text-xs text-gray-500">{ar ? 'استلم تسجيل الدخول أولاً' : 'Claim check-in first'}</span>
+              <span className="font-body text-[10px] text-gray-500">{ar ? 'استلم تسجيل الدخول أولاً' : 'Claim check-in first'}</span>
             )}
           </div>
 
@@ -759,12 +759,16 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
             <div className="flex items-center gap-2">
               <Calendar size={16} className="text-cyan-400" />
               <span className="font-ninja text-base text-cyan-300 tracking-wider">
-                {completedCount}/{DAILY_TASKS.length} TASKS DONE
+                {ar
+                  ? `${completedCount}/${DAILY_TASKS.length} مهام مكتملة`
+                  : `${completedCount}/${DAILY_TASKS.length} TASKS DONE`}
               </span>
             </div>
             <div className="flex items-center gap-1.5">
               <Coins size={16} className="text-yellow-400" />
-              <span className="font-ninja text-base text-yellow-400">+{totalReward} TOTAL COINS</span>
+              <span className="font-ninja text-base text-yellow-400">
+                +{totalReward} {ar ? 'إجمالي التوكنز' : 'TOTAL COINS'}
+              </span>
             </div>
           </div>
 
@@ -795,7 +799,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
         </motion.div>
 
         {/* ═══ TASK CARDS ═══ */}
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {DAILY_TASKS.map((task, i) => {
             const tp = taskProgress[task.id] || { progress: 0, claimed: false };
             const isComplete = tp.progress >= task.target;
@@ -833,22 +837,24 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   <div className="absolute bottom-0 left-6 right-6 h-[2px] z-10"
                     style={{ background: `linear-gradient(90deg, transparent, rgba(${task.glowColor},${isClaimed ? '0.1' : '0.4'}), rgba(0,200,255,${isClaimed ? '0.05' : '0.2'}), transparent)` }} />
 
-                  <div className="flex items-center gap-4 px-5 py-3">
-                    {/* Large Icon Container */}
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 relative"
+                  <div className="flex items-center gap-3 px-3.5 py-2">
+                    {/* Compact Icon Container */}
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 relative"
                       style={{
                         background: `linear-gradient(135deg, rgba(${task.glowColor},0.15), rgba(${task.glowColor},0.05))`,
                         border: `2px solid rgba(${task.glowColor},${isClaimed ? '0.15' : '0.4'})`,
                         boxShadow: !isClaimed ? `0 0 15px rgba(${task.glowColor},0.2), inset 0 0 10px rgba(${task.glowColor},0.1)` : 'none',
                         color: isClaimed ? '#444' : task.color,
                       }}>
-                      {isClaimed ? <CheckCircle2 size={30} style={{ color: '#39FF14', filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.5))' }} /> : task.icon}
+                      {isClaimed ? <CheckCircle2 size={22} style={{ color: '#39FF14', filter: 'drop-shadow(0 0 6px rgba(57,255,20,0.5))' }} /> : (
+                        <span style={{ display: 'inline-flex', transform: 'scale(0.78)' }}>{task.icon}</span>
+                      )}
                     </div>
 
                     {/* Task Info */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-3 mb-1">
-                        <span className="font-ninja text-xl tracking-wide"
+                      <div className="flex items-center gap-2 mb-0.5">
+                        <span className="font-ninja text-base tracking-wide"
                           style={{
                             color: isClaimed ? '#555' : task.color,
                             textShadow: isClaimed ? 'none' : `0 0 15px rgba(${task.glowColor},0.4)`,
@@ -858,7 +864,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                           {ar ? task.titleAr : task.title}
                         </span>
                         {(isClaimed || isComplete) && (
-                          <span className="font-ninja text-[10px] tracking-[0.15em] px-3 py-1 rounded"
+                          <span className="font-ninja text-[9px] tracking-[0.15em] px-2 py-0.5 rounded"
                             style={{
                               background: 'linear-gradient(135deg, rgba(57,255,20,0.2), rgba(57,255,20,0.1))',
                               border: '1px solid rgba(57,255,20,0.4)',
@@ -870,24 +876,24 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                           </span>
                         )}
                       </div>
-                      <p className="font-body text-sm text-gray-500">{ar ? task.descriptionAr : task.description}</p>
+                      <p className="font-body text-[11px] text-gray-500 leading-tight">{ar ? task.descriptionAr : task.description}</p>
 
                       {task.target > 1 && !isClaimed && (
-                        <div className="mt-2.5 flex items-center gap-2">
-                          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(${task.glowColor},0.15)` }}>
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(0,0,0,0.4)', border: `1px solid rgba(${task.glowColor},0.15)` }}>
                             <motion.div initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.8 }}
                               className="h-full rounded-full" style={{ background: task.color, boxShadow: `0 0 6px rgba(${task.glowColor},0.5)` }} />
                           </div>
-                          <span className="font-ninja text-xs text-gray-500">{tp.progress}/{task.target}</span>
+                          <span className="font-ninja text-[10px] text-gray-500">{tp.progress}/{task.target}</span>
                         </div>
                       )}
                     </div>
 
                     {/* Reward */}
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <div className="flex items-center gap-1.5">
-                        <Coins size={18} className={isClaimed ? 'text-gray-600' : 'text-yellow-400'} style={!isClaimed ? { filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' } : {}} />
-                        <span className={`font-ninja text-lg ${isClaimed ? 'text-gray-600' : 'text-yellow-400'}`}
+                    <div className="flex items-center gap-2 flex-shrink-0">
+                      <div className="flex items-center gap-1">
+                        <Coins size={14} className={isClaimed ? 'text-gray-600' : 'text-yellow-400'} style={!isClaimed ? { filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.5))' } : {}} />
+                        <span className={`font-ninja text-sm ${isClaimed ? 'text-gray-600' : 'text-yellow-400'}`}
                           style={!isClaimed ? { textShadow: '0 0 8px rgba(234,179,8,0.4)' } : {}}>
                           +{task.reward}
                         </span>
@@ -899,7 +905,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                           whileHover={{ scale: 1.06, boxShadow: `0 0 18px rgba(${task.glowColor},0.4)` }}
                           whileTap={{ scale: 0.94 }}
                           onClick={() => onShortcut(task.shortcut!)}
-                          className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-1.5 transition-all flex-shrink-0"
+                          className="w-[88px] h-[34px] rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1 transition-all flex-shrink-0"
                           style={{
                             background: `linear-gradient(135deg, rgba(${task.glowColor},0.2), rgba(${task.glowColor},0.06))`,
                             border: `1.5px solid rgba(${task.glowColor},0.5)`,
@@ -919,7 +925,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                             if (player?.uid) trackDailyTask(player.uid, 'check_socials').catch(() => {});
                             setSocialOpen(SOCIAL_BONUS_TASKS[0]);
                           }}
-                          className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-1.5 transition-all flex-shrink-0"
+                          className="w-[88px] h-[34px] rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1 transition-all flex-shrink-0"
                           style={{
                             background: `linear-gradient(135deg, rgba(${task.glowColor},0.2), rgba(${task.glowColor},0.06))`,
                             border: `1.5px solid rgba(${task.glowColor},0.5)`,
@@ -937,7 +943,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                           whileTap={{ scale: 0.9 }}
                           onClick={(e) => handleClaim(task, e)}
                           disabled={claiming === task.id}
-                          className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider text-black flex items-center justify-center flex-shrink-0"
+                          className="w-[88px] h-[34px] rounded-lg font-ninja text-xs tracking-wider text-black flex items-center justify-center flex-shrink-0"
                           style={{
                             background: `linear-gradient(135deg, ${task.color}, ${task.color}CC)`,
                             boxShadow: `0 0 12px rgba(${task.glowColor},0.4)`,
@@ -1119,7 +1125,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   whileTap={{ scale: 0.92 }}
                   onClick={handleClaimFullBonus}
                   disabled={claimingBonus}
-                  className="w-[112px] h-[42px] rounded-lg font-ninja text-sm tracking-wider text-black flex items-center justify-center flex-shrink-0"
+                  className="w-[88px] h-[34px] rounded-lg font-ninja text-xs tracking-wider text-black flex items-center justify-center flex-shrink-0"
                   style={{
                     background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                     boxShadow: '0 0 14px rgba(255,215,0,0.4)',
