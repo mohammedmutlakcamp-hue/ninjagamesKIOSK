@@ -317,8 +317,19 @@ export function FriendsTab({ player }: Props) {
     return `${Math.floor(hours / 24)}d`;
   };
 
-  const onlineFriends = friends.filter(f => f.onlineStatus?.isOnline);
-  const offlineFriends = friends.filter(f => !f.onlineStatus?.isOnline);
+  // True online = isOnline flag AND lastSeen heartbeat within the last 2
+  // minutes. Without the lastSeen check, players who closed the kiosk
+  // without a clean logout (PC crash, force-shutdown, etc.) would stay
+  // "online" forever because no one ever flips the boolean back.
+  const ONLINE_STALE_MS = 2 * 60 * 1000;
+  const isReallyOnline = (f: FriendData) => {
+    if (!f.onlineStatus?.isOnline) return false;
+    const ls = f.onlineStatus?.lastSeen || 0;
+    if (!ls) return false;
+    return Date.now() - ls < ONLINE_STALE_MS;
+  };
+  const onlineFriends = friends.filter(isReallyOnline);
+  const offlineFriends = friends.filter(f => !isReallyOnline(f));
   const filteredFriends = friendFilter
     ? friends.filter(f => f.username.toLowerCase().includes(friendFilter.toLowerCase()))
     : null;
@@ -618,7 +629,7 @@ export function FriendsTab({ player }: Props) {
                         border: '1px solid rgba(0,200,255,0.1)',
                         boxShadow: '0 0 15px rgba(0,200,255,0.02)',
                       }}>
-                      <div className="absolute top-0 bottom-0 left-0 w-[2px]" style={{ background: friend.onlineStatus?.isOnline ? 'rgba(57,255,20,0.5)' : 'rgba(0,200,255,0.35)', boxShadow: friend.onlineStatus?.isOnline ? '0 0 6px rgba(57,255,20,0.7)' : '0 0 6px rgba(0,200,255,0.5)' }} />
+                      <div className="absolute top-0 bottom-0 left-0 w-[2px]" style={{ background: isReallyOnline(friend) ? 'rgba(57,255,20,0.5)' : 'rgba(0,200,255,0.35)', boxShadow: isReallyOnline(friend) ? '0 0 6px rgba(57,255,20,0.7)' : '0 0 6px rgba(0,200,255,0.5)' }} />
                       <div className="absolute top-0 left-0 right-0 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(0,200,255,0.25), transparent 60%)' }} />
                       <div className="absolute top-0 left-0 w-3 h-3" style={{ borderTop: '2px solid rgba(0,200,255,0.3)', borderLeft: '2px solid rgba(0,200,255,0.3)' }} />
                       <div className="absolute bottom-0 right-0 w-3 h-3" style={{ borderBottom: '2px solid rgba(57,255,20,0.2)', borderRight: '2px solid rgba(57,255,20,0.2)' }} />
@@ -627,7 +638,7 @@ export function FriendsTab({ player }: Props) {
                           className={`w-11 h-11 rounded-full ${friend.profilePhoto ? 'object-cover' : 'object-cover'}`}
                           style={{ border: '1px solid rgba(0,200,255,0.3)', boxShadow: '0 0 8px rgba(0,200,255,0.2)' }}
                           onError={(e) => { (e.target as HTMLImageElement).src = '/img/pfp-neon.png'; }} />
-                        {friend.onlineStatus?.isOnline && (
+                        {isReallyOnline(friend) && (
                           <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-green-500 border-2 border-black"
                             style={{ boxShadow: '0 0 6px rgba(57,255,20,0.8)' }} />
                         )}
@@ -641,7 +652,7 @@ export function FriendsTab({ player }: Props) {
                           )}
                         </div>
                         <p className="text-gray-500 font-body text-xs truncate">
-                          {friend.lastMessage || (friend.onlineStatus?.isOnline ? (ar ? 'متصل' : 'Online') : (ar ? 'ابدأ محادثة' : 'Start a conversation'))}
+                          {friend.lastMessage || (isReallyOnline(friend) ? (ar ? 'متصل' : 'Online') : (ar ? 'ابدأ محادثة' : 'Start a conversation'))}
                         </p>
                       </div>
                       <ChevronRight size={14} className="text-cyan-400/40 group-hover:text-cyan-400 flex-shrink-0 relative z-10 transition-colors" />
@@ -898,15 +909,15 @@ export function FriendsTab({ player }: Props) {
                               <div className="absolute inset-0 flex items-center justify-center">
                                 <NinjaAvatar skinColor={friend.character?.skinColor || '#39FF14'} outfitColor={friend.character?.skinColor || '#333'} size={40} animated={false} />
                               </div>
-                              {friend.onlineStatus?.isOnline && (
+                              {isReallyOnline(friend) && (
                                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-green-500 border-2 border-black"
                                   style={{ boxShadow: '0 0 6px rgba(57,255,20,0.8)' }} />
                               )}
                             </div>
                             <div className="flex-1 min-w-0 relative z-10">
                               <p className="font-ninja text-xl text-white tracking-wider truncate">{friend.username}</p>
-                              <p className={`font-body text-xs flex items-center gap-1.5 mt-1 ${friend.onlineStatus?.isOnline ? 'text-ninja-green' : 'text-gray-600'}`}>
-                                {friend.onlineStatus?.isOnline ? (
+                              <p className={`font-body text-xs flex items-center gap-1.5 mt-1 ${isReallyOnline(friend) ? 'text-ninja-green' : 'text-gray-600'}`}>
+                                {isReallyOnline(friend) ? (
                                   <span className="flex items-center gap-1 px-1.5 py-0.5 rounded"
                                     style={{ background: 'rgba(57,255,20,0.08)', border: '1px solid rgba(57,255,20,0.2)' }}>
                                     <Gamepad2 size={10} /> {friend.onlineStatus?.currentActivity || 'In lobby'}
@@ -1017,8 +1028,8 @@ export function FriendsTab({ player }: Props) {
                     <p className="font-ninja text-2xl text-white tracking-wider truncate" style={{ textShadow: '0 0 12px rgba(57,255,20,0.3)' }}>
                       {actionFriend.username}
                     </p>
-                    <p className={`font-body text-xs flex items-center gap-1.5 mt-1 ${actionFriend.onlineStatus?.isOnline ? 'text-ninja-green' : 'text-gray-600'}`}>
-                      {actionFriend.onlineStatus?.isOnline ? (
+                    <p className={`font-body text-xs flex items-center gap-1.5 mt-1 ${(actionFriend && isReallyOnline(actionFriend)) ? 'text-ninja-green' : 'text-gray-600'}`}>
+                      {(actionFriend && isReallyOnline(actionFriend)) ? (
                         <span className="flex items-center gap-1"><Gamepad2 size={10} /> {actionFriend.onlineStatus?.currentActivity || 'In lobby'}</span>
                       ) : (
                         <><Clock size={12} /> {actionFriend.onlineStatus?.lastSeen ? formatLastSeen(actionFriend.onlineStatus.lastSeen) : 'Offline'}</>
@@ -1040,7 +1051,7 @@ export function FriendsTab({ player }: Props) {
                     <MessageSquare size={22} className="text-cyan-400" style={{ filter: 'drop-shadow(0 0 6px rgba(0,200,255,0.7))' }} />
                     <span className="font-ninja text-xs text-cyan-300 tracking-wider">{ar ? 'رسالة' : 'MESSAGE'}</span>
                   </motion.button>
-                  {actionFriend.onlineStatus?.isOnline && (
+                  {(actionFriend && isReallyOnline(actionFriend)) && (
                     <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
                       onClick={() => {
                         window.dispatchEvent(new CustomEvent('start-voice-call', {

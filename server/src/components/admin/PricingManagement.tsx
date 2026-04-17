@@ -309,14 +309,28 @@ export function PricingManagement() {
         >
           <div className="flex items-center justify-between mb-4">
             <SectionHeader icon={Coins} title="Coin Packages" />
-            <SaveButton
-              onClick={() => saveField('coinPackages', coinPackages, setCoinSaving, setCoinSaved)}
-              saving={coinSaving}
-              saved={coinSaved}
-            />
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  if (!confirm('Reset coin packages to factory defaults? Saved changes will be lost.')) return;
+                  const defaults = COIN_PACKAGES.map((p) => ({ ...p }));
+                  setCoinPackages(defaults);
+                  saveField('coinPackages', defaults, setCoinSaving, setCoinSaved);
+                }}
+                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/25 hover:bg-[#ff3b30]/15 transition-colors"
+              >
+                Reset to defaults
+              </button>
+              <SaveButton
+                onClick={() => saveField('coinPackages', coinPackages, setCoinSaving, setCoinSaved)}
+                saving={coinSaving}
+                saved={coinSaved}
+              />
+            </div>
           </div>
           <p className="text-[#86868b] text-xs mb-4">
-            Coins players can purchase with real money (JOD).
+            Coins players can purchase with real money (JOD). Defaults: 100→1, 250→2.25, 575→5, 1200→10, 2600→20, 4050→30, 7000→50.
           </p>
           <div className="space-y-3">
             {coinPackages.map((pkg, i) => (

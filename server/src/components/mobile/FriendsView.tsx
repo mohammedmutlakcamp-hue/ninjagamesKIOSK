@@ -83,18 +83,25 @@ export function FriendsView({
     // Real-time listener on each friend
     const unsubs: (() => void)[] = [];
 
+    // Real online = onlineStatus.isOnline true AND lastSeen heartbeat
+    // within the last 2 minutes. Player doc stores these nested under
+    // onlineStatus, NOT at the root.
+    const ONLINE_STALE_MS = 2 * 60 * 1000;
     for (const fid of friendIds) {
       const unsub = onSnapshot(doc(db, 'players', fid), (snap) => {
         if (snap.exists()) {
           const data = snap.data();
+          const lastSeen = data.onlineStatus?.lastSeen || data.lastSeen || 0;
+          const flag = data.onlineStatus?.isOnline ?? data.isOnline ?? false;
+          const isOnline = !!flag && lastSeen > 0 && Date.now() - lastSeen < ONLINE_STALE_MS;
           const friend: Friend = {
             uid: fid,
             username: data.username || 'Unknown',
             ninjaType: data.ninjaType || 'neon',
-            isOnline: data.isOnline || false,
-            currentGame: data.currentGame || undefined,
+            isOnline,
+            currentGame: data.onlineStatus?.currentActivity || data.currentGame || undefined,
             coins: data.coins || 0,
-            lastSeen: data.lastSeen || 0,
+            lastSeen,
           };
           setFriends((prev) => {
             const filtered = prev.filter((f) => f.uid !== fid);

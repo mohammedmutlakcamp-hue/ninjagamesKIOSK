@@ -8,6 +8,7 @@ import { MenuItem } from '@/types';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { VIP_CONFIG } from '@/lib/constants';
 import { useFeatureFlags } from '@/lib/feature-flags';
+import { getMenuImage } from '@/lib/menu-images';
 import { notifyAdmin } from '@/lib/notify-admin';
 import { findBundleRuleWithFallback, getBundleSuggestions, type BundleRule } from '@/lib/bundles';
 import {
@@ -156,7 +157,10 @@ export function FoodTab({ player }: Props) {
 
   const renderCard = (item: any, i: number) => {
     const inCart = cart[item.id] || 0;
-    const hasImage = item.image && item.image !== '';
+    // Always pick the canonical image for this item (id → keyword → category
+    // fallback). Ignore Firestore's `item.image` because seeded data is
+    // missing/wrong for many items.
+    const imageSrc = getMenuImage(item);
     const selected = inCart > 0;
 
     return (
@@ -170,13 +174,20 @@ export function FoodTab({ player }: Props) {
 
         {/* Square image */}
         <div className="w-full aspect-square relative overflow-hidden" style={{ background: '#0c0c10' }}>
-          {hasImage ? (
-            <img src={item.image} alt={item.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-700">
-              {catIcon(item.category, 36)}
-            </div>
-          )}
+          <img
+            src={imageSrc}
+            alt={item.name}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            onError={(e) => {
+              // If a candidate path 404s, fall back to a category default
+              // so a card never renders blank.
+              const fallback = item.category === 'drinks' ? '/img/menu/cola.jpg'
+                : item.category === 'snacks' ? '/img/menu/chips.jpg'
+                : '/img/menu/sandwich.jpg';
+              const t = e.currentTarget as HTMLImageElement;
+              if (t.src.indexOf(fallback) === -1) t.src = fallback;
+            }}
+          />
           {/* Gradient overlay */}
           <div className="absolute inset-0" style={{ background: 'linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.8) 100%)' }} />
 

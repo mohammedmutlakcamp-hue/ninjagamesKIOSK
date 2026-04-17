@@ -46,7 +46,9 @@ interface PCDoc {
   name?: string;
   pcName?: string;
   zone?: string;
-  lastHeartbeat?: number;
+  online?: boolean;
+  lastSeen?: any;        // Firestore Timestamp written by the C# kiosk
+  lastHeartbeat?: number; // legacy fallback
   installedGames?: InstalledGame[];
   installedGamesCount?: number;
   installedGamesScannedAt?: any;
@@ -58,6 +60,13 @@ function tsToMs(ts: any): number | null {
   if (typeof ts === 'object' && 'seconds' in ts) return ts.seconds * 1000;
   if (typeof ts === 'string') { const t = Date.parse(ts); return isNaN(t) ? null : t; }
   return null;
+}
+
+// PC counts as online when its kiosk heartbeat lands within 60 s.
+function pcIsOnline(p: PCDoc): boolean {
+  const ms = tsToMs(p.lastSeen) ?? (p.lastHeartbeat || 0);
+  if (!ms) return false;
+  return Date.now() - ms < 60_000;
 }
 
 function fmtAge(ms: number | null): string {
@@ -86,8 +95,10 @@ export function GameReportPanel() {
     return () => unsub();
   }, []);
 
-  // PC is online if heartbeat in the last 30 s
-  const isOnline = (pc: PCDoc) => !!pc.lastHeartbeat && Date.now() - pc.lastHeartbeat < 30_000;
+  // PC is online when its kiosk heartbeat (lastSeen Firestore Timestamp)
+  // lands within 60 s. Falls back to legacy lastHeartbeat number if any
+  // older PC doc still uses it.
+  const isOnline = (pc: PCDoc) => pcIsOnline(pc);
 
   const togglePc = (id: string) => {
     setExpanded((prev) => {

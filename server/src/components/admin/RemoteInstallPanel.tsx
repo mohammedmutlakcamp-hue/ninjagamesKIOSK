@@ -35,8 +35,26 @@ interface PCDoc {
   pcName?: string;
   status?: string;
   online?: boolean;
-  lastHeartbeat?: number;
+  lastSeen?: any;        // Firestore Timestamp written by the C# kiosk client
+  lastHeartbeat?: number; // legacy fallback if any old PC doc still uses it
   zone?: string;
+}
+
+// Firestore Timestamp → ms (or pass-through if it's already a number)
+function tsToMs(ts: any): number {
+  if (!ts) return 0;
+  if (typeof ts === 'number') return ts;
+  if (typeof ts === 'object' && 'seconds' in ts) return ts.seconds * 1000;
+  if (typeof ts === 'string') { const t = Date.parse(ts); return isNaN(t) ? 0 : t; }
+  return 0;
+}
+
+// PC counts as online if EITHER the explicit `online` flag is true AND
+// heartbeat is fresh, OR the heartbeat alone is within 60 s.
+function pcIsOnline(p: PCDoc): boolean {
+  const ms = tsToMs(p.lastSeen) || (p.lastHeartbeat || 0);
+  if (!ms) return false;
+  return Date.now() - ms < 60_000;
 }
 
 export function RemoteInstallPanel() {
@@ -58,11 +76,11 @@ export function RemoteInstallPanel() {
     return () => unsub();
   }, []);
 
-  // PC is "online" if heartbeat in the last 30s
-  const onlinePcs = useMemo(() => {
-    const now = Date.now();
-    return pcs.filter((p) => p.lastHeartbeat && now - p.lastHeartbeat < 30_000);
-  }, [pcs]);
+  // PC is online when its lastSeen heartbeat is within 60 s. The C# kiosk
+  // client writes `lastSeen` as a Firestore Timestamp (see
+  // FirestoreService.SendHeartbeatAsync) — pcIsOnline() handles both the
+  // Timestamp and any legacy lastHeartbeat number.
+  const onlinePcs = useMemo(() => pcs.filter(pcIsOnline), [pcs]);
 
   const togglePc = (id: string) => {
     setSelectedPcIds((prev) => {
@@ -167,7 +185,7 @@ export function RemoteInstallPanel() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
             {pcs.map((pc) => {
-              const isOnline = onlinePcs.some((p) => p.id === pc.id);
+              const isOnline = pcIsOnline(pc);
               const selected = selectedPcIds.has(pc.id);
               const label = pc.name || pc.pcName || pc.id;
               return (

@@ -1516,9 +1516,24 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               {!sidebarCollapsed && <span>{lang === 'ar' ? 'لوحة الإدارة' : 'Admin Panel'}</span>}
             </motion.button>
           )}
-          {/* Logout — Cyberpunk styled */}
+          {/* Logout — Cyberpunk styled. Force-set onlineStatus.isOnline:false
+              BEFORE handing off to the parent so friends don't keep seeing
+              this player as online (the unmount cleanup is too late once the
+              page navigates). */}
           <motion.button whileHover={{ scale: 1.02, boxShadow: '0 0 15px rgba(239,68,68,0.3)' }} whileTap={{ scale: 0.96 }}
-            onClick={onLogout}
+            onClick={async () => {
+              try {
+                if (!isGuest && initialPlayer?.uid) {
+                  await updateDoc(doc(db, 'players', initialPlayer.uid), {
+                    'onlineStatus.isOnline': false,
+                    'onlineStatus.currentActivity': '',
+                    'onlineStatus.currentGameId': null,
+                    'onlineStatus.lastSeen': Date.now(),
+                  });
+                }
+              } catch { /* logout anyway */ }
+              onLogout();
+            }}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-sm tracking-wider transition-all relative overflow-hidden"
             style={{ background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.25)', color: '#ef4444' }}>
             {/* HUD corners */}
@@ -1561,19 +1576,23 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 initial={{ opacity: 0, scale: 0.95, y: 20 }}
                 animate={{ opacity: 1, scale: 1, y: 0 }}
                 exit={{ opacity: 0, scale: 0.95, y: 20 }}
-                className={`${activePopup === 'dailytasks' || activePopup === 'leaderboard' ? 'relative overflow-visible' : 'kiosk-popup-panel relative'} ${activePopup === 'chests' || activePopup === 'store' ? 'overflow-hidden' : activePopup !== 'dailytasks' && activePopup !== 'leaderboard' ? 'overflow-y-auto overflow-x-hidden' : ''} ${activePopup === 'food' || activePopup === 'hubbly' || activePopup === 'dailytasks' ? 'kiosk-popup-large' : activePopup === 'chests' || activePopup === 'store' ? 'kiosk-popup-max' : 'kiosk-popup-full'}`}
+                className={`${activePopup === 'dailytasks' ? 'relative overflow-y-auto overflow-x-hidden' : activePopup === 'leaderboard' ? 'relative overflow-visible' : 'kiosk-popup-panel relative'} ${activePopup === 'chests' || activePopup === 'store' ? 'overflow-hidden' : activePopup !== 'dailytasks' && activePopup !== 'leaderboard' ? 'overflow-y-auto overflow-x-hidden' : ''} ${activePopup === 'food' || activePopup === 'hubbly' || activePopup === 'dailytasks' ? 'kiosk-popup-large' : activePopup === 'chests' || activePopup === 'store' ? 'kiosk-popup-max' : 'kiosk-popup-full'}`}
                 onClick={(e) => e.stopPropagation()}
                 style={
                   activePopup === 'dailytasks'
                     ? ({
-                        zoom: 0.8,
+                        // zoom: 0.8 dropped — the layout measures the un-zoomed
+                        // content height, so the popup was reporting itself as
+                        // way taller than the viewport and scrolling off-screen.
                         background: 'transparent',
                         border: 'none',
                         boxShadow: 'none',
                         width: '760px',
                         maxWidth: '92vw',
-                        height: 'auto',
-                        maxHeight: '92vh',
+                        // Cap at the viewport so the inner content scrolls
+                        // inside the popup instead of spilling below the
+                        // bottom edge of the screen.
+                        maxHeight: '90vh',
                       } as React.CSSProperties)
                     : activePopup === 'leaderboard'
                     ? ({
