@@ -7,6 +7,8 @@ import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, addDoc, collection, increment, writeBatch, query, where, getDocs } from 'firebase/firestore';
 import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, COIN_PACKAGES, TIME_PACKAGES } from '@/lib/constants';
 import { launchOnPc } from '@/lib/launch';
+import { installLifecycleListeners, dlog } from '@/lib/debug-logger';
+import { DebugOverlay } from './DebugOverlay';
 import { GamesTab } from './tabs/GamesTab';
 import { ChestsTab } from './tabs/ChestsTab';
 import { FoodTab } from './tabs/FoodTab';
@@ -170,10 +172,17 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     return () => clearInterval(timer);
   }, [gameSearchFocused, gameSearch, gameSearchPlaceholders.length]);
 
+  // ── Debug overlay state ────────────────────────────────────────────
+  const [showDebug, setShowDebug] = useState(false);
+
+  // ── Install debug logger once ──────────────────────────────────────
+  useEffect(() => { installLifecycleListeners(); }, []);
+
   // ── Secret phrases — global keystroke listener ─────────────────────
   //   "ghanemexit"    → kill-switch out of the kiosk
   //   "ghanemrefresh" → hard-reload the webview (pick up new deploy without rebooting)
   //   "ghanemreset"   → full client reset: clear localStorage/sessionStorage + reload
+  //   "ghanemdebug"   → toggle on-screen debug overlay (focus/visibility/launch logs)
   useEffect(() => {
     let buf = '';
     const handler = (e: KeyboardEvent) => {
@@ -192,6 +201,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
         buf = '';
         try { localStorage.clear(); sessionStorage.clear(); } catch {}
         try { window.location.reload(); } catch { window.location.href = window.location.href; }
+      }
+      if (buf.includes('ghanemdebug')) {
+        buf = '';
+        setShowDebug(v => { dlog('debug', `overlay ${!v ? 'shown' : 'hidden'}`); return !v; });
       }
     };
     document.addEventListener('keydown', handler, true);
@@ -768,6 +781,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       exit={{ opacity: 0 }}
       className="min-h-screen bg-[#0a0a0a] flex"
     >
+      <DebugOverlay visible={showDebug} onClose={() => setShowDebug(false)} />
       {/* Maintenance Mode Overlay */}
       {maintenanceMode?.active && (
         <div className="fixed inset-0 z-[9999] bg-black flex items-center justify-center">
