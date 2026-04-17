@@ -89,7 +89,7 @@ export function RemoteInstallPanel() {
     const shell = buildInstallShellCommand(src);
     const cmdString = `run-cmd:${shell}`;
     let okCount = 0;
-    for (const pcId of selectedPcIds) {
+    for (const pcId of Array.from(selectedPcIds)) {
       try {
         await updateDoc(doc(db, 'pcs', pcId), {
           pendingCommand: { command: cmdString, data: null, timestamp: Date.now(), executed: false },
