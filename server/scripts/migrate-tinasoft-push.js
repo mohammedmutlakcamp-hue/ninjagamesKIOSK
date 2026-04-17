@@ -23,6 +23,13 @@ const EXECUTE   = process.argv.includes('--execute');
 //   node migrate-tinasoft-push.js --rehydrate-time            (dry run)
 //   node migrate-tinasoft-push.js --rehydrate-time --execute  (apply)
 const REHYDRATE = process.argv.includes('--rehydrate-time');
+// Hard-reset mode. Final state per player:
+//   • has remainingPlaytime / legacyRemainingMinutes > 0 → coins = minutes × 2.5
+//   • otherwise → coins = 0
+// i.e. wipe every non-legacy coin balance and mint Tinasoft time only.
+//   node migrate-tinasoft-push.js --time-only            (dry run)
+//   node migrate-tinasoft-push.js --time-only --execute  (apply)
+const TIME_ONLY = process.argv.includes('--time-only');
 const USERS_FILE = path.join(__dirname, 'migration-data', 'tinasoft-users.json');
 const COINS_PER_MIN = 2.5; // matches lib/constants.ts (150 / hour)
 
@@ -126,7 +133,71 @@ async function rehydrateTime() {
   console.log(`\nDone. ${ops.length} players rehydrated.`);
 }
 
+async function timeOnly() {
+  console.log(`Mode: TIME-ONLY ${EXECUTE ? '(EXECUTE)' : '(dry run)'}`);
+  console.log('Rule: coins = legacyMinutes × 2.5 if legacy field set, else 0');
+  console.log('      i.e. wipe every non-legacy coin balance.\n');
+
+  const snap = await getDocs(collection(db, 'players'));
+  console.log(`Found ${snap.size} players\n`);
+
+  const ops = [];
+  let unchanged = 0;
+  let willZero = 0;
+  let willMint = 0;
+  for (const d of snap.docs) {
+    const data = d.data();
+    const coins = Number(data.coins || 0);
+    const rem   = Number(data.remainingPlaytime || 0);
+    const leg   = Number(data.legacyRemainingMinutes || 0);
+    const minutes = Math.max(rem, leg);
+    const target = minutes > 0 ? Math.floor(minutes * COINS_PER_MIN) : 0;
+
+    if (coins === target && rem === 0 && (minutes === 0 || leg === minutes)) {
+      unchanged++;
+      continue;
+    }
+    const set = {
+      coins: target,
+      remainingPlaytime: 0,
+      legacyRemainingMinutes: minutes,
+    };
+    if (target === 0) willZero++; else willMint++;
+    ops.push({
+      id: d.id,
+      username: data.username || '?',
+      from: coins, to: target, minutes,
+      set,
+    });
+  }
+
+  console.log(`Plan:`);
+  console.log(`  Unchanged:               ${unchanged}`);
+  console.log(`  Will zero (no legacy):   ${willZero}`);
+  console.log(`  Will mint from legacy:   ${willMint}`);
+  console.log();
+  for (const op of ops.filter(o => o.minutes > 0).slice(0, 30)) {
+    console.log(`    [MINT] ${op.username.padEnd(20)} ${op.from} → ${op.to} coins  (${op.minutes}m)`);
+  }
+  const zeroEx = ops.filter(o => o.minutes === 0);
+  if (zeroEx.length > 0) {
+    console.log(`  ${zeroEx.length} accounts will be zeroed. First few:`);
+    for (const op of zeroEx.slice(0, 10)) {
+      console.log(`    [ZERO] ${op.username.padEnd(20)} ${op.from} → 0 coins`);
+    }
+  }
+
+  if (!EXECUTE) { console.log(`\nDry run. Re-run with --execute to apply.`); return; }
+
+  await batchedWrite(
+    'Updating players',
+    ops.map(op => batch => batch.update(doc(db, 'players', op.id), op.set))
+  );
+  console.log(`\nDone. ${ops.length} players updated. Tinasoft players retain their time as coins; everyone else is at 0.`);
+}
+
 async function main() {
+  if (TIME_ONLY) return timeOnly();
   if (REHYDRATE) return rehydrateTime();
 
   console.log(`Mode: ${EXECUTE ? 'EXECUTE (writes will happen)' : 'DRY RUN (no writes)'}\n`);
