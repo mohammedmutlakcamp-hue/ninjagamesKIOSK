@@ -916,8 +916,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid #00BFFF', borderLeft: '2px solid #00BFFF' }} />
                     <div className="absolute bottom-0 right-0 w-2 h-2" style={{ borderBottom: '2px solid #00BFFF', borderRight: '2px solid #00BFFF' }} />
                     <div className="absolute top-0 left-[20%] right-[20%] h-[2px]" style={{ background: '#00BFFF', boxShadow: '0 0 6px #00BFFF' }} />
-                    <Gift size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(0,191,255,0.7))' }} />
-                    {ar ? 'استلم الصندوق المجاني' : 'CLAIM FREE CHEST'}
+                    <CheckSquare size={16} style={{ filter: 'drop-shadow(0 0 4px rgba(0,191,255,0.7))' }} />
+                    {ar ? 'افتح المهام لكسب الصندوق' : 'DO DAILY TASKS TO UNLOCK'}
                   </motion.button>
                 )}
                 <div className="relative" style={{ overflow: 'visible' }}>

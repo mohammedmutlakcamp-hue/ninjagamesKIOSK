@@ -1125,12 +1125,14 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   whileTap={{ scale: 0.92 }}
                   onClick={handleClaimFullBonus}
                   disabled={claimingBonus}
-                  className="w-[88px] h-[34px] rounded-lg font-ninja text-xs tracking-wider text-black flex items-center justify-center flex-shrink-0"
+                  className="h-[38px] px-4 rounded-lg font-ninja text-xs tracking-wider text-black flex items-center justify-center gap-1.5 flex-shrink-0"
                   style={{
                     background: 'linear-gradient(135deg, #FFD700, #FFA500)',
                     boxShadow: '0 0 14px rgba(255,215,0,0.4)',
                   }}>
-                  {claimingBonus ? <Loader2 size={14} className="animate-spin" /> : 'CLAIM'}
+                  {claimingBonus ? <Loader2 size={14} className="animate-spin" /> : <>
+                    <Gift size={13} /> {ar ? 'استلم الصندوق' : 'CLAIM CHEST'}
+                  </>}
                 </motion.button>
               )}
             </div>
