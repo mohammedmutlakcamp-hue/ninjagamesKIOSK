@@ -8,7 +8,8 @@ import { MenuItem } from '@/types';
 import { getMenuImage } from '@/lib/menu-images';
 import {
   Plus, CupSoda, Cookie, Pizza, UtensilsCrossed, Pencil,
-  Trash2, ToggleLeft, ToggleRight, Coins, X, Image as ImageIcon, Link2, Folder, AlertTriangle
+  Trash2, ToggleLeft, ToggleRight, Coins, X, Image as ImageIcon, Link2, Folder, AlertTriangle,
+  Search as SearchIcon
 } from 'lucide-react';
 
 // Bundled stock images shipped in /public/img/menu — admin can pick one
@@ -306,9 +307,30 @@ export function MenuManagement() {
                       </div>
                     </div>
                   </div>
+                  {/* Quick-search button — opens Google Images for this item.
+                      Right-click any result → Copy image address → paste back
+                      into the URL field above. ~30 seconds per item. */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <a
+                      href={`https://www.google.com/search?tbm=isch&tbs=isz:m&q=${encodeURIComponent((formName || formCategory || 'food') + ' product photo')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0071e3]/10 text-[#0071e3] text-xs font-medium hover:bg-[#0071e3]/15 border border-[#0071e3]/25 transition-colors"
+                    >
+                      <SearchIcon size={12} /> Find photo on Google Images
+                    </a>
+                    <a
+                      href={`https://unsplash.com/s/photos/${encodeURIComponent(formName || formCategory || 'food')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#34c759]/10 text-[#34c759] text-xs font-medium hover:bg-[#34c759]/15 border border-[#34c759]/25 transition-colors"
+                    >
+                      <SearchIcon size={12} /> Unsplash
+                    </a>
+                  </div>
                   <p className="text-[10px] text-[#86868b] mt-2 leading-relaxed flex items-start gap-1">
                     <AlertTriangle size={11} className="text-[#ff9500] mt-0.5 flex-shrink-0" />
-                    For real product photos, host the image (Imgur, Drive public link, your website) and paste the URL — or drop the file into <code className="px-1 py-0.5 rounded bg-[#f5f5f7] border border-[#e5e5ea] text-[10px]">server/public/img/menu/</code> and reference <code className="px-1 py-0.5 rounded bg-[#f5f5f7] border border-[#e5e5ea] text-[10px]">/img/menu/yourfile.jpg</code>.
+                    Click "Find photo" → right-click an image you like → "Copy image address" → paste it above. Or host on Imgur / Drive (public link) and paste — or drop the file into <code className="px-1 py-0.5 rounded bg-[#f5f5f7] border border-[#e5e5ea] text-[10px]">server/public/img/menu/</code> and reference <code className="px-1 py-0.5 rounded bg-[#f5f5f7] border border-[#e5e5ea] text-[10px]">/img/menu/yourfile.jpg</code>.
                   </p>
                 </div>
               </div>
