@@ -17,6 +17,25 @@ function formatTimeLeft(coins: number): string {
   const m = totalMin % 60;
   return m === 0 ? `${h}h` : `${h}h ${m}m`;
 }
+
+// Effective minutes the player can play right now. Picks the LARGER of
+// (coins-as-minutes) and any leftover Tinasoft time field that hasn't been
+// converted yet. This way migrated users always show their real balance
+// even before the admin runs the rehydrate-time script.
+function effectivePlayMinutes(player: any): number {
+  const fromCoins = Math.floor((Number(player?.coins) || 0) / (COINS_PER_MINUTE || 2.5));
+  const fromRem   = Math.floor(Number(player?.remainingPlaytime || 0));
+  const fromLeg   = Math.floor(Number(player?.legacyRemainingMinutes || 0));
+  return Math.max(fromCoins, fromRem, fromLeg);
+}
+
+function formatMinutes(min: number): string {
+  if (!min || min <= 0) return '0m';
+  if (min < 60) return `${min}m`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 import {
   Search, Coins, Clock, Crosshair, X, UserCheck, Ban, ShieldCheck, User, UserPlus, History,
   Package, Trash2, Gift, Crown, Star, Key, RotateCcw, Eye, Users, Palette, ChevronDown,
@@ -640,17 +659,21 @@ export function PlayerManagement() {
               </div>
             </div>
             <div className="flex items-center gap-6">
-              {/* Time left = coins / coins-per-minute. Highlighted if low so
-                  the worker can see at a glance who's about to run out. */}
+              {/* Time left = max(coins/2.5, remainingPlaytime, legacyRemainingMinutes).
+                  Picking the largest covers migrated Tinasoft players whose
+                  original time still lives in remainingPlaytime/legacy fields. */}
               {(() => {
-                const minLeft = Math.floor((player.coins || 0) / (COINS_PER_MINUTE || 2.5));
+                const minLeft = effectivePlayMinutes(player);
+                const fromCoins = Math.floor((player.coins || 0) / (COINS_PER_MINUTE || 2.5));
+                const isLegacy = minLeft > fromCoins; // value comes from the legacy field, not coins
                 const low = minLeft > 0 && minLeft <= 15;
                 const empty = minLeft <= 0;
                 const color = empty ? '#ff3b30' : low ? '#ff9500' : '#34c759';
                 return (
-                  <div className="text-right min-w-[88px]">
+                  <div className="text-right min-w-[88px]" title={isLegacy ? 'Stored as legacy Tinasoft time — run rehydrate to convert.' : ''}>
                     <p className="font-semibold flex items-center gap-1 justify-end" style={{ color }}>
-                      <Timer size={14} /> {formatTimeLeft(player.coins || 0)}
+                      <Timer size={14} /> {formatMinutes(minLeft)}
+                      {isLegacy && <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-[#ff9500]/15 text-[#ff9500] ml-1">LEGACY</span>}
                     </p>
                     <p className="text-[10px] text-[#86868b] uppercase tracking-wider">time left</p>
                   </div>
@@ -790,17 +813,19 @@ export function PlayerManagement() {
                   <p className="text-[10px] text-[#86868b]">Coins</p>
                 </div>
                 {(() => {
-                  const minLeft = Math.floor((selected.coins || 0) / (COINS_PER_MINUTE || 2.5));
+                  const minLeft = effectivePlayMinutes(selected);
+                  const fromCoins = Math.floor((selected.coins || 0) / (COINS_PER_MINUTE || 2.5));
+                  const isLegacy = minLeft > fromCoins;
                   const low = minLeft > 0 && minLeft <= 15;
                   const empty = minLeft <= 0;
                   const color = empty ? '#ff3b30' : low ? '#ff9500' : '#34c759';
                   const bg = empty ? 'bg-[#ff3b30]/5' : low ? 'bg-[#ff9500]/5' : 'bg-[#34c759]/5';
                   return (
-                    <div className={`rounded-xl p-2 text-center border ${bg}`} style={{ borderColor: `${color}33` }}>
+                    <div className={`rounded-xl p-2 text-center border ${bg}`} style={{ borderColor: `${color}33` }} title={isLegacy ? 'Legacy Tinasoft time — coin value not yet minted.' : ''}>
                       <p className="text-sm font-semibold flex items-center justify-center gap-1" style={{ color }}>
-                        <Timer size={12} /> {formatTimeLeft(selected.coins || 0)}
+                        <Timer size={12} /> {formatMinutes(minLeft)}
                       </p>
-                      <p className="text-[10px] text-[#86868b]">Time Left</p>
+                      <p className="text-[10px] text-[#86868b]">Time Left{isLegacy ? ' (legacy)' : ''}</p>
                     </div>
                   );
                 })()}
