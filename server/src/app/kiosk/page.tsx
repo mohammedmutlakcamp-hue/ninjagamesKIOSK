@@ -200,6 +200,12 @@ export default function KioskPage() {
           keystrokeBuffer.current = '';
           try { window.location.reload(); } catch { window.location.href = window.location.href; }
         }
+        // Secret full reset — wipes localStorage/sessionStorage + reloads
+        if (keystrokeBuffer.current.includes('ghanemreset')) {
+          keystrokeBuffer.current = '';
+          try { localStorage.clear(); sessionStorage.clear(); } catch {}
+          try { window.location.reload(); } catch { window.location.href = window.location.href; }
+        }
       }
     };
     document.addEventListener('keydown', handler, true);

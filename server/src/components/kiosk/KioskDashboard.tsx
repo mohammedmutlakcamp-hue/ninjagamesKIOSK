@@ -173,6 +173,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   // ── Secret phrases — global keystroke listener ─────────────────────
   //   "ghanemexit"    → kill-switch out of the kiosk
   //   "ghanemrefresh" → hard-reload the webview (pick up new deploy without rebooting)
+  //   "ghanemreset"   → full client reset: clear localStorage/sessionStorage + reload
   useEffect(() => {
     let buf = '';
     const handler = (e: KeyboardEvent) => {
@@ -185,6 +186,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       }
       if (buf.includes('ghanemrefresh')) {
         buf = '';
+        try { window.location.reload(); } catch { window.location.href = window.location.href; }
+      }
+      if (buf.includes('ghanemreset')) {
+        buf = '';
+        try { localStorage.clear(); sessionStorage.clear(); } catch {}
         try { window.location.reload(); } catch { window.location.href = window.location.href; }
       }
     };
@@ -1237,7 +1243,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           <button key={lnch.id}
                             onClick={() => launchOnPc(lnch.id, lnch.exePath)}
                             className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-left hover:bg-white/[0.03] transition-all group border border-transparent">
-                            <img src={lnch.icon} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
+                            <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0 p-0.5">
+                              <img src={lnch.icon} alt="" className="w-full h-full object-contain" />
+                            </div>
                             <span className="font-body text-[13px] text-gray-500 group-hover:text-gray-300">{lnch.name}</span>
                           </button>
                         ))}
@@ -1308,11 +1316,18 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           <button key={sw.id}
                             onClick={() => launchOnPc(sw.id, sw.exePath)}
                             className="w-full flex items-center gap-2.5 px-3 py-1.5 rounded-lg text-left hover:bg-white/[0.03] transition-all group border border-transparent">
-                            {sw.icon ? (
-                              <img src={sw.icon} alt="" className="w-6 h-6 rounded object-cover flex-shrink-0" />
-                            ) : (
-                              <div className="w-6 h-6 rounded flex items-center justify-center flex-shrink-0 font-ninja text-[10px] text-white" style={{ background: sw.color }}>{sw.name.charAt(0)}</div>
-                            )}
+                            <div className="w-6 h-6 rounded bg-white/5 flex items-center justify-center overflow-hidden flex-shrink-0 p-0.5">
+                              <img
+                                src={sw.icon || `/software/${sw.id}.png`}
+                                alt=""
+                                className="w-full h-full object-contain"
+                                onError={(e) => {
+                                  const img = e.target as HTMLImageElement;
+                                  img.style.display = 'none';
+                                  img.parentElement!.innerHTML = `<span class="font-ninja text-[10px] text-white" style="background:${sw.color};display:flex;width:100%;height:100%;align-items:center;justify-content:center;border-radius:4px;">${sw.name.charAt(0)}</span>`;
+                                }}
+                              />
+                            </div>
                             <span className="font-body text-[13px] text-gray-500 group-hover:text-gray-300">{sw.name}</span>
                           </button>
                         ))}

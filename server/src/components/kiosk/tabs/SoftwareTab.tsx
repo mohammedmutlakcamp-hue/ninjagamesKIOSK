@@ -7,6 +7,17 @@ import { NinjaInput } from '@/components/kiosk/NinjaInput';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { launchOnPc } from '@/lib/launch';
+import { t, translations } from '@/lib/translations';
+
+const CATEGORY_KEYS: Record<string, string> = {
+  All: 'cat_all',
+  Browser: 'cat_browser',
+  Communication: 'cat_communication',
+  Peripherals: 'cat_peripherals',
+  GPU: 'cat_gpu',
+  Streaming: 'cat_streaming',
+  Other: 'cat_other',
+};
 
 interface Software {
   id: string;
@@ -95,7 +106,7 @@ export function SoftwareTab() {
                 : 'ninja-btn-ghost'
             }`}
           >
-            {cat}
+            {CATEGORY_KEYS[cat] ? t(lang, CATEGORY_KEYS[cat]) : cat}
           </button>
         ))}
       </div>
@@ -123,8 +134,12 @@ export function SoftwareTab() {
               />
             </div>
             <h3 className="font-ninja text-white text-sm mb-1">{sw.name}</h3>
-            <p className="font-body text-gray-500 text-xs mb-3">{sw.description}</p>
-            <span className="inline-block px-2 py-0.5 rounded bg-white/5 text-gray-500 font-body text-[10px]">{sw.category}</span>
+            <p className="font-body text-gray-500 text-xs mb-3">
+              {ar && translations.ar[`desc_${sw.id}`] ? translations.ar[`desc_${sw.id}`] : sw.description}
+            </p>
+            <span className="inline-block px-2 py-0.5 rounded bg-white/5 text-gray-500 font-body text-[10px]">
+              {CATEGORY_KEYS[sw.category] ? t(lang, CATEGORY_KEYS[sw.category]) : sw.category}
+            </span>
             <motion.div
               whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
