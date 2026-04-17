@@ -5,7 +5,18 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, query, where, orderBy, limit, getDocs, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { NinjaAvatar } from '@/components/NinjaAvatar';
-import { NINJA_SKINS, CHEST_REWARDS } from '@/lib/constants';
+import { NINJA_SKINS, CHEST_REWARDS, COINS_PER_MINUTE } from '@/lib/constants';
+
+// Time-left helper. Player's coin balance → playable minutes.
+// Default rate: 2.5 coins/min (= 150 coins/hour).
+function formatTimeLeft(coins: number): string {
+  if (!coins || coins <= 0) return '0m';
+  const totalMin = Math.floor(coins / (COINS_PER_MINUTE || 2.5));
+  if (totalMin < 60) return `${totalMin}m`;
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  return m === 0 ? `${h}h` : `${h}h ${m}m`;
+}
 import {
   Search, Coins, Clock, Crosshair, X, UserCheck, Ban, ShieldCheck, User, UserPlus, History,
   Package, Trash2, Gift, Crown, Star, Key, RotateCcw, Eye, Users, Palette, ChevronDown,
@@ -564,6 +575,22 @@ export function PlayerManagement() {
               </div>
             </div>
             <div className="flex items-center gap-6">
+              {/* Time left = coins / coins-per-minute. Highlighted if low so
+                  the worker can see at a glance who's about to run out. */}
+              {(() => {
+                const minLeft = Math.floor((player.coins || 0) / (COINS_PER_MINUTE || 2.5));
+                const low = minLeft > 0 && minLeft <= 15;
+                const empty = minLeft <= 0;
+                const color = empty ? '#ff3b30' : low ? '#ff9500' : '#34c759';
+                return (
+                  <div className="text-right min-w-[88px]">
+                    <p className="font-semibold flex items-center gap-1 justify-end" style={{ color }}>
+                      <Timer size={14} /> {formatTimeLeft(player.coins || 0)}
+                    </p>
+                    <p className="text-[10px] text-[#86868b] uppercase tracking-wider">time left</p>
+                  </div>
+                );
+              })()}
               <div className="text-right">
                 <p className="font-semibold text-[#0071e3] flex items-center gap-1 justify-end">
                   <Coins size={14} /> {Math.floor(player.coins || 0)}
@@ -686,11 +713,26 @@ export function PlayerManagement() {
               </div>
 
               {/* Quick Stats Row */}
-              <div className="grid grid-cols-4 gap-2">
+              <div className="grid grid-cols-5 gap-2">
                 <div className="bg-[#f5f5f7] rounded-xl p-2 text-center">
                   <p className="text-sm font-semibold text-[#0071e3] flex items-center justify-center gap-1"><Coins size={12} /> {Math.floor(selected.coins || 0)}</p>
                   <p className="text-[10px] text-[#86868b]">Coins</p>
                 </div>
+                {(() => {
+                  const minLeft = Math.floor((selected.coins || 0) / (COINS_PER_MINUTE || 2.5));
+                  const low = minLeft > 0 && minLeft <= 15;
+                  const empty = minLeft <= 0;
+                  const color = empty ? '#ff3b30' : low ? '#ff9500' : '#34c759';
+                  const bg = empty ? 'bg-[#ff3b30]/5' : low ? 'bg-[#ff9500]/5' : 'bg-[#34c759]/5';
+                  return (
+                    <div className={`rounded-xl p-2 text-center border ${bg}`} style={{ borderColor: `${color}33` }}>
+                      <p className="text-sm font-semibold flex items-center justify-center gap-1" style={{ color }}>
+                        <Timer size={12} /> {formatTimeLeft(selected.coins || 0)}
+                      </p>
+                      <p className="text-[10px] text-[#86868b]">Time Left</p>
+                    </div>
+                  );
+                })()}
                 <div className="bg-[#f5f5f7] rounded-xl p-2 text-center">
                   <p className="text-sm font-semibold text-[#1d1d1f] flex items-center justify-center gap-1"><Clock size={12} /> {Math.floor((selected.totalPlaytime || 0) / 60)}h</p>
                   <p className="text-[10px] text-[#86868b]">Playtime</p>
