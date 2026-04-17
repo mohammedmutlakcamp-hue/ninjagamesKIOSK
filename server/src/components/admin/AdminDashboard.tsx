@@ -44,6 +44,7 @@ import { GameUpdatePusher } from './GameUpdatePusher';
 import { DebugLogsPanel } from './DebugLogsPanel';
 import { FeatureFlagsPanel } from './FeatureFlagsPanel';
 import { RemoteInstallPanel } from './RemoteInstallPanel';
+import { GameReportPanel } from './GameReportPanel';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -51,10 +52,10 @@ import {
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
   BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check,
-  ToggleRight, HardDriveDownload
+  ToggleRight, HardDriveDownload, ListChecks
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -640,6 +641,7 @@ export function AdminDashboard({ admin }: Props) {
       items: [
         { id: 'pricing', label: 'Pricing', icon: <Tag size={18} /> },
         { id: 'updates', label: 'PC Updates', icon: <Download size={18} /> },
+        { id: 'gamereport', label: 'Game Report', icon: <ListChecks size={18} /> },
         { id: 'remoteinstall', label: 'Install Games', icon: <HardDriveDownload size={18} /> },
         { id: 'flags', label: 'Feature Flags', icon: <ToggleRight size={18} /> },
         { id: 'scheduled', label: 'Scheduled', icon: <CalendarClock size={18} /> },
@@ -789,6 +791,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'debuglogs' && <DebugLogsPanel />}
           {tab === 'flags' && <FeatureFlagsPanel />}
           {tab === 'remoteinstall' && <RemoteInstallPanel />}
+          {tab === 'gamereport' && <GameReportPanel />}
         </motion.div>
       </div>
 
