@@ -1,23 +1,18 @@
 import type { Product, ProductCategory } from './types';
-import { GPUS } from './data/gpus';
-import { CPUS } from './data/cpus';
-import { MOTHERBOARDS } from './data/motherboards';
-import { RAM } from './data/ram';
-import { STORAGE } from './data/storage';
-import { PSUS } from './data/psus';
-import { CASES } from './data/cases';
-import { COOLING } from './data/cooling';
-import { MONITORS } from './data/monitors';
-import { KEYBOARDS } from './data/keyboards';
-import { MICE } from './data/mice';
-import { HEADSETS } from './data/headsets';
-import { CONTROLLERS } from './data/controllers';
+import igeekCache from './data/igeek-cache.json';
 import { PREBUILTS } from './data/prebuilts';
-import { LAPTOPS } from './data/laptops';
-import { AUDIO } from './data/audio';
 
-// Deterministic stock based on product id — prevents SSR/CSR hydration
-// mismatch from the Math.random() calls in the data files.
+// Real product catalog: 410+ items scraped from iGeek Jordan (igeekjo.com)
+// via scripts/scrape-igeek.js. JOD prices, real Shopify CDN images, real SKUs.
+// Re-run the scraper to refresh: `node scripts/scrape-igeek.js`
+//
+// Pre-builts are kept synthetic on purpose — they represent Ninja Games' OWN
+// custom builds (Genin/Chunin/Jonin/Kage tiers) that aren't sold by iGeek.
+
+const igeekProducts: Product[] = Object.values(igeekCache as Record<string, Product[]>).flat();
+
+// Deterministic stock count override based on product id, so SSR + CSR
+// agree (the scraped inStock flag is preserved; this only sets the unit count).
 const stockOf = (id: string): number => {
   let h = 0;
   for (let i = 0; i < id.length; i++) h = ((h << 5) - h) + id.charCodeAt(i);
@@ -25,9 +20,8 @@ const stockOf = (id: string): number => {
 };
 
 export const ALL_PRODUCTS: Product[] = [
-  ...GPUS, ...CPUS, ...MOTHERBOARDS, ...RAM, ...STORAGE, ...PSUS,
-  ...CASES, ...COOLING, ...MONITORS, ...KEYBOARDS, ...MICE,
-  ...HEADSETS, ...CONTROLLERS, ...PREBUILTS, ...LAPTOPS, ...AUDIO,
+  ...igeekProducts,
+  ...PREBUILTS,
 ].map(p => ({ ...p, stockCount: p.inStock ? stockOf(p.id) : 0 }));
 
 export const productsByCategory = (cat: ProductCategory): Product[] =>
@@ -36,7 +30,16 @@ export const productsByCategory = (cat: ProductCategory): Product[] =>
 export const getProduct = (id: string): Product | undefined =>
   ALL_PRODUCTS.find(p => p.id === id);
 
-export const featuredProducts = (n = 12): Product[] =>
-  ALL_PRODUCTS.filter(p => p.badge === 'best' || p.badge === 'hot' || p.badge === 'new').slice(0, n);
+export const featuredProducts = (n = 12): Product[] => {
+  // Mix of high-margin categories that look good in the hero
+  const picks = [
+    ...productsByCategory('gpu').slice(0, 3),
+    ...productsByCategory('laptop').slice(0, 3),
+    ...productsByCategory('controller').slice(0, 2),
+    ...productsByCategory('headset').slice(0, 2),
+    ...productsByCategory('monitor').slice(0, 2),
+  ];
+  return picks.slice(0, n);
+};
 
 export const PRODUCT_COUNT = ALL_PRODUCTS.length;

@@ -10,7 +10,7 @@ export type Product = {
   name: string;
   model: string;
   priceJod: number;
-  msrpJod?: number;
+  msrpJod?: number | null;
   inStock: boolean;
   stockCount?: number;
   image?: string;
