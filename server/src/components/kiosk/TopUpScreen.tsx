@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Crown, Sparkles, ArrowRight, CheckCircle2, Loader2, Pencil } from 'lucide-react';
+import { Coins, Crown, Sparkles, ArrowRight, CheckCircle2, Loader2, Pencil, X } from 'lucide-react';
 import { COIN_PACKAGES } from '@/lib/constants';
 import { Lang, t } from '@/lib/translations';
 import { db } from '@/lib/firebase';
@@ -12,9 +12,10 @@ import { notifyAdmin } from '@/lib/notify-admin';
 interface Props {
   player: any;
   lang?: Lang;
+  onClose?: () => void;
 }
 
-export function TopUpScreen({ player, lang = 'en' }: Props) {
+export function TopUpScreen({ player, lang = 'en', onClose }: Props) {
   const isAr = lang === 'ar';
 
   const [selectedPkg, setSelectedPkg] = useState<string | null>(null);
@@ -211,6 +212,21 @@ export function TopUpScreen({ player, lang = 'en' }: Props) {
               <span className="font-body text-xs">{t(lang, 'show_front_desk')}</span>
               <ArrowRight size={14} className={isAr ? 'rotate-180' : ''} />
             </div>
+          )}
+
+          {onClose && (
+            <motion.button
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              onClick={onClose}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="mt-6 inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 text-gray-300 hover:text-white font-body text-sm transition-all"
+            >
+              <X size={15} />
+              {isAr ? 'إغلاق' : 'CLOSE'}
+            </motion.button>
           )}
         </motion.div>
       </motion.div>

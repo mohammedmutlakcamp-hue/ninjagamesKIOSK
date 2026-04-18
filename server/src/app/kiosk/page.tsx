@@ -2038,7 +2038,11 @@ export default function KioskPage() {
       {/* Top-up overlay for 0-coins player on login screen */}
       {showLoginTopUp && zeroCoinsPlayer && (
         <div className="fixed inset-0 z-[400]">
-          <TopUpScreen player={zeroCoinsPlayer} lang={lang} />
+          <TopUpScreen
+            player={zeroCoinsPlayer}
+            lang={lang}
+            onClose={() => { setShowLoginTopUp(false); setZeroCoinsPlayer(null); }}
+          />
           <button
             onClick={() => { setShowLoginTopUp(false); setZeroCoinsPlayer(null); }}
             className="fixed top-6 right-6 z-[500] w-10 h-10 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white hover:bg-white/20 transition-all"
