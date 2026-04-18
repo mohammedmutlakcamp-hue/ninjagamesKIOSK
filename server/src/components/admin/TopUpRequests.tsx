@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { Coins, Check, X, Clock, User, AlertTriangle, Loader2, Package, Gamepad2, Timer } from 'lucide-react';
 import { COIN_PACKAGES } from '@/lib/constants';
-import { blendRate, MIN_TOPUP_COINS } from '@/lib/pricing';
+import { blendRate } from '@/lib/pricing';
 
 interface TopUpRequest {
   id: string;
@@ -90,12 +90,6 @@ export function TopUpRequests() {
   const approve = async (req: TopUpRequest) => {
     setProcessing(req.id);
     try {
-      // Enforce minimum top-up threshold at the approval layer (7000 coins / Master).
-      if (req.coins < MIN_TOPUP_COINS) {
-        alert(`Top-up rejected: minimum is ${MIN_TOPUP_COINS} coins (Master pack). This request is ${req.coins} coins.`);
-        setProcessing(null);
-        return;
-      }
       const priceJOD = req.price ?? req.priceJOD ?? 0;
       const { getDoc } = await import('firebase/firestore');
       const playerSnap = await getDoc(doc(db, 'players', req.playerId));
