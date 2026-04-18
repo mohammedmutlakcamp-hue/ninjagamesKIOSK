@@ -2095,8 +2095,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   </div>
                   <div className="px-8 pb-4 space-y-2.5">
                     {COIN_PACKAGES.map((pkg) => {
-                      const hours = Math.floor(pkg.coins / 150);
-                      const mins = Math.round((pkg.coins % 150) / 2.5);
                       const sel = regSelectedPkg === pkg.id;
                       return (
                         <motion.button key={pkg.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
@@ -2109,7 +2107,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                               </div>
                               <div>
                                 <span className="font-ninja text-white">{pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
-                                <span className="font-body text-gray-500 text-xs ml-2">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
+                                {(pkg.bonusPercentage || 0) > 0 && (
+                                  <span className="font-ninja text-[10px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}%</span>
+                                )}
                               </div>
                             </div>
                             <div className="flex items-center gap-2">
@@ -2311,8 +2311,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   {/* Package cards — stacked vertically like Buy Time */}
                   <div className="space-y-3 mb-4">
                     {COIN_PACKAGES.map((pkg, idx) => {
-                      const hours = Math.floor(pkg.coins / 150);
-                      const mins = Math.round((pkg.coins % 150) / 2.5);
                       const selected = topUpSelected === pkg.id;
                       const isBest = pkg.popular;
                       return (
@@ -2358,7 +2356,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                   </motion.div>
                                   <div className="flex items-baseline gap-3">
                                     <span className="font-ninja text-2xl text-white">{pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
-                                    <span className="font-body text-gray-500 text-sm">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
+                                    {(pkg.bonusPercentage || 0) > 0 && (
+                                      <span className="font-ninja text-[11px] px-2 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}%</span>
+                                    )}
                                   </div>
                                 </div>
                                 <span className="font-ninja text-2xl text-white">{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
