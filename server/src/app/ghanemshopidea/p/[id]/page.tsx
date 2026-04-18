@@ -7,6 +7,7 @@ import { getCategory } from '@/lib/shop/categories';
 import ProductImage from '@/components/shop/ProductImage';
 import ProductCard from '@/components/shop/ProductCard';
 import DeliveryBadge from '@/components/shop/DeliveryBadge';
+import ProductTabs from '@/components/shop/ProductTabs';
 import { useCart } from '@/lib/shop/cart-store';
 import { ShieldCheck, Wrench, Truck, ChevronRight, Plus, Minus, Check, MessageCircle } from 'lucide-react';
 
@@ -124,29 +125,8 @@ export default function ProductPage({ params }: { params: { id: string } }) {
         </div>
       </div>
 
-      {/* Tabs: Specs + Description */}
-      <section className="max-w-7xl mx-auto px-6 py-8 grid md:grid-cols-2 gap-8">
-        <div>
-          <h2 className="text-lg font-bold mb-3">Specifications</h2>
-          <dl className="bg-white rounded-2xl border border-neutral-200 divide-y divide-neutral-100">
-            {Object.entries(product.specs).map(([k, v]) => (
-              <div key={k} className="flex px-4 py-2.5 text-sm">
-                <dt className="w-1/3 font-medium text-neutral-500 capitalize">{k}</dt>
-                <dd className="flex-1 text-neutral-900 font-medium">{v}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        <div>
-          <h2 className="text-lg font-bold mb-3">About this product</h2>
-          <p className="text-neutral-700 leading-relaxed">{product.description}</p>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {product.tags.map(t => (
-              <span key={t} className="px-2 py-1 bg-neutral-100 text-xs rounded-md text-neutral-600">#{t}</span>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Tabs: Description / Shipping & Returns / Reviews */}
+      <ProductTabs product={product} />
 
       {/* Related */}
       <section className="max-w-7xl mx-auto px-6 py-10">
