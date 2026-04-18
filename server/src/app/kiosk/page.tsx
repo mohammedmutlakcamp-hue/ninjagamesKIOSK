@@ -1335,9 +1335,9 @@ export default function KioskPage() {
                   </div>
                 </div>
 
-                {/* Socials — "Check this out" link to info page (same window so BACK TO KIOSK works) */}
+                {/* Socials — "Check this out" link to in-kiosk info page (QR codes + BACK TO KIOSK button) */}
                 <a
-                  href="/info"
+                  href="/infokiosk"
                   className="mt-6 group flex items-center gap-3 px-5 py-3 rounded-xl transition-all hover:scale-105"
                   style={{
                     background: 'linear-gradient(135deg, rgba(232,121,249,0.08), rgba(57,255,20,0.06))',

@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { Coins, Check, X, Clock, User, AlertTriangle, Loader2, Package, Gamepad2, Timer } from 'lucide-react';
 import { COIN_PACKAGES } from '@/lib/constants';
+import { blendRate, MIN_TOPUP_COINS } from '@/lib/pricing';
 
 interface TopUpRequest {
   id: string;
@@ -13,9 +14,13 @@ interface TopUpRequest {
   playerName: string;
   packageId: string;
   coins: number;
-  priceJOD: number;
+  // Request docs are written with either `price` (TopUpScreen) or `priceJOD` (StoreTab
+  // coin tab — legacy). Approval code reads whichever is present.
+  price?: number;
+  priceJOD?: number;
   status: 'pending' | 'approved' | 'rejected';
-  createdAt: number;
+  createdAt?: number;
+  timestamp?: number;
 }
 
 interface GuestRequest {
@@ -41,7 +46,7 @@ export function TopUpRequests() {
     const unsub = onSnapshot(collection(db, 'topup-requests'), (snap) => {
       const data = snap.docs
         .map(d => ({ id: d.id, ...d.data() } as TopUpRequest))
-        .sort((a, b) => b.createdAt - a.createdAt);
+        .sort((a, b) => (b.createdAt ?? b.timestamp ?? 0) - (a.createdAt ?? a.timestamp ?? 0));
       setRequests(data);
     });
     return () => unsub();
@@ -85,16 +90,28 @@ export function TopUpRequests() {
   const approve = async (req: TopUpRequest) => {
     setProcessing(req.id);
     try {
-      // First get current coins to be safe
+      // Enforce minimum top-up threshold at the approval layer (7000 coins / Master).
+      if (req.coins < MIN_TOPUP_COINS) {
+        alert(`Top-up rejected: minimum is ${MIN_TOPUP_COINS} coins (Master pack). This request is ${req.coins} coins.`);
+        setProcessing(null);
+        return;
+      }
+      const priceJOD = req.price ?? req.priceJOD ?? 0;
       const { getDoc } = await import('firebase/firestore');
       const playerSnap = await getDoc(doc(db, 'players', req.playerId));
       if (playerSnap.exists()) {
-        const currentCoins = playerSnap.data().coins || 0;
+        const data = playerSnap.data();
+        const currentCoins = data.coins || 0;
+        const prevRate = data.effectiveRate;
+        const prevPurchased = data.coinsFromPurchases || 0;
+        const { rate, coinsFromPurchases } = blendRate(prevPurchased, prevRate, req.coins, priceJOD);
         await updateDoc(doc(db, 'players', req.playerId), {
           coins: currentCoins + req.coins,
+          effectiveRate: rate,
+          coinsFromPurchases,
         });
       } else {
-        // Fallback: try increment
+        // Fallback: increment only; rate stays at default.
         await updateDoc(doc(db, 'players', req.playerId), {
           coins: increment(req.coins),
         });
@@ -264,9 +281,9 @@ export function TopUpRequests() {
                     <div className="flex items-center gap-3 mt-1">
                       <span className="font-semibold text-[#0071e3] text-lg">{req.coins.toLocaleString()} coins</span>
                       <span className="text-[#86868b] text-sm">·</span>
-                      <span className="font-semibold text-[#1d1d1f] text-lg">{req.priceJOD} JOD</span>
+                      <span className="font-semibold text-[#1d1d1f] text-lg">{req.price ?? req.priceJOD} JOD</span>
                     </div>
-                    <span className="text-[#86868b] text-xs">{timeSince(req.createdAt)}</span>
+                    <span className="text-[#86868b] text-xs">{timeSince(req.createdAt ?? req.timestamp ?? 0)}</span>
                   </div>
                 </div>
 
@@ -320,13 +337,13 @@ export function TopUpRequests() {
                 <div className="flex items-center gap-3">
                   <div className={`w-2 h-2 rounded-full ${req.status === 'approved' ? 'bg-[#34c759]' : 'bg-[#ff3b30]'}`} />
                   <span className="text-sm font-semibold text-[#1d1d1f]">{req.playerName?.toUpperCase()}</span>
-                  <span className="text-[#86868b] text-xs">{req.coins} coins · {req.priceJOD} JOD</span>
+                  <span className="text-[#86868b] text-xs">{req.coins} coins · {req.price ?? req.priceJOD} JOD</span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs font-medium ${req.status === 'approved' ? 'text-[#34c759]' : 'text-[#ff3b30]'}`}>
                     {req.status === 'approved' ? 'APPROVED' : 'REJECTED'}
                   </span>
-                  <span className="text-[#86868b] text-[10px]">{timeSince(req.createdAt)}</span>
+                  <span className="text-[#86868b] text-[10px]">{timeSince(req.createdAt ?? req.timestamp ?? 0)}</span>
                   <button onClick={() => remove(req.id)} className="text-[#d2d2d7] hover:text-[#86868b] transition-colors">
                     <X size={14} />
                   </button>

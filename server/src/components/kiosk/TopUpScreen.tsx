@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Coins, Clock, Crown, Sparkles, ArrowRight, CheckCircle2, Loader2, Pencil } from 'lucide-react';
+import { Coins, Crown, Sparkles, ArrowRight, CheckCircle2, Loader2, Pencil } from 'lucide-react';
 import { COIN_PACKAGES } from '@/lib/constants';
 import { Lang, t } from '@/lib/translations';
 import { db } from '@/lib/firebase';
@@ -124,8 +124,6 @@ export function TopUpScreen({ player, lang = 'en' }: Props) {
 
         <div className="space-y-3 mb-6">
           {COIN_PACKAGES.map((pkg, i) => {
-            const hours = Math.floor(pkg.coins / 150);
-            const mins = Math.round((pkg.coins % 150) / 2.5);
             const isPopular = pkg.popular;
             const isSelected = selectedPkg === pkg.id;
 
@@ -179,12 +177,11 @@ export function TopUpScreen({ player, lang = 'en' }: Props) {
                         <span className="font-ninja text-xl text-white">{pkg.coins.toLocaleString()}</span>
                         <span className="font-body text-gray-500 text-sm">{t(lang, 'coins')}</span>
                       </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <Clock size={12} className="text-gray-600" />
-                        <span className="font-body text-xs text-gray-500">
-                          {hours > 0 && `${hours}${t(lang, 'hours')}`}{mins > 0 ? ` ${mins}${t(lang, 'minutes')}` : ''} {t(lang, 'play_time')}
-                        </span>
-                      </div>
+                      {(pkg.bonusPercentage || 0) > 0 && (
+                        <div className="mt-0.5">
+                          <span className="font-ninja text-[10px] px-1.5 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}% {isAr ? 'مكافأة' : 'BONUS'}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   <div className={isAr ? 'text-left' : 'text-right'}>
@@ -204,9 +201,9 @@ export function TopUpScreen({ player, lang = 'en' }: Props) {
             <div className="h-px flex-1 bg-white/5" />
           </div>
           <p className="font-body text-gray-600 text-xs">
-            {t(lang, 'min_deposit')}: <span className="text-gray-400">2 JOD</span> &nbsp;·&nbsp;
-            1 JOD = <span className="text-gray-400">100 {t(lang, 'coins')}</span> &nbsp;·&nbsp;
-            1 {t(lang, 'hours')} = <span className="text-gray-400">150 {t(lang, 'coins')}</span>
+            {isAr
+              ? 'استخدم التوكنز لشراء الوقت والصناديق والطعام. الخصم المجمّع يُطبَّق على الوقت فقط.'
+              : 'Spend tokens on time, chests and food. Bulk bonus applies to time only — chest & food prices stay at their real value.'}
           </p>
           {!requestSent && (
             <div className="mt-4 flex items-center justify-center gap-2 text-ninja-green/50">

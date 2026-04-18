@@ -369,9 +369,11 @@ export function SupportBubble({ player, pcName, isMobile = false }: Props) {
                   <div className="w-16 h-16 rounded-full bg-ninja-green/10 flex items-center justify-center mb-4 border border-ninja-green/20">
                     <Headphones size={28} className="text-ninja-green/60" />
                   </div>
-                  <p className="font-ninja text-lg text-ninja-green/80 mb-1">{ar ? 'تحتاج مساعدة؟' : 'Need Help?'}</p>
+                  <p className="font-ninja text-lg text-ninja-green/80 mb-1">{ar ? 'هل وجدت خطأ أو تحتاج مساعدة؟' : 'Did you find an error or need help?'}</p>
                   <p className="font-body text-xs text-gray-500 leading-relaxed">
-                    {ar ? 'أرسل رسالة وسيرد فريقنا في أقرب وقت ممكن.' : 'Send a message and our team will reply as soon as possible.'}
+                    {ar
+                      ? 'اكتب رسالتك هنا في دردشة الإدارة، أو توجّه إلى موظف الاستقبال.'
+                      : 'Type your message here in admin chat, or walk up to the admin desk.'}
                   </p>
                 </div>
               )}

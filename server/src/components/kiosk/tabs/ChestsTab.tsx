@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, collection, addDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { CHESTS, RARITY_COLORS } from '@/lib/constants';
+import { personalCoinCost } from '@/lib/pricing';
 import { Chest, ChestReward } from '@/types';
 import { Coins, Sparkles, Star, Zap, Gift, Coffee, Cookie, UtensilsCrossed, Trophy, Percent, X, Clock, Crown, Users, SkipForward, Package, ChevronLeft, Eye, TrendingUp } from 'lucide-react';
 import { trackDailyTask } from '@/lib/daily-tasks';
@@ -88,7 +89,10 @@ export function ChestsTab({ player }: Props) {
   const totalXP = calculateTotalXP(player);
   const levelInfo = getLevelInfo(totalXP);
   const chestDiscount = levelInfo.chestDiscount;
-  const getDiscountedCost = (cost: number) => Math.floor(cost * (1 - chestDiscount / 100));
+  // Tier chest discount first, then personal coin multiplier so bulk-bought
+  // tokens do not cheapen chests beyond the tier reward.
+  const getDiscountedCost = (cost: number) =>
+    personalCoinCost(Math.floor(cost * (1 - chestDiscount / 100)), player);
 
   // Live listener for recent drops (all players)
   useEffect(() => {

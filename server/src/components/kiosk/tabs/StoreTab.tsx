@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
 import { CHESTS, COIN_PACKAGES, NINJA_SKINS, RARITY_COLORS, VIP_CONFIG, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { personalCoinCost } from '@/lib/pricing';
 import { Chest, ChestReward, NinjaSkin } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { trackDailyTask } from '@/lib/daily-tasks';
@@ -460,7 +461,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const playerLevel = levelInfo.level;
   const chestDiscount = levelInfo.chestDiscount;
 
-  const getDiscountedCost = (cost: number) => Math.floor(cost * (1 - chestDiscount / 100));
+  // Applies the tier-level chest discount first, then the player's personal-coin
+  // multiplier so bulk-bought tokens do not further cheapen chests.
+  const getDiscountedCost = (cost: number) =>
+    personalCoinCost(Math.floor(cost * (1 - chestDiscount / 100)), player);
+  // For every non-time item (skins, VIP, bundles, gift cards) — preserves JOD value.
+  const myPrice = (baseCost: number) => personalCoinCost(baseCost, player);
 
   const filteredSkins = useMemo(() =>
     NINJA_SKINS.filter(s => s.category !== 'country' && (categoryFilter === 'all' || s.category === categoryFilter)),
@@ -487,7 +493,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
     if (ownedNinjas.includes(skin.id)) return showToast(ar ? 'تمتلك هذا السكن بالفعل!' : 'You already own this skin!', false);
     if (skin.tier === 'mythic') return showToast(ar ? 'لا يمكن شراء السكنز الأسطورية الخرافية!' : 'Mythic skins cannot be purchased!', false);
     if (skin.unlockLevel && playerLevel < skin.unlockLevel) return showToast(ar ? `تحتاج المستوى ${skin.unlockLevel}!` : `Need Level ${skin.unlockLevel}!`, false);
-    if (skin.price > 0 && player.coins < skin.price) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
+    const skinCost = myPrice(skin.price);
+    if (skin.price > 0 && player.coins < skinCost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     if (skin.tier === 'free' && skin.price === 0) {
       setBuying(true);
       try {
@@ -503,12 +510,12 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
       const skinItem = {
         id: `skin_${skin.id}_${Date.now()}`, type: 'skin', name: skin.name,
         rarity: skin.tier === 'legendary' ? 'legendary' : skin.tier === 'epic' ? 'epic' : skin.tier === 'rare' ? 'rare' : 'common',
-        skinId: skin.id, value: skin.price, obtainedAt: Date.now(), used: false, tradeable: skin.tier !== 'free',
+        skinId: skin.id, value: skinCost, obtainedAt: Date.now(), used: false, tradeable: skin.tier !== 'free',
       };
       const currentInventory = [...(player.inventory || []), skinItem];
       await updateDoc(doc(db, 'players', player.uid), {
-        coins: increment(-skin.price), ownedNinjas: arrayUnion(skin.id),
-        totalCoinsSpent: increment(skin.price), inventory: currentInventory,
+        coins: increment(-skinCost), ownedNinjas: arrayUnion(skin.id),
+        totalCoinsSpent: increment(skinCost), inventory: currentInventory,
       });
       setBuySuccess(true); showToast(ar ? `تم فتح ${skin.name}!` : `${skin.name} unlocked!`, true);
       setTimeout(() => { setBuySuccess(false); setSelectedSkin(null); }, 1600);
@@ -542,8 +549,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
     try {
       await addDoc(collection(db, 'topup-requests'), {
         playerId: player.uid, playerName: player.username,
-        packageId: pkg.id, coins: pkg.coins, priceJOD: pkg.price,
-        status: 'pending', createdAt: Date.now(),
+        packageId: pkg.id, coins: pkg.coins, price: pkg.price,
+        status: 'pending', createdAt: Date.now(), timestamp: Date.now(),
       });
       setTopUpSent(true);
     } catch { showToast(ar ? 'فشل الطلب.' : 'Request failed.', false); }
@@ -556,7 +563,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
   const buyVip = async () => {
     if (buyingVip) return;
-    if (player.coins < VIP_CONFIG.priceCoins) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
+    const vipCost = myPrice(VIP_CONFIG.priceCoins);
+    if (player.coins < vipCost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuyingVip(true);
     try {
       const vipItem = {
@@ -564,15 +572,15 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         type: 'vip',
         name: 'VIP Pass (30 Days)',
         rarity: 'legendary',
-        value: VIP_CONFIG.priceCoins,
+        value: vipCost,
         obtainedAt: Date.now(),
         used: false,
         tradeable: true,
       };
       const currentInventory = [...(player.inventory || []), vipItem];
       await updateDoc(doc(db, 'players', player.uid), {
-        coins: increment(-VIP_CONFIG.priceCoins),
-        totalCoinsSpent: increment(VIP_CONFIG.priceCoins),
+        coins: increment(-vipCost),
+        totalCoinsSpent: increment(vipCost),
         inventory: currentInventory,
       });
       showToast(ar ? 'تمت إضافة VIP Pass إلى مخزونك! اذهب إلى المخزون لتفعيله.' : 'VIP Pass added to your inventory! Go to Inventory to activate it.', true);
@@ -611,7 +619,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   // ─── Buy bundle ───────────────────────────────────────────────────────────
   const buyBundle = async (bundle: typeof BUNDLES[number]) => {
     if (buying) return;
-    if (player.coins < bundle.price) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
+    const bundleCost = myPrice(bundle.price);
+    if (player.coins < bundleCost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuying(true);
     try {
       const bundleItem = {
@@ -620,14 +629,14 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         name: bundle.name,
         rarity: 'legendary',
         bundleId: bundle.id,
-        value: bundle.price,
+        value: bundleCost,
         obtainedAt: Date.now(),
         used: false,
         tradeable: false,
       };
       await updateDoc(doc(db, 'players', player.uid), {
-        coins: increment(-bundle.price),
-        totalCoinsSpent: increment(bundle.price),
+        coins: increment(-bundleCost),
+        totalCoinsSpent: increment(bundleCost),
         inventory: arrayUnion(bundleItem),
       });
       showToast(ar ? `تم شراء ${bundle.name}! افتحه من المخزون.` : `${bundle.name} purchased! Open it from inventory.`, true);
@@ -639,7 +648,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const requestGiftCard = async () => {
     if (gcSending) return;
     if (!gcModal || !gcAmount) return showToast(ar ? 'اختر المبلغ!' : 'Select an amount!', false);
-    const costCoins = gcAmount * USD_TO_COINS;
+    const costCoins = myPrice(gcAmount * USD_TO_COINS);
     if (player.coins < costCoins) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
 
     setGcSending(true);
@@ -1035,7 +1044,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                             {status === 'owned' ? <span className="font-ninja text-[10px] text-ninja-green flex items-center gap-1"><Check size={10} /> {ar ? 'مملوك' : 'OWNED'}</span>
                               : status === 'free' ? <span className="font-ninja text-[10px] text-green-400">{ar ? 'مجاني' : 'FREE'}</span>
                               : status === 'locked' || status === 'level-locked' ? <span className="font-ninja text-[10px] flex items-center gap-1" style={{ color: tierCfg.color }}><Lock size={10} /> {ar ? `مستوى ${skin.unlockLevel}` : `LVL ${skin.unlockLevel}`}</span>
-                              : <span className="font-ninja text-[10px] text-yellow-300 flex items-center gap-1"><Coins size={10} className="text-yellow-400" /> {skin.price}</span>}
+                              : <span className="font-ninja text-[10px] text-yellow-300 flex items-center gap-1"><Coins size={10} className="text-yellow-400" /> {myPrice(skin.price)}</span>}
                           </div>
                         </div>
                       </div>
@@ -1473,7 +1482,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         <p className="font-body text-xs text-gray-500">{ar ? '30 يوماً من المزايا المميزة' : '30 days of premium benefits'}</p>
                       </div>
                       <div className="text-right">
-                        <p className="font-ninja text-3xl text-yellow-400">{VIP_CONFIG.priceCoins.toLocaleString()}</p>
+                        <p className="font-ninja text-3xl text-yellow-400">{myPrice(VIP_CONFIG.priceCoins).toLocaleString()}</p>
                         <p className="font-ninja text-sm text-gray-500">{ar ? 'توكنز' : 'coins'}</p>
                       </div>
                     </div>
@@ -1505,21 +1514,21 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     ) : null}
 
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      onClick={buyVip} disabled={buyingVip || player.coins < VIP_CONFIG.priceCoins}
+                      onClick={buyVip} disabled={buyingVip || player.coins < myPrice(VIP_CONFIG.priceCoins)}
                       className="w-full py-3.5 rounded-xl font-ninja text-base flex items-center justify-center gap-2"
                       style={{
-                        background: player.coins >= VIP_CONFIG.priceCoins
+                        background: player.coins >= myPrice(VIP_CONFIG.priceCoins)
                           ? 'linear-gradient(135deg, #FFD700, #FFA000)'
                           : 'rgba(255,255,255,0.05)',
-                        color: player.coins >= VIP_CONFIG.priceCoins ? '#000' : '#666',
-                        border: player.coins < VIP_CONFIG.priceCoins ? '1px solid rgba(255,255,255,0.1)' : 'none',
+                        color: player.coins >= myPrice(VIP_CONFIG.priceCoins) ? '#000' : '#666',
+                        border: player.coins < myPrice(VIP_CONFIG.priceCoins) ? '1px solid rgba(255,255,255,0.1)' : 'none',
                       }}>
                       {buyingVip ? (
                         <span className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />
-                      ) : player.coins < VIP_CONFIG.priceCoins ? (
-                        <><Lock size={16} /> {ar ? `توكنز غير كافية (${Math.floor(player.coins).toLocaleString()}/${VIP_CONFIG.priceCoins.toLocaleString()})` : `NOT ENOUGH COINS (${Math.floor(player.coins).toLocaleString()}/${VIP_CONFIG.priceCoins.toLocaleString()})`}</>
+                      ) : player.coins < myPrice(VIP_CONFIG.priceCoins) ? (
+                        <><Lock size={16} /> {ar ? `توكنز غير كافية (${Math.floor(player.coins).toLocaleString()}/${myPrice(VIP_CONFIG.priceCoins).toLocaleString()})` : `NOT ENOUGH COINS (${Math.floor(player.coins).toLocaleString()}/${myPrice(VIP_CONFIG.priceCoins).toLocaleString()})`}</>
                       ) : (
-                        <><ShoppingBag size={16} /> {ar ? `اشترِ VIP PASS — ${VIP_CONFIG.priceCoins.toLocaleString()} توكن` : `BUY VIP PASS — ${VIP_CONFIG.priceCoins.toLocaleString()} COINS`}</>
+                        <><ShoppingBag size={16} /> {ar ? `اشترِ VIP PASS — ${myPrice(VIP_CONFIG.priceCoins).toLocaleString()} توكن` : `BUY VIP PASS — ${myPrice(VIP_CONFIG.priceCoins).toLocaleString()} COINS`}</>
                       )}
                     </motion.button>
 
@@ -1586,8 +1595,6 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     {/* Coin packages — radio style */}
                     <div className="space-y-3 mb-6">
                       {COIN_PACKAGES.map((pkg, i) => {
-                        const hours = Math.floor(pkg.coins / 150);
-                        const mins = Math.round((pkg.coins % 150) / 2.5);
                         const selected = topUpSelected === pkg.id;
                         return (
                           <motion.button key={pkg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
@@ -1610,7 +1617,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                                 </div>
                                 <div>
                                   <span className="font-ninja text-white" style={{ textShadow: selected ? '0 0 8px rgba(234,179,8,0.3)' : 'none' }}>{pkg.coins.toLocaleString()} {ar ? 'توكنز' : 'tokens'}</span>
-                                  <span className="font-body text-gray-500 text-xs ml-2">({hours}h{mins > 0 ? ` ${mins}m` : ''})</span>
+                                  {(pkg.bonusPercentage || 0) > 0 && (
+                                    <span className="font-ninja text-[10px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}% BONUS</span>
+                                  )}
                                 </div>
                               </div>
                               <div className="flex items-center gap-2">
@@ -1668,7 +1677,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                         <div className="flex-1">
                           <p className="font-ninja text-sm text-yellow-400 tracking-wider">{ar ? 'كن VIP' : 'BECOME VIP'}</p>
                           <p className="font-body text-xs text-gray-400 mt-0.5">{ar ? 'احصل على مزايا حصرية، لعب مجاني يومي، خصومات الكافيه، سكنز حصرية والمزيد!' : 'Get exclusive perks, daily free play, café discounts, exclusive skins & more!'}</p>
-                          <p className="font-ninja text-xs text-white mt-1">{VIP_CONFIG.priceCoins.toLocaleString()} {ar ? 'توكن' : 'Coins'}</p>
+                          <p className="font-ninja text-xs text-white mt-1">{myPrice(VIP_CONFIG.priceCoins).toLocaleString()} {ar ? 'توكن' : 'Coins'}</p>
                         </div>
                         <div className="flex-shrink-0">
                           <div className="px-3 py-1.5 rounded-lg font-ninja text-xs text-black" style={{ background: 'linear-gradient(135deg, #FFD700, #FFA000)' }}>{ar ? 'عرض' : 'VIEW'}</div>
@@ -1814,7 +1823,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <div className="flex items-center justify-between">
                       <span className="font-ninja text-[11px] text-gray-400 tracking-wider">{ar ? 'التكلفة الإجمالية' : 'TOTAL COST'}</span>
                       <span className="font-ninja text-lg text-yellow-400 flex items-center gap-1.5" style={{ textShadow: '0 0 8px rgba(234,179,8,0.3)' }}>
-                        <Coins size={14} /> {(gcAmount * USD_TO_COINS).toLocaleString()}
+                        <Coins size={14} /> {(myPrice(gcAmount * USD_TO_COINS)).toLocaleString()}
                       </span>
                     </div>
                   </div>
@@ -1832,7 +1841,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 {/* Buy button */}
                 {!gcRequestSent && (
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    onClick={requestGiftCard} disabled={gcSending || !gcAmount || (gcAmount ? player.coins < gcAmount * USD_TO_COINS : false)}
+                    onClick={requestGiftCard} disabled={gcSending || !gcAmount || (gcAmount ? player.coins < myPrice(gcAmount * USD_TO_COINS) : false)}
                     className="relative w-full py-3.5 rounded-xl font-ninja text-base tracking-wider flex items-center justify-center gap-2 transition-all disabled:opacity-30 overflow-hidden"
                     style={{ background: `linear-gradient(135deg, ${gcModal.accent}, ${gcModal.accent}BB)`, color: '#000', boxShadow: `0 0 25px ${gcModal.glow}` }}>
                     <div className="absolute top-0 left-0 w-2 h-2" style={{ borderTop: '2px solid rgba(0,0,0,0.3)', borderLeft: '2px solid rgba(0,0,0,0.3)' }} />

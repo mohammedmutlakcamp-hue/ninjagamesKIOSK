@@ -7,6 +7,7 @@ import { collection, onSnapshot, doc, updateDoc, increment, arrayUnion, getDoc, 
 import { Tournament, TournamentParticipant } from '@/types/tournament';
 import { GAMES_CATALOG } from '@/lib/games-catalog';
 import { Club, CLUB_MAX_MEMBERS, chargeEachMemberShare, clubShareOf, consumeClubVouchers } from '@/lib/clubs';
+import { personalCoinCost } from '@/lib/pricing';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import {
   Trophy, Coins, Users, Clock, Swords, Calendar, ChevronRight,
@@ -91,14 +92,15 @@ export function TournamentTab({ player }: Props) {
     if (isRegistered(t)) { setJoinError(ar ? 'مسجّل بالفعل!' : 'Already registered!'); setJoining(false); return; }
     if ((t.participants?.length || 0) >= t.maxPlayers) { setJoinError(ar ? 'البطولة ممتلئة!' : 'Tournament is full!'); setJoining(false); return; }
     const hasPass = hasTournamentPass();
-    if (!hasPass && player.coins < t.entryFee) { setJoinError(ar ? 'التوكنز غير كافية!' : 'Not enough tokens!'); setJoining(false); return; }
+    const entryCost = personalCoinCost(t.entryFee, player);
+    if (!hasPass && player.coins < entryCost) { setJoinError(ar ? 'التوكنز غير كافية!' : 'Not enough tokens!'); setJoining(false); return; }
     try {
       if (hasPass) {
         let found = false;
         const finalInventory = (player.inventory || []).map((inv: any) => { if (!found && inv.name === 'Tournament Entry Pass' && !inv.used) { found = true; return { ...inv, used: true }; } return inv; });
         await updateDoc(doc(db, 'players', player.uid), { inventory: finalInventory });
       } else {
-        await updateDoc(doc(db, 'players', player.uid), { coins: increment(-t.entryFee), totalCoinsSpent: increment(t.entryFee) });
+        await updateDoc(doc(db, 'players', player.uid), { coins: increment(-entryCost), totalCoinsSpent: increment(entryCost) });
       }
       const participant: TournamentParticipant = {
         playerId: player.uid, playerName: player.username,

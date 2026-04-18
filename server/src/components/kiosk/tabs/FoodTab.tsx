@@ -7,6 +7,7 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, increment, query, where
 import { MenuItem } from '@/types';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import { VIP_CONFIG } from '@/lib/constants';
+import { personalCoinCost } from '@/lib/pricing';
 import { useFeatureFlags } from '@/lib/feature-flags';
 import { getMenuImage } from '@/lib/menu-images';
 import { notifyAdmin } from '@/lib/notify-admin';
@@ -108,13 +109,16 @@ export function FoodTab({ player }: Props) {
   const subtotalCoins = Object.entries(cart).reduce((s, [id, qty]) => { const item = items.find(i => i.id === id); return s + (item ? item.price * qty : 0); }, 0);
   const isVip = player.vip?.active && player.vip?.expiresAt > Date.now();
   const vipDiscount = isVip ? Math.floor(subtotalCoins * VIP_CONFIG.cafeDiscountPercent / 100) : 0;
-  const totalCoins = subtotalCoins - vipDiscount;
+  // Base JOD-value of the order after VIP discount; personal multiplier keeps it
+  // at the same real JOD value regardless of how cheaply the coins were bought.
+  const baseAfterVip = subtotalCoins - vipDiscount;
+  const totalCoins = personalCoinCost(baseAfterVip, player);
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
   const placeOrder = async () => {
     const currentlyVip = player.vip?.active && (player.vip?.expiresAt || 0) > Date.now();
     const actualDiscount = currentlyVip ? Math.floor(subtotalCoins * VIP_CONFIG.cafeDiscountPercent / 100) : 0;
-    const actualTotal = subtotalCoins - actualDiscount;
+    const actualTotal = personalCoinCost(subtotalCoins - actualDiscount, player);
     if (actualTotal > (player.coins || 0) || cartCount === 0) return;
     setOrdering(true);
     try {

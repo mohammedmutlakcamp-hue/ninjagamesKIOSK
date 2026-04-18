@@ -35,6 +35,9 @@ export interface Player {
   profileColor?: string; // paid profile color
   profileSkin?: string; // paid profile skin id
   country?: string; // country flag id
+  // Personal coin value system (see lib/pricing.ts)
+  effectiveRate?: number;         // weighted-avg JOD per coin; default 0.01 (BASE_RATE)
+  coinsFromPurchases?: number;    // lifetime coins ever added via paid top-ups
 }
 
 export interface SocialLinks {

@@ -11,15 +11,21 @@ export const RESERVATION_MAX_MINUTES = 30;
 export const RESERVATION_COIN_RATE = COINS_PER_MINUTE;
 export const MIN_DEPOSIT_JOD = 2;
 
-// 7-tier coin packages. Base rate 100 coins per 1 JOD; higher tiers add bonus coins.
-export const COIN_PACKAGES: CoinPackage[] = [
+// Coin packages. Master (7000 / 50 JOD) is the ONLY pack offered to players.
+// Smaller tiers are kept in LEGACY_COIN_PACKAGES for admin reference / historical
+// Firestore docs that may still carry those package IDs.
+// Policy: every player top-up must be >= 7000 coins, bonus capped at 40%.
+export const LEGACY_COIN_PACKAGES: CoinPackage[] = [
   { id: 'pack_starter',  name: 'Starter',  coins: 100,  price: 1,    label: '100 Coins',  bonusPercentage: 0 },
   { id: 'pack_plus',     name: 'Plus',     coins: 250,  price: 2.25, label: '250 Coins',  bonusPercentage: 11 },
-  { id: 'pack_pro',      name: 'Pro',      coins: 575,  price: 5,    label: '575 Coins',  bonusPercentage: 15, popular: true },
+  { id: 'pack_pro',      name: 'Pro',      coins: 575,  price: 5,    label: '575 Coins',  bonusPercentage: 15 },
   { id: 'pack_elite',    name: 'Elite',    coins: 1200, price: 10,   label: '1200 Coins', bonusPercentage: 20 },
   { id: 'pack_legend',   name: 'Legend',   coins: 2600, price: 20,   label: '2600 Coins', bonusPercentage: 30 },
   { id: 'pack_ultimate', name: 'Ultimate', coins: 4050, price: 30,   label: '4050 Coins', bonusPercentage: 35 },
-  { id: 'pack_master',   name: 'Master',   coins: 7000, price: 50,   label: '7000 Coins', bonusPercentage: 40 },
+];
+
+export const COIN_PACKAGES: CoinPackage[] = [
+  { id: 'pack_master',   name: 'Master',   coins: 7000, price: 50,   label: '7000 Coins', bonusPercentage: 40, popular: true },
 ];
 
 // ==================== TIME PACKAGES ====================

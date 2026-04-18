@@ -1259,7 +1259,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                     </motion.button>
                   )}
                   <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                    onClick={() => { window.open('/info', '_blank'); }}
+                    onClick={() => { window.open('/infokiosk', '_blank'); }}
                     className="relative h-12 px-4 rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1.5 overflow-hidden"
                     style={{
                       background: 'rgba(57,255,20,0.08)',

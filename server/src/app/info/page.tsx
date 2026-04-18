@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import Image from 'next/image';
-import { MapPin, Star, Facebook, Instagram, ArrowLeft, X, Smartphone } from 'lucide-react';
+import { MapPin, Star, Facebook, Instagram } from 'lucide-react';
 
 interface LinkItem {
   title: string;
@@ -34,66 +33,9 @@ const links: LinkItem[] = [
   },
 ];
 
-function qrImageUrl(url: string, size = 320): string {
-  return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&margin=8&color=0D1F0D&bgcolor=FFFFFF&data=${encodeURIComponent(url)}`;
-}
-
-function handleBackToKiosk() {
-  if (typeof window === 'undefined') return;
-
-  // 1) Native bridge when running inside the C# kiosk WebView2
-  try {
-    const api = (window as any).electronAPI;
-    if (api?.returnToKiosk) { api.returnToKiosk(); return; }
-  } catch {}
-
-  // 2) If we were opened in a popup window (target="_blank"), close it
-  try {
-    if (window.opener && window.opener !== window) {
-      window.close();
-      return;
-    }
-  } catch {}
-
-  // 3) If we came from /kiosk or /app in the same tab, go back in history
-  try {
-    const ref = document.referrer || '';
-    const sameOrigin = ref && new URL(ref).origin === window.location.origin;
-    if (sameOrigin && /\/(kiosk|app)(\?|$|\/)/.test(ref)) {
-      window.history.back();
-      return;
-    }
-  } catch {}
-
-  // 4) Last resort — hard-navigate to /kiosk in the current window
-  window.location.replace('/kiosk');
-}
-
 export default function InfoPage() {
-  const [qrLink, setQrLink] = useState<LinkItem | null>(null);
-
   return (
     <div className="min-h-screen flex items-center justify-center relative overflow-hidden bg-black">
-      {/* Persistent BACK TO KIOSK button (fixed top-left, always visible) */}
-      <motion.button
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        onClick={handleBackToKiosk}
-        className="fixed top-4 left-4 z-[60] flex items-center gap-2 px-4 py-2.5 rounded-full border border-[#00ff41]/40"
-        style={{
-          background: 'linear-gradient(135deg, rgba(0,0,0,0.85), rgba(0,255,65,0.1))',
-          backdropFilter: 'blur(10px)',
-          color: '#00ff41',
-          boxShadow: '0 0 20px rgba(0,255,65,0.25)',
-          fontFamily: "'IBM Plex Sans', sans-serif",
-        }}
-      >
-        <ArrowLeft size={16} />
-        <span className="text-xs font-semibold tracking-wider">BACK TO KIOSK</span>
-      </motion.button>
-
       {/* Animated gradient background */}
       <div
         className="absolute inset-0"
@@ -104,7 +46,6 @@ export default function InfoPage() {
         }}
       />
 
-      {/* Dark overlay for readability */}
       <div className="absolute inset-0 bg-black/60" />
 
       {/* Animated lime glow orbs */}
@@ -129,7 +70,6 @@ export default function InfoPage() {
         />
       </div>
 
-      {/* Global keyframes */}
       <style jsx global>{`
         @keyframes gradientShift {
           0% { background-position: 0% 50%; }
@@ -139,7 +79,6 @@ export default function InfoPage() {
       `}</style>
 
       <div className="relative z-10 w-full max-w-[420px] px-6 py-12 flex flex-col items-center">
-        {/* Avatar with glow */}
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -155,7 +94,6 @@ export default function InfoPage() {
           </motion.div>
         </motion.div>
 
-        {/* Name */}
         <motion.h1
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -166,7 +104,6 @@ export default function InfoPage() {
           Ninjagames
         </motion.h1>
 
-        {/* Bio */}
         <motion.p
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
@@ -176,12 +113,14 @@ export default function InfoPage() {
           Just a ninja 👀
         </motion.p>
 
-        {/* Links — tapping opens a QR popup so the player stays on the kiosk */}
+        {/* Links — open directly on phone / browser */}
         <div className="w-full space-y-3">
           {links.map((link, i) => (
-            <motion.button
+            <motion.a
               key={link.title}
-              onClick={() => setQrLink(link)}
+              href={link.url}
+              target="_blank"
+              rel="noopener noreferrer"
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.2 + i * 0.08 }}
@@ -199,28 +138,26 @@ export default function InfoPage() {
             >
               <span className="absolute left-5 opacity-60">{link.icon}</span>
               {link.title}
-            </motion.button>
+            </motion.a>
           ))}
         </div>
 
-        {/* Social Icons */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.6 }}
           className="mt-8 flex gap-4"
         >
-          <button onClick={() => setQrLink(links.find(l => l.title === 'Instagram')!)}
+          <a href="https://www.instagram.com/ininjagames" target="_blank" rel="noopener noreferrer"
             className="w-10 h-10 rounded-full bg-[#00ff41]/10 border border-[#00ff41]/20 flex items-center justify-center text-[#00ff41] hover:bg-[#00ff41]/20 transition-all">
             <Instagram size={18} />
-          </button>
-          <button onClick={() => setQrLink(links.find(l => l.title === 'Facebook')!)}
+          </a>
+          <a href="https://www.facebook.com/Ninjawyz" target="_blank" rel="noopener noreferrer"
             className="w-10 h-10 rounded-full bg-[#00ff41]/10 border border-[#00ff41]/20 flex items-center justify-center text-[#00ff41] hover:bg-[#00ff41]/20 transition-all">
             <Facebook size={18} />
-          </button>
+          </a>
         </motion.div>
 
-        {/* Footer */}
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -230,84 +167,6 @@ export default function InfoPage() {
           ninjagamesjo.com
         </motion.p>
       </div>
-
-      {/* QR Popup — "SCAN ME TO OPEN ON PHONE" */}
-      <AnimatePresence>
-        {qrLink && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setQrLink(null)}
-            className="fixed inset-0 z-[80] flex items-center justify-center px-5"
-            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(14px)' }}
-          >
-            <motion.div
-              initial={{ scale: 0.9, y: 20, opacity: 0 }}
-              animate={{ scale: 1, y: 0, opacity: 1 }}
-              exit={{ scale: 0.9, y: 20, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 24 }}
-              onClick={(e) => e.stopPropagation()}
-              className="relative w-full max-w-[380px] rounded-3xl p-7 text-center"
-              style={{
-                background: 'linear-gradient(180deg, #04120a 0%, #020806 100%)',
-                border: '1.5px solid rgba(0,255,65,0.35)',
-                boxShadow: '0 25px 60px rgba(0,0,0,0.9), 0 0 50px rgba(0,255,65,0.18)',
-              }}
-            >
-              {/* Close */}
-              <button
-                onClick={() => setQrLink(null)}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full flex items-center justify-center text-[#00ff41]/70 hover:text-[#00ff41] transition-all"
-                style={{ background: 'rgba(0,255,65,0.08)', border: '1px solid rgba(0,255,65,0.2)' }}
-              >
-                <X size={16} />
-              </button>
-
-              {/* Header */}
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <span className="text-[#00ff41]/60">{qrLink.icon}</span>
-                <h2 className="text-white text-xl font-bold tracking-wide"
-                  style={{ fontFamily: "'IBM Plex Sans', sans-serif", textShadow: '0 0 14px rgba(0,255,65,0.4)' }}>
-                  {qrLink.title}
-                </h2>
-              </div>
-
-              {/* "SCAN ME" label */}
-              <div className="flex items-center justify-center gap-2 mb-5 text-[#00ff41]/70 text-xs tracking-[0.25em] font-semibold">
-                <Smartphone size={13} />
-                SCAN ME TO OPEN ON PHONE
-              </div>
-
-              {/* QR code */}
-              <motion.div
-                animate={{ boxShadow: ['0 0 25px rgba(0,255,65,0.3)', '0 0 45px rgba(0,255,65,0.55)', '0 0 25px rgba(0,255,65,0.3)'] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                className="mx-auto w-[280px] h-[280px] rounded-2xl p-3 bg-white"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={qrImageUrl(qrLink.url)}
-                  alt={`QR code for ${qrLink.title}`}
-                  width={320}
-                  height={320}
-                  className="w-full h-full rounded-lg"
-                />
-              </motion.div>
-
-              {/* URL */}
-              <p className="mt-5 text-[#00ff41]/50 text-[11px] break-all font-mono px-2">
-                {qrLink.url}
-              </p>
-
-              {/* Hint */}
-              <p className="mt-4 text-white/60 text-xs">
-                Point your phone camera at the code — we won&apos;t take you off the kiosk.
-              </p>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
     </div>
   );
 }
