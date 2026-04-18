@@ -9,7 +9,7 @@ import { PREBUILTS } from './data/prebuilts';
 // Pre-builts are kept synthetic on purpose — they represent Ninja Games' OWN
 // custom builds (Genin/Chunin/Jonin/Kage tiers) that aren't sold by iGeek.
 
-const igeekProducts: Product[] = Object.values(igeekCache as Record<string, Product[]>).flat();
+const igeekProducts: Product[] = Object.values(igeekCache as unknown as Record<string, Product[]>).flat();
 
 // Deterministic stock count override based on product id, so SSR + CSR
 // agree (the scraped inStock flag is preserved; this only sets the unit count).
