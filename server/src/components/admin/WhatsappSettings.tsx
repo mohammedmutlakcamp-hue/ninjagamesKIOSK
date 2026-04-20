@@ -32,6 +32,9 @@ interface WhatsappConfig {
   metaBusinessAccountId?: string;
   defaultCountryCode?: string;
   senderName?: string;
+  // Admin phone(s) that receive ALL kiosk events (orders, top-ups, buy-time,
+  // shisha, chat, registrations, etc). Comma-separate for multiple owners.
+  adminPhone?: string;
 }
 
 const input = 'w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0071e3] text-sm';
@@ -137,14 +140,15 @@ export function WhatsappSettings() {
             <MessageCircle size={22} className="text-[#25D366]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">WhatsApp</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">WhatsApp — Admin Notifications</h2>
             <p className="text-[#86868b] text-sm">
               {cfg.enabled ? (
                 <span className="inline-flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#34c759] animate-pulse" /> Live — provider: <strong>{cfg.provider || '(none)'}</strong>
+                  <span className="w-1.5 h-1.5 rounded-full bg-[#34c759] animate-pulse" /> Live via <strong>{cfg.provider || '(none)'}</strong> →
+                  <span className="font-mono text-[#1d1d1f]">{cfg.adminPhone || '(no admin phone set)'}</span>
                 </span>
               ) : (
-                <span className="text-[#ff9500]">Disabled — enable below after entering credentials</span>
+                <span className="text-[#ff9500]">Disabled — every order / top-up / buy-time / chat will be mirrored to your phone once enabled</span>
               )}
             </p>
           </div>
@@ -265,6 +269,23 @@ export function WhatsappSettings() {
               </div>
             </div>
 
+            {/* ⭐ Admin recipient — THIS is where all kiosk events get routed */}
+            <div className="border-t border-[#e5e5ea] pt-4">
+              <label className="text-xs font-medium text-[#25D366] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <Radio size={12} /> Admin phone(s) — receives every kiosk event
+              </label>
+              <input type="text" value={cfg.adminPhone || ''}
+                onChange={(e) => setCfg({ ...cfg, adminPhone: e.target.value })}
+                placeholder="0791234567  (comma-separate multiple owners)"
+                className={`${input} font-mono`} />
+              <p className="text-[11px] text-[#86868b] mt-1.5">
+                Every order, top-up request, time purchase, hubbly/food order, guest
+                registration, chat message, and PIN reset gets mirrored to this
+                number via WhatsApp. Comma-separate for multiple owners:
+                <code className="bg-[#f5f5f7] px-1 rounded mx-1">0791111111, 0799999999</code>
+              </p>
+            </div>
+
             {/* Enable toggle */}
             <div className="flex items-center justify-between pt-4 border-t border-[#e5e5ea]">
               <div>
@@ -277,12 +298,36 @@ export function WhatsappSettings() {
               </button>
             </div>
 
-            {/* Save */}
-            <div className="pt-4 border-t border-[#e5e5ea] flex items-center gap-3">
+            {/* Save + Test */}
+            <div className="pt-4 border-t border-[#e5e5ea] flex items-center gap-2 flex-wrap">
               <button onClick={saveConfig} disabled={saving}
                 className="px-5 py-2.5 bg-[#25D366] text-white rounded-xl font-medium text-sm hover:bg-[#20c05c] disabled:opacity-50 flex items-center gap-2">
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={14} />}
                 Save Configuration
+              </button>
+              <button
+                onClick={async () => {
+                  if (!cfg.adminPhone) { alert('Enter admin phone first + save.'); return; }
+                  setSaving(true);
+                  try {
+                    await fetch('/api/notify-admin', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({
+                        type: 'default',
+                        title: 'Test — Ninja Admin',
+                        message: `If you see this on WhatsApp, the pipeline works. Sent at ${new Date().toLocaleTimeString()}.`,
+                      }),
+                    });
+                    setSendResult({ ok: true, text: 'Test dispatched. Check your phone within a few seconds.' });
+                  } catch (err: any) {
+                    setSendResult({ ok: false, text: err?.message || 'failed' });
+                  }
+                  setSaving(false);
+                }}
+                disabled={saving || !cfg.enabled}
+                className="px-5 py-2.5 bg-white border border-[#25D366] text-[#25D366] rounded-xl font-medium text-sm hover:bg-[#25D366]/5 disabled:opacity-50 flex items-center gap-2">
+                <Send size={14} /> Send test to admin phone
               </button>
               {justSaved && (
                 <span className="text-[#34c759] text-xs flex items-center gap-1">
@@ -290,6 +335,11 @@ export function WhatsappSettings() {
                 </span>
               )}
             </div>
+            {sendResult && tab === 'config' && (
+              <div className={`rounded-xl p-3 text-xs ${sendResult.ok ? 'bg-[#34c759]/10 text-[#15803d]' : 'bg-[#ff3b30]/10 text-[#991b1b]'}`}>
+                {sendResult.text}
+              </div>
+            )}
 
             {/* Security callout */}
             <div className="bg-[#fff3cd] border border-[#ffeaa7] rounded-xl p-3 text-[11px] text-[#8a6d3b] flex items-start gap-2">

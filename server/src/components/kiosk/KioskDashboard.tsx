@@ -3262,6 +3262,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                             totalCoinsSpent: increment(pkg.coins),
                             remainingPlaytime: increment(playtimeMinutes),
                           });
+                          // Notify admin (OneSignal + WhatsApp fanout)
+                          notifyAdmin('top_up', 'Time Purchased',
+                            `${player.username} bought ${pkg.hours}h of play (${pkg.coins} tokens)`);
                           setShowBuyTimeModal(false);
                           setBuyTimeSelected(null);
                         } catch (err) { console.error('Buy time failed:', err); }
