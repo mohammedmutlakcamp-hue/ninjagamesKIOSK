@@ -25,6 +25,7 @@ import { StoreTab } from './tabs/StoreTab';
 import { VIPTab } from './tabs/VIPTab';
 import { ChatBubble } from './ChatBubble';
 import { OrderBubble } from './OrderBubble';
+import { LotteryPopup } from './LotteryPopup';
 import { SupportBubble } from './SupportBubble';
 import { KioskVoiceCall } from './KioskVoiceCall';
 import { TopUpScreen } from './TopUpScreen';
@@ -100,6 +101,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const topUpCustomNum = parseInt(topUpCustomTokens, 10);
   const topUpCustomValid = !isNaN(topUpCustomNum) && topUpCustomNum >= CUSTOM_TOKEN_MIN;
   const topUpCustomPriceJOD = topUpCustomValid ? Math.round((topUpCustomNum / CUSTOM_TOKENS_PER_JOD) * 100) / 100 : 0;
+  const [showLottery, setShowLottery] = useState(false);
   // Live-tracked pending topup so the top-bar chip and popup stay in sync.
   // Whichever one calls cancel deletes the Firestore doc → the listener clears
   // both at once, so there's no drift.
@@ -1951,6 +1953,34 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
         {/* Bottom section */}
         <div className={`p-3 space-y-2 flex-shrink-0 border-t relative z-10 ${isPlayerVIP ? 'border-yellow-500/10' : 'border-gray-800/40'}`}>
+          {/* Lottery Chest button — big-ticket chance-to-win */}
+          {!isGuest && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setShowLottery(true)}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-lg font-ninja text-sm tracking-wider relative overflow-hidden`}
+              style={{
+                background: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(251,146,60,0.08))',
+                border: '2px solid rgba(234,179,8,0.35)',
+                boxShadow: '0 0 12px rgba(234,179,8,0.15)',
+                color: '#eab308',
+              }}
+            >
+              <motion.div
+                animate={{ rotate: [0, -8, 8, 0] }}
+                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                className="relative z-10"
+              >
+                🎰
+              </motion.div>
+              {!sidebarCollapsed && (
+                <span className="relative z-10 flex-1 text-left" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}>
+                  {lang === 'ar' ? 'يانصيب' : 'LOTTERY'}
+                </span>
+              )}
+            </motion.button>
+          )}
           {/* VIP Button — always glowing gold */}
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(255,215,0,0.35)' }}
@@ -3681,6 +3711,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
       {/* Floating Order Bubble (food + shisha) */}
       {!isGuest && player?.uid && <OrderBubble playerUid={player.uid} />}
+
+      {/* Lottery Chest popup */}
+      {showLottery && !isGuest && (
+        <LotteryPopup player={player} onClose={() => setShowLottery(false)} />
+      )}
 
       {/* Pending Top-Up chip — shared source of truth with the popup. Click
           the × to cancel; the underlying Firestore listener syncs both UIs. */}

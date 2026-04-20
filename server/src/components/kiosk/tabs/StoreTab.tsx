@@ -482,14 +482,25 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // VIP multi-buy: every 3rd paid skin is FREE. Counter is persisted on the
+  // player doc (`vipSkinStreak`) so it survives sessions — the 3rd counts
+  // whether it happened today or last month.
+  const isVipNow = !!(player.vip?.active && (player.vip?.expiresAt || 0) > Date.now());
+  const vipSkinStreak = (player as any).vipSkinStreak || 0;
+  const nextSkinIsFree = isVipNow && vipSkinStreak >= 2; // 0,1 → paid; 2 → free, then resets
+
   // ─── Skin purchase ────────────────────────────────────────────────────────
   const buySkin = async (skin: NinjaSkin) => {
     if (buying) return;
     if (ownedNinjas.includes(skin.id)) return showToast(ar ? 'تمتلك هذا السكن بالفعل!' : 'You already own this skin!', false);
     if (skin.tier === 'mythic') return showToast(ar ? 'لا يمكن شراء السكنز الأسطورية الخرافية!' : 'Mythic skins cannot be purchased!', false);
     if (skin.unlockLevel && playerLevel < skin.unlockLevel) return showToast(ar ? `تحتاج المستوى ${skin.unlockLevel}!` : `Need Level ${skin.unlockLevel}!`, false);
-    const skinCost = myPrice(skin.price);
-    if (skin.price > 0 && player.coins < skinCost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
+    const baseCost = myPrice(skin.price);
+    // VIP 3rd-skin-free bonus applies only to paid (non-free-tier) skins.
+    const isPaidSkin = !(skin.tier === 'free' && skin.price === 0);
+    const freeThisPurchase = isPaidSkin && nextSkinIsFree;
+    const skinCost = freeThisPurchase ? 0 : baseCost;
+    if (skin.price > 0 && !freeThisPurchase && player.coins < skinCost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     if (skin.tier === 'free' && skin.price === 0) {
       setBuying(true);
       try {
@@ -506,13 +517,23 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
         id: `skin_${skin.id}_${Date.now()}`, type: 'skin', name: skin.name,
         rarity: skin.tier === 'legendary' ? 'legendary' : skin.tier === 'epic' ? 'epic' : skin.tier === 'rare' ? 'rare' : 'common',
         skinId: skin.id, value: skinCost, obtainedAt: Date.now(), used: false, tradeable: skin.tier !== 'free',
+        vipBonus: freeThisPurchase, // marks gift-skins for audit + inventory UI
       };
       const currentInventory = [...(player.inventory || []), skinItem];
+      // Streak rolls 0→1→2→0 on paid skins. Free (gift) purchase resets to 0.
+      const nextStreak = freeThisPurchase ? 0 : (vipSkinStreak + 1) % 3;
       await updateDoc(doc(db, 'players', player.uid), {
         coins: increment(-skinCost), ownedNinjas: arrayUnion(skin.id),
         totalCoinsSpent: increment(skinCost), inventory: currentInventory,
+        vipSkinStreak: isVipNow ? nextStreak : vipSkinStreak,
       });
-      setBuySuccess(true); showToast(ar ? `تم فتح ${skin.name}!` : `${skin.name} unlocked!`, true);
+      setBuySuccess(true);
+      showToast(
+        freeThisPurchase
+          ? (ar ? `🎁 هدية VIP! ${skin.name} مجاناً!` : `🎁 VIP GIFT! ${skin.name} for FREE!`)
+          : (ar ? `تم فتح ${skin.name}!` : `${skin.name} unlocked!`),
+        true,
+      );
       setTimeout(() => { setBuySuccess(false); setSelectedSkin(null); }, 1600);
     } catch { showToast(ar ? 'فشل الشراء.' : 'Purchase failed.', false); }
     finally { setBuying(false); }
@@ -918,6 +939,71 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
           ══════════════════════════════════════════════════════════════════ */}
           {subTab === 'skins' && (
             <motion.div key="skins" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.2 }} className="h-full overflow-y-auto">
+
+              {/* VIP multi-buy banner — buy 2 paid skins, get a 3rd FREE. */}
+              {isVipNow && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="relative mb-5 rounded-xl overflow-hidden"
+                  style={{
+                    background: nextSkinIsFree
+                      ? 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700)'
+                      : 'linear-gradient(135deg, rgba(255,215,0,0.18), rgba(255,215,0,0.05))',
+                    border: `2px solid ${nextSkinIsFree ? '#FFD700' : 'rgba(255,215,0,0.35)'}`,
+                    boxShadow: nextSkinIsFree ? '0 0 30px rgba(255,215,0,0.55)' : '0 0 14px rgba(255,215,0,0.2)',
+                  }}
+                >
+                  <div className="relative z-10 px-5 py-3 flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <motion.span
+                        animate={nextSkinIsFree ? { rotate: [0, -10, 10, 0] } : {}}
+                        transition={{ duration: 1.6, repeat: Infinity, ease: 'easeInOut' }}
+                        className="text-3xl"
+                      >
+                        🎁
+                      </motion.span>
+                      <div>
+                        <p
+                          className="font-ninja text-sm tracking-widest"
+                          style={{ color: nextSkinIsFree ? '#000' : '#FFD700' }}
+                        >
+                          {nextSkinIsFree
+                            ? (ar ? 'هدية VIP جاهزة!' : 'VIP GIFT READY!')
+                            : (ar ? 'عرض VIP: اشتري 2 واحصل على الثالث مجاناً' : 'VIP MULTI-BUY · BUY 2 · GET 3RD FREE')}
+                        </p>
+                        <p
+                          className="font-body text-[11px] mt-0.5"
+                          style={{ color: nextSkinIsFree ? 'rgba(0,0,0,0.75)' : 'rgba(255,215,0,0.7)' }}
+                        >
+                          {nextSkinIsFree
+                            ? (ar ? 'سكنك القادم مجاناً! اختر أي سكن.' : 'Your next paid skin is FREE — pick any skin!')
+                            : (ar ? `${vipSkinStreak}/3 سكنز لفتح الهدية المجانية` : `${vipSkinStreak}/3 skins — ${2 - vipSkinStreak} more to unlock a free skin`)}
+                        </p>
+                      </div>
+                    </div>
+                    {/* Progress pips */}
+                    <div className="flex items-center gap-1.5">
+                      {[0, 1, 2].map(idx => {
+                        const filled = nextSkinIsFree ? idx === 2 : idx < vipSkinStreak;
+                        return (
+                          <div
+                            key={idx}
+                            className="w-3 h-3 rounded-full"
+                            style={{
+                              background: filled
+                                ? (nextSkinIsFree ? '#000' : '#FFD700')
+                                : 'transparent',
+                              border: `2px solid ${nextSkinIsFree ? '#000' : '#FFD700'}`,
+                              boxShadow: filled ? `0 0 8px ${nextSkinIsFree ? '#000' : '#FFD700'}` : 'none',
+                            }}
+                          />
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* Category showcase cards */}
               <div className="grid grid-cols-4 gap-4 mb-6">
@@ -1926,10 +2012,11 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <button onClick={() => setSelectedSkin(null)} className="ninja-btn ninja-btn-ghost flex-1">{ar ? 'إلغاء' : 'CANCEL'}</button>
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
                       onClick={() => buySkin(selectedSkin)}
-                      disabled={buying || buySuccess || (selectedSkin.price > 0 && player.coins < selectedSkin.price) || (selectedSkin.unlockLevel ? playerLevel < selectedSkin.unlockLevel : false)}
+                      disabled={buying || buySuccess || (selectedSkin.price > 0 && !(nextSkinIsFree && !(selectedSkin.tier === 'free' && selectedSkin.price === 0)) && player.coins < selectedSkin.price) || (selectedSkin.unlockLevel ? playerLevel < selectedSkin.unlockLevel : false)}
                       className="ninja-btn flex-[2] flex items-center justify-center gap-2 font-ninja tracking-wider"
                       style={
                         buySuccess ? { background: 'linear-gradient(135deg, #39FF14, #00C853)', color: '#000', border: 'none' }
+                        : (nextSkinIsFree && !(selectedSkin.tier === 'free' && selectedSkin.price === 0)) ? { background: 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700)', color: '#000', border: 'none', boxShadow: '0 0 24px rgba(255,215,0,0.55)' }
                         : selectedSkin.price > 0 && player.coins < selectedSkin.price ? { background: '#1a1a1a', color: '#444', border: '1px solid #333' }
                         : selectedSkin.unlockLevel && playerLevel < selectedSkin.unlockLevel ? { background: '#1a1a1a', color: '#444', border: '1px solid #333' }
                         : selectedSkin.price === 0 ? { background: 'linear-gradient(135deg, #39FF14, #00C853)', color: '#000', border: 'none' }
@@ -1938,6 +2025,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                       {buying ? <span className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" />
                         : buySuccess ? <><Check size={16} /> {ar ? 'تم الفتح!' : 'UNLOCKED!'}</>
                         : selectedSkin.unlockLevel && playerLevel < selectedSkin.unlockLevel ? <><Lock size={14} /> {ar ? `تحتاج المستوى ${selectedSkin.unlockLevel}` : `NEED LVL ${selectedSkin.unlockLevel}`}</>
+                        : (nextSkinIsFree && !(selectedSkin.tier === 'free' && selectedSkin.price === 0)) ? <>🎁 {ar ? 'احصل عليها مجاناً (هدية VIP)' : 'CLAIM FREE · VIP GIFT'}</>
                         : selectedSkin.price > 0 ? <><Coins size={14} /> {ar ? `اشترِ بـ ${selectedSkin.price} توكن` : `BUY FOR ${selectedSkin.price} COINS`}</>
                         : <><Sparkles size={14} /> {ar ? 'احصل مجاناً' : 'CLAIM FREE'}</>}
                     </motion.button>

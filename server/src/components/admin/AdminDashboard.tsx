@@ -12,6 +12,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { RevenuePanel } from './RevenuePanel';
 import { SettingsPanel } from './SettingsPanel';
 import { TournamentManagement } from './TournamentManagement';
+import { LotteryManagement } from './LotteryManagement';
 import { TopUpRequests } from './TopUpRequests';
 import { NotificationsPanel } from './NotificationsPanel';
 import { VIPRequests } from './VIPRequests';
@@ -66,7 +67,7 @@ import {
   ToggleRight, HardDriveDownload, ListChecks, Flame, Video, RefreshCw
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcshub' | 'hubblyhub' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport' | 'reset';
+type Tab = 'dashboard' | 'pcshub' | 'hubblyhub' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'lottery' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport' | 'reset';
 
 interface Props {
   admin: any;
@@ -720,6 +721,7 @@ function AdminDashboardInner({ admin }: Props) {
       items: [
         { id: 'games', label: 'Games', icon: <Gamepad2 size={18} /> },
         { id: 'chests', label: 'Chests', icon: <Package size={18} /> },
+        { id: 'lottery', label: 'Lottery', icon: <Ticket size={18} /> },
         { id: 'skins', label: 'Skins', icon: <Palette size={18} /> },
         { id: 'achievements', label: 'Achievements', icon: <Award size={18} /> },
         { id: 'dailytasks', label: 'Daily Tasks', icon: <ClipboardCheck size={18} /> },
@@ -885,6 +887,7 @@ function AdminDashboardInner({ admin }: Props) {
           {tab === 'realpl' && <RealPLDashboard />}
           {tab === 'reset' && <ResetPanel />}
           {tab === 'tournaments' && <TournamentManagement />}
+          {tab === 'lottery' && <LotteryManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}
           {tab === 'settings' && <SettingsPanel />}
