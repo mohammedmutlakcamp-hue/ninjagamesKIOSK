@@ -8,7 +8,8 @@ import { CHESTS, CHEST_REWARDS } from '@/lib/constants';
 import {
   Package, Search, TrendingUp, Crown, Gift, Clock, Filter,
   ChevronDown, ChevronUp, Coins, Star, Trophy, Sparkles,
-  Settings, Send, Percent, DollarSign, BarChart3, Zap, Users, AlertTriangle, Sliders
+  Settings, Send, Percent, DollarSign, BarChart3, Zap, Users, AlertTriangle, Sliders,
+  Loader2, X as XIcon,
 } from 'lucide-react';
 import { HelpTip } from './HelpTip';
 
@@ -68,8 +69,14 @@ export function ChestManagement() {
   const [activeSection, setActiveSection] = useState<'history' | 'profit' | 'config' | 'droptable' | 'promo'>('history');
   // Chest content overrides — stored in config/chest-content-overrides
   // { [chestId]: { disabledRewardIds: string[] } }
-  const [contentOverrides, setContentOverrides] = useState<Record<string, { disabledRewardIds?: string[] }>>({});
+  const [contentOverrides, setContentOverrides] = useState<Record<string, { disabledRewardIds?: string[]; extraRewards?: any[] }>>({});
   const [contentSaving, setContentSaving] = useState(false);
+  // "Add Reward" modal state — which chest, and the draft reward being edited.
+  const [addRewardFor, setAddRewardFor] = useState<string | null>(null);
+  const [draftReward, setDraftReward] = useState<any>({
+    id: '', name: '', description: '', type: 'coins', rarity: 'common',
+    value: 50, image: '', icon: 'coins', dropRate: 0.05,
+  });
 
   // Config state
   const [config, setConfig] = useState<ChestConfig>({
@@ -144,11 +151,73 @@ export function ChestManagement() {
   };
 
   const resetChestContent = async (chestId: string) => {
-    if (!confirm('Re-enable every reward in this chest?')) return;
+    if (!confirm('Re-enable every reward in this chest? (Custom rewards you added stay.)')) return;
     setContentSaving(true);
     try {
+      const current = contentOverrides[chestId] || {};
       const updated = { ...contentOverrides };
-      delete updated[chestId];
+      // Clear disabled list; keep extraRewards.
+      if (current.extraRewards && current.extraRewards.length > 0) {
+        updated[chestId] = { extraRewards: current.extraRewards };
+      } else {
+        delete updated[chestId];
+      }
+      await setDoc(doc(db, 'config', 'chest-content-overrides'), updated);
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  const openAddReward = (chestId: string) => {
+    setAddRewardFor(chestId);
+    setDraftReward({
+      id: '', name: '', description: '', type: 'coins', rarity: 'common',
+      value: 50, image: '', icon: 'coins', dropRate: 0.05,
+    });
+  };
+
+  const saveNewReward = async () => {
+    if (!addRewardFor || !draftReward.name?.trim()) return;
+    setContentSaving(true);
+    try {
+      const rewardId = draftReward.id?.trim() || `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 6)}`;
+      const newReward = {
+        id: rewardId,
+        type: draftReward.type,
+        name: draftReward.name.trim(),
+        description: draftReward.description?.trim() || '',
+        rarity: draftReward.rarity,
+        value: Number(draftReward.value) || 0,
+        icon: draftReward.icon || 'coins',
+        image: draftReward.image?.trim() || '',
+        dropRate: Number(draftReward.dropRate) || 0.05,
+      };
+      const current = contentOverrides[addRewardFor] || {};
+      const existingExtras = current.extraRewards || [];
+      const updated = {
+        ...contentOverrides,
+        [addRewardFor]: {
+          ...current,
+          extraRewards: [...existingExtras, newReward],
+        },
+      };
+      await setDoc(doc(db, 'config', 'chest-content-overrides'), updated);
+      setAddRewardFor(null);
+    } catch (err) {
+      console.error('add reward failed', err);
+      alert('Add failed.');
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  const deleteExtraReward = async (chestId: string, rewardId: string) => {
+    if (!confirm('Remove this custom reward from the pool?')) return;
+    setContentSaving(true);
+    try {
+      const current = contentOverrides[chestId] || {};
+      const extras = (current.extraRewards || []).filter((r: any) => r.id !== rewardId);
+      const updated = { ...contentOverrides, [chestId]: { ...current, extraRewards: extras } };
       await setDoc(doc(db, 'config', 'chest-content-overrides'), updated);
     } finally {
       setContentSaving(false);
@@ -693,7 +762,8 @@ export function ChestManagement() {
             {CHESTS.map((chest) => {
               const override = contentOverrides[chest.id];
               const disabled = override?.disabledRewardIds || [];
-              const enabledCount = chest.rewards.length - disabled.length;
+              const extras = override?.extraRewards || [];
+              const enabledBuiltIns = chest.rewards.filter(r => !disabled.includes(r.id)).length;
               return (
                 <div key={chest.id} className="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60">
                   <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
@@ -705,16 +775,22 @@ export function ChestManagement() {
                       <div>
                         <h4 className="font-semibold text-[#1d1d1f]">{chest.name}</h4>
                         <p className="text-[11px] text-[#86868b]">
-                          {enabledCount}/{chest.rewards.length} rewards enabled · cost {chest.cost} tokens
+                          {enabledBuiltIns}/{chest.rewards.length} built-in · {extras.length} custom · cost {chest.cost} tokens
                         </p>
                       </div>
                     </div>
-                    {disabled.length > 0 && (
-                      <button onClick={() => resetChestContent(chest.id)} disabled={contentSaving}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f] border border-[#d2d2d7] disabled:opacity-50">
-                        Re-enable all
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => openAddReward(chest.id)} disabled={contentSaving}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-[#A855F7] text-white hover:bg-[#9333EA] disabled:opacity-50 flex items-center gap-1.5 font-medium">
+                        <Package size={12} /> Add Reward
                       </button>
-                    )}
+                      {disabled.length > 0 && (
+                        <button onClick={() => resetChestContent(chest.id)} disabled={contentSaving}
+                          className="text-xs px-3 py-1.5 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f] border border-[#d2d2d7] disabled:opacity-50">
+                          Re-enable all
+                        </button>
+                      )}
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
@@ -756,10 +832,142 @@ export function ChestManagement() {
                         </button>
                       );
                     })}
+
+                    {/* Custom (admin-added) rewards — marked with a purple CUSTOM pill */}
+                    {extras.map((r: any) => {
+                      const rc = RARITY_COLORS[r.rarity] || '#86868b';
+                      return (
+                        <div key={r.id}
+                          className="flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left bg-[#faf5ff] border-[#A855F7]/30 group">
+                          <div className="w-2 h-8 rounded-full" style={{ background: rc }} />
+                          {r.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={r.image} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-white" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg flex-shrink-0" style={{ background: `${rc}20` }} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className="text-[12px] font-medium truncate text-[#1d1d1f]">{r.name}</div>
+                            <div className="text-[10px] text-[#86868b] truncate">
+                              {r.rarity} · {r.type === 'coins' ? `${r.value} tokens` : r.type === 'voucher' ? 'voucher' : r.type}
+                              {r.dropRate ? ` · ${(r.dropRate * 100).toFixed(1)}%` : ''}
+                            </div>
+                          </div>
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#A855F7]/15 text-[#7C3AED] flex-shrink-0">CUSTOM</span>
+                          <button onClick={() => deleteExtraReward(chest.id, r.id)}
+                            className="opacity-0 group-hover:opacity-100 w-6 h-6 rounded-md bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/20 flex items-center justify-center transition-opacity">
+                            <AlertTriangle size={11} />
+                          </button>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               );
             })}
+
+            {/* ───── Add-Reward Modal ───── */}
+            {addRewardFor && (
+              <div className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+                style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+                onClick={() => !contentSaving && setAddRewardFor(null)}>
+                <div onClick={(e) => e.stopPropagation()}
+                  className="bg-white rounded-2xl w-[560px] max-w-full max-h-[90vh] overflow-y-auto">
+                  <div className="sticky top-0 bg-white border-b border-[#e5e5ea] px-6 py-4 flex items-center justify-between">
+                    <h3 className="text-xl font-semibold text-[#1d1d1f]">
+                      Add Custom Reward — {CHESTS.find((c) => c.id === addRewardFor)?.name}
+                    </h3>
+                    <button onClick={() => setAddRewardFor(null)}
+                      className="w-9 h-9 rounded-lg hover:bg-[#f5f5f7] flex items-center justify-center text-[#86868b]">
+                      <XIcon size={18} />
+                    </button>
+                  </div>
+                  <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Name</label>
+                        <input type="text" value={draftReward.name}
+                          onChange={(e) => setDraftReward({ ...draftReward, name: e.target.value })}
+                          placeholder="e.g. 75 Tokens, Free Energy Drink, Dragon Skin"
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Type</label>
+                        <select value={draftReward.type}
+                          onChange={(e) => setDraftReward({ ...draftReward, type: e.target.value })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm">
+                          <option value="coins">Coins (tokens)</option>
+                          <option value="voucher">Voucher (free item)</option>
+                          <option value="skin">Skin (ninja avatar)</option>
+                          <option value="xp_boost">XP Boost</option>
+                          <option value="title">Title</option>
+                        </select>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Description (shown in the kiosk reward reveal)</label>
+                      <input type="text" value={draftReward.description}
+                        onChange={(e) => setDraftReward({ ...draftReward, description: e.target.value })}
+                        placeholder="e.g. A nice bonus, Free coffee on us!"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                    </div>
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Rarity</label>
+                        <select value={draftReward.rarity}
+                          onChange={(e) => setDraftReward({ ...draftReward, rarity: e.target.value })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm">
+                          <option value="common">Common</option>
+                          <option value="uncommon">Uncommon</option>
+                          <option value="rare">Rare</option>
+                          <option value="legendary">Legendary</option>
+                          <option value="mythical">Mythical</option>
+                          <option value="immortal">Immortal</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Value</label>
+                        <input type="number" value={draftReward.value}
+                          onChange={(e) => setDraftReward({ ...draftReward, value: Number(e.target.value) })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                        <p className="text-[10px] text-[#86868b] mt-1">Tokens for coins; JOD*100 for vouchers</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Drop rate</label>
+                        <input type="number" step="0.01" min={0.001} max={0.5} value={draftReward.dropRate}
+                          onChange={(e) => setDraftReward({ ...draftReward, dropRate: Number(e.target.value) })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                        <p className="text-[10px] text-[#86868b] mt-1">0.05 = 5% (rough target)</p>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Image URL (optional)</label>
+                      <input type="text" value={draftReward.image}
+                        onChange={(e) => setDraftReward({ ...draftReward, image: e.target.value })}
+                        placeholder="/img/reward-coins-50.png or full URL"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                      <p className="text-[10px] text-[#86868b] mt-1">Leave blank to use a colored placeholder.</p>
+                    </div>
+
+                    <div className="bg-[#fef3c7] border border-[#f59e0b]/40 rounded-xl p-3 text-[11px] text-[#92400e]">
+                      <strong>Note:</strong> the chest picker uses a deterministic profit-locked engine. Your drop rate is a hint — actual win frequency depends on the house budget. The Luck Slider still scales rare+ drops globally.
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-[#e5e5ea]">
+                      <button onClick={saveNewReward} disabled={contentSaving || !draftReward.name?.trim()}
+                        className="flex-1 py-3 bg-[#A855F7] text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[#9333EA] disabled:opacity-50">
+                        {contentSaving ? <Loader2 size={16} className="animate-spin" /> : <Package size={16} />}
+                        Add to chest
+                      </button>
+                      <button onClick={() => setAddRewardFor(null)}
+                        className="px-5 py-3 bg-[#f5f5f7] text-[#1d1d1f] rounded-xl border border-[#d2d2d7] hover:bg-[#e5e5ea]">
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="mt-4 bg-[#f5f5f7] border border-[#e5e5ea] rounded-xl p-4 text-[11px] text-[#86868b] leading-relaxed">

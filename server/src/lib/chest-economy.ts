@@ -94,20 +94,29 @@ function effectiveValue(r: ChestReward): number {
   return r.value || 0;
 }
 
-// Admin-controlled per-chest "disabled" sets — populated by loadEconomyOnce
-// from config/chest-content-overrides. Rewards whose id appears here are
-// excluded from both the rotation and jackpot pools for that chest.
+// Admin-controlled per-chest overrides — populated by loadEconomyOnce
+// from config/chest-content-overrides. Rewards whose id appears in the
+// disabled set are excluded from both the rotation and jackpot pools.
+// Admin-added `extraRewards` are merged into the base pool and treated
+// the same as built-in rewards by the picker.
 const disabledByChest: Record<string, Set<string>> = {};
+const extrasByChest: Record<string, ChestReward[]> = {};
 
 function isDisabled(chestId: string, rewardId: string): boolean {
   return !!disabledByChest[chestId]?.has(rewardId);
 }
 
+// Merge built-ins + admin-added extras, dropping anything disabled.
+function effectiveRewards(chest: Chest): ChestReward[] {
+  const extras = extrasByChest[chest.id] || [];
+  const all = [...chest.rewards, ...extras];
+  return all.filter(r => !isDisabled(chest.id, r.id));
+}
+
 // Rotation pool = small/medium rewards only. Skins and immortal/mythical-
 // tier coin packs go through the jackpot gate instead.
 function rotationPool(chest: Chest): ChestReward[] {
-  return chest.rewards.filter(r => {
-    if (isDisabled(chest.id, r.id)) return false;
+  return effectiveRewards(chest).filter(r => {
     if (r.type === 'skin') return false;
     if (r.rarity === 'mythical' || r.rarity === 'immortal') return false;
     return true;
@@ -116,8 +125,7 @@ function rotationPool(chest: Chest): ChestReward[] {
 
 // Heavy hitters available only via the pity gate.
 function jackpotPool(chest: Chest): ChestReward[] {
-  return chest.rewards.filter(r => {
-    if (isDisabled(chest.id, r.id)) return false;
+  return effectiveRewards(chest).filter(r => {
     if (r.type === 'skin') return true;
     if (r.rarity === 'mythical' || r.rarity === 'immortal') return true;
     return false;
@@ -253,13 +261,16 @@ export async function loadEconomyOnce(): Promise<void> {
     overridesListenerStarted = true;
     try {
       onSnapshot(doc(db, 'config', 'chest-content-overrides'), (snap) => {
-        // Wipe the local sets — anything not in the new payload becomes enabled again.
+        // Wipe local state — anything not in the new payload reverts to defaults.
         Object.keys(disabledByChest).forEach((k) => delete disabledByChest[k]);
+        Object.keys(extrasByChest).forEach((k) => delete extrasByChest[k]);
         if (!snap.exists()) return;
-        const data = snap.data() as Record<string, { disabledRewardIds?: string[] }>;
+        const data = snap.data() as Record<string, { disabledRewardIds?: string[]; extraRewards?: ChestReward[] }>;
         for (const chestId of Object.keys(data)) {
           const ids = data[chestId]?.disabledRewardIds || [];
           disabledByChest[chestId] = new Set(ids);
+          const extras = data[chestId]?.extraRewards || [];
+          extrasByChest[chestId] = extras;
         }
       }, (err) => console.error('[chest-economy] overrides listener', err));
     } catch { /* non-fatal */ }
