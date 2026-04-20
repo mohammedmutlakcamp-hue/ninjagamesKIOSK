@@ -951,14 +951,31 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     fitting bugs, no transparent gutters. Stripes for the
                     USA flag, green field + shahada-style band for Saudi. */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
-                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110 relative"
-                  style={{ border: '2px solid rgba(57,255,20,0.4)', boxShadow: '0 0 10px rgba(168,85,247,0.15)' }}
+                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-visible transition-all hover:scale-110 relative"
+                  style={{
+                    background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), transparent 60%)',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.55), 0 0 14px rgba(168,85,247,0.18), inset 0 -2px 6px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.18)',
+                    border: '1px solid rgba(255,255,255,0.12)',
+                  }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
                   {lang === 'en' ? (
-                    // USA flag — 13 red/white stripes + blue canton with stars
-                    <svg viewBox="0 0 60 60" className="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-label="EN">
+                    /* USA flag — 3D spherical rendering: radial-shaded field, proper 5-point stars, glossy highlight, beveled rim. */
+                    <svg viewBox="0 0 60 60" className="w-full h-full rounded-full" preserveAspectRatio="xMidYMid slice" aria-label="EN">
                       <defs>
-                        <clipPath id="usaCircle"><circle cx="30" cy="30" r="30" /></clipPath>
+                        <clipPath id="usaCircle"><circle cx="30" cy="30" r="29" /></clipPath>
+                        <radialGradient id="usaSphereShade" cx="35%" cy="30%" r="75%">
+                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
+                          <stop offset="45%" stopColor="#ffffff" stopOpacity="0" />
+                          <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
+                        </radialGradient>
+                        <radialGradient id="usaGloss" cx="40%" cy="20%" r="45%">
+                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.75" />
+                          <stop offset="70%" stopColor="#ffffff" stopOpacity="0" />
+                        </radialGradient>
+                        <symbol id="usStar" viewBox="0 0 10 10">
+                          <polygon points="5,0.4 6.2,3.8 9.8,3.8 6.9,5.8 8.0,9.2 5,7.1 2,9.2 3.1,5.8 0.2,3.8 3.8,3.8"
+                            fill="#FFFFFF" />
+                        </symbol>
                       </defs>
                       <g clipPath="url(#usaCircle)">
                         {/* 13 stripes */}
@@ -966,31 +983,81 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           <rect key={i} x="0" y={i * (60 / 13)} width="60" height={60 / 13}
                             fill={i % 2 === 0 ? '#B22234' : '#FFFFFF'} />
                         ))}
-                        {/* Blue canton (top-left) */}
-                        <rect x="0" y="0" width="30" height={(60 / 13) * 7} fill="#3C3B6E" />
-                        {/* Stars (simplified — 9 white dots in a 3x3 grid) */}
-                        {Array.from({ length: 3 }).flatMap((_, r) =>
-                          Array.from({ length: 3 }).map((__, c) => (
-                            <circle key={`${r}-${c}`} cx={6 + c * 9} cy={5 + r * 8} r="1.4" fill="#FFFFFF" />
+                        {/* Blue canton — rows 0..6 of stripes */}
+                        <rect x="0" y="0" width="30" height={(60 / 13) * 7} fill="#0A3161" />
+                        {/* Stars — staggered rows, 5 per row */}
+                        {[0, 1, 2, 3].map((r) => (
+                          Array.from({ length: 5 }).map((__, c) => (
+                            <use key={`${r}-${c}`} href="#usStar"
+                              x={3 + c * 5.5 + (r % 2) * 2.7} y={2 + r * 3.6}
+                              width={3} height={3} />
                           ))
-                        )}
+                        ))}
+                        {/* 3D sphere shading overlay */}
+                        <rect x="0" y="0" width="60" height="60" fill="url(#usaSphereShade)" />
+                        {/* Top gloss */}
+                        <ellipse cx="24" cy="15" rx="20" ry="11" fill="url(#usaGloss)" />
                       </g>
+                      {/* Rim */}
+                      <circle cx="30" cy="30" r="29" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
+                      <circle cx="30" cy="30" r="28" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="0.8" />
                     </svg>
                   ) : (
-                    // Saudi Arabia flag — green field + white shahada band
-                    <svg viewBox="0 0 60 60" className="w-full h-full" preserveAspectRatio="xMidYMid slice" aria-label="AR">
+                    /* Saudi Arabia flag — 3D sphere with green radial field, stylized shahada script, crossed sword, glossy highlight. */
+                    <svg viewBox="0 0 60 60" className="w-full h-full rounded-full" preserveAspectRatio="xMidYMid slice" aria-label="AR">
                       <defs>
-                        <clipPath id="saCircle"><circle cx="30" cy="30" r="30" /></clipPath>
+                        <clipPath id="saCircle"><circle cx="30" cy="30" r="29" /></clipPath>
+                        <radialGradient id="saField" cx="35%" cy="30%" r="80%">
+                          <stop offset="0%" stopColor="#0E9652" />
+                          <stop offset="55%" stopColor="#0A7A41" />
+                          <stop offset="100%" stopColor="#03421F" />
+                        </radialGradient>
+                        <radialGradient id="saSphereShade" cx="35%" cy="30%" r="75%">
+                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
+                          <stop offset="45%" stopColor="#ffffff" stopOpacity="0" />
+                          <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
+                        </radialGradient>
+                        <radialGradient id="saGloss" cx="40%" cy="20%" r="45%">
+                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.7" />
+                          <stop offset="70%" stopColor="#ffffff" stopOpacity="0" />
+                        </radialGradient>
+                        <linearGradient id="swordBlade" x1="0" y1="0" x2="0" y2="1">
+                          <stop offset="0%" stopColor="#fdfdfd" />
+                          <stop offset="50%" stopColor="#cfd3d8" />
+                          <stop offset="100%" stopColor="#8a8f94" />
+                        </linearGradient>
                       </defs>
                       <g clipPath="url(#saCircle)">
-                        <rect x="0" y="0" width="60" height="60" fill="#006C35" />
-                        {/* Stylised shahada band (white) */}
-                        <rect x="8" y="22" width="44" height="3" fill="#FFFFFF" rx="1" />
-                        <rect x="8" y="28" width="44" height="2" fill="#FFFFFF" rx="1" opacity="0.8" />
-                        {/* Sword underline */}
-                        <line x1="10" y1="40" x2="50" y2="40" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round" />
-                        <polygon points="50,40 46,38 46,42" fill="#FFFFFF" />
+                        <rect x="0" y="0" width="60" height="60" fill="url(#saField)" />
+                        {/* Stylized shahada script — flowing curved strokes (calligraphic impression) */}
+                        <g fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M10 21 Q18 17 26 21 T42 21 T52 21" />
+                          <path d="M11 26 Q20 22 30 26 Q40 30 50 26" opacity="0.85" />
+                        </g>
+                        {/* Diacritical dots above the script */}
+                        <circle cx="18" cy="17" r="0.9" fill="#FFFFFF" />
+                        <circle cx="34" cy="17" r="0.9" fill="#FFFFFF" />
+                        <circle cx="46" cy="17" r="0.9" fill="#FFFFFF" />
+                        {/* Crossed sword — chrome blade + gold hilt */}
+                        <g>
+                          {/* Blade */}
+                          <rect x="10" y="35.5" width="38" height="2.6" rx="1.2" fill="url(#swordBlade)"
+                            stroke="#e7eaee" strokeWidth="0.3" />
+                          {/* Blade tip (arrow) */}
+                          <polygon points="48,34.2 52,36.8 48,39.4" fill="url(#swordBlade)" stroke="#e7eaee" strokeWidth="0.3" />
+                          {/* Cross guard */}
+                          <rect x="8" y="34.5" width="2.2" height="4.6" rx="0.6" fill="#d1b44a" stroke="#8a6f1d" strokeWidth="0.3" />
+                          {/* Hilt pommel */}
+                          <circle cx="6.8" cy="36.8" r="1.6" fill="#e9c968" stroke="#8a6f1d" strokeWidth="0.3" />
+                        </g>
+                        {/* 3D sphere shading overlay */}
+                        <rect x="0" y="0" width="60" height="60" fill="url(#saSphereShade)" />
+                        {/* Top gloss */}
+                        <ellipse cx="24" cy="15" rx="20" ry="11" fill="url(#saGloss)" />
                       </g>
+                      {/* Rim */}
+                      <circle cx="30" cy="30" r="29" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
+                      <circle cx="30" cy="30" r="28" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="0.8" />
                     </svg>
                   )}
                   {/* Country code chip in corner so it's instantly readable */}
