@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
-import { CHESTS, COIN_PACKAGES, NINJA_SKINS, RARITY_COLORS, VIP_CONFIG, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { CHESTS, RARITY_COLORS, VIP_CONFIG, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { useAllSkins } from '@/lib/skins-all';
 import { personalCoinCost } from '@/lib/pricing';
 import { Chest, ChestReward, NinjaSkin } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
@@ -48,16 +49,6 @@ const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => {
     savings: savings > 0 ? `Save ${savings}` : null as string | null,
   };
 });
-
-// JOD → coins packages — sourced from COIN_PACKAGES.
-const JOD_PACKAGES = COIN_PACKAGES.map(p => ({
-  id: p.id,
-  jod: p.price,
-  coins: p.coins,
-  popular: !!p.popular,
-  name: p.name,
-  bonus: p.bonusPercentage || 0,
-}));
 
 type SubTab = 'skins' | 'chests' | 'giftcards' | 'time' | 'coins' | 'vip';
 type CategoryFilter = 'all' | 'starter' | 'rare' | 'epic' | 'legendary' | 'mythic';
@@ -405,6 +396,10 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const flags = useFeatureFlags();
+  // Merged skin list: NINJA_SKINS ∪ admin-added customSkins from Firestore.
+  // All filters / owned lookups / counts below use this so custom ninjas
+  // appear in the store the moment admin saves them.
+  const ALL_NINJAS = useAllSkins();
   const [subTab, setSubTab] = useState<SubTab>((initialSubTab as SubTab) || 'skins');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('rare');
   const [selectedSkin, setSelectedSkin] = useState<NinjaSkin | null>(null);
@@ -469,18 +464,18 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const myPrice = (baseCost: number) => personalCoinCost(baseCost, player);
 
   const filteredSkins = useMemo(() =>
-    NINJA_SKINS.filter(s => s.category !== 'country' && (categoryFilter === 'all' || s.category === categoryFilter)),
-  [categoryFilter]);
+    ALL_NINJAS.filter(s => s.category !== 'country' && (categoryFilter === 'all' || s.category === categoryFilter)),
+  [categoryFilter, ALL_NINJAS]);
 
   const ownedSkins = useMemo(() =>
-    NINJA_SKINS.filter(s => ownedNinjas.includes(s.id)),
-  [ownedNinjas]);
+    ALL_NINJAS.filter(s => ownedNinjas.includes(s.id)),
+  [ownedNinjas, ALL_NINJAS]);
 
   const categoryCounts = useMemo(() => {
-    const counts: Record<string, number> = { all: NINJA_SKINS.length };
-    NINJA_SKINS.forEach(s => { counts[s.category] = (counts[s.category] || 0) + 1; });
+    const counts: Record<string, number> = { all: ALL_NINJAS.length };
+    ALL_NINJAS.forEach(s => { counts[s.category] = (counts[s.category] || 0) + 1; });
     return counts;
-  }, []);
+  }, [ALL_NINJAS]);
 
   const showToast = (msg: string, ok: boolean) => {
     setToast({ msg, ok });
@@ -541,15 +536,22 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
     finally { setBuying(false); }
   };
 
-  // ─── Top-up request ───────────────────────────────────────────────────────
-  const requestTopup = async (pkgId: string) => {
-    const pkg = COIN_PACKAGES.find(p => p.id === pkgId);
-    if (!pkg) return;
+  // ─── Top-up request (custom amount) ───────────────────────────────────────
+  const TOKEN_MIN = 100;
+  const TOKENS_PER_JOD = 100;
+  const [topUpCustomTokens, setTopUpCustomTokens] = useState('');
+  const topUpCustomNum = parseInt(topUpCustomTokens, 10);
+  const topUpCustomValid = !isNaN(topUpCustomNum) && topUpCustomNum >= TOKEN_MIN;
+  const topUpCustomPriceJOD = topUpCustomValid ? Math.round((topUpCustomNum / TOKENS_PER_JOD) * 100) / 100 : 0;
+
+  const requestTopup = async () => {
+    if (!topUpCustomValid) return;
     setTopUpLoading(true);
     try {
       await addDoc(collection(db, 'topup-requests'), {
         playerId: player.uid, playerName: player.username,
-        packageId: pkg.id, coins: pkg.coins, price: pkg.price,
+        packageId: 'custom', coins: topUpCustomNum, price: topUpCustomPriceJOD,
+        custom: true,
         status: 'pending', createdAt: Date.now(), timestamp: Date.now(),
       });
       setTopUpSent(true);
@@ -921,7 +923,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
               <div className="grid grid-cols-4 gap-4 mb-6">
                 {CATEGORY_CARDS.map((cat, i) => {
                   const active = categoryFilter === cat.id;
-                  const ownedCount = NINJA_SKINS.filter(s => s.category === cat.id && ownedNinjas.includes(s.id)).length;
+                  const ownedCount = ALL_NINJAS.filter(s => s.category === cat.id && ownedNinjas.includes(s.id)).length;
                   const totalCount = categoryCounts[cat.id] || 0;
                   return (
                     <motion.div key={cat.id} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
@@ -1060,7 +1062,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                     <div className="w-7 h-7 rounded flex items-center justify-center" style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.2)', boxShadow: '0 0 8px rgba(57,255,20,0.15)' }}>
                       <Check size={14} className="text-ninja-green" style={{ filter: 'drop-shadow(0 0 4px rgba(57,255,20,0.6))' }} />
                     </div>
-                    <h3 className="font-ninja text-sm text-ninja-green tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>{ar ? `مجموعتك — ${ownedSkins.length}/${NINJA_SKINS.length}` : `YOUR COLLECTION — ${ownedSkins.length}/${NINJA_SKINS.length}`}</h3>
+                    <h3 className="font-ninja text-sm text-ninja-green tracking-wider" style={{ textShadow: '0 0 8px rgba(57,255,20,0.3)' }}>{ar ? `مجموعتك — ${ownedSkins.length}/${ALL_NINJAS.length}` : `YOUR COLLECTION — ${ownedSkins.length}/${ALL_NINJAS.length}`}</h3>
                     <div className="flex-1 h-[1px]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.2), transparent)' }} />
                   </div>
                   <div className="flex gap-3 overflow-x-auto pb-3 scrollbar-hide">
@@ -1119,7 +1121,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   {COLLECTION_REWARDS.map(cr => {
-                    const ownedCount = NINJA_SKINS.filter(s => s.tier === cr.tier && ownedNinjas.includes(s.id)).length;
+                    const ownedCount = ALL_NINJAS.filter(s => s.tier === cr.tier && ownedNinjas.includes(s.id)).length;
                     const complete = ownedCount >= cr.required;
                     return (
                       <div key={cr.tier} className="relative flex items-center gap-3 p-3 rounded-lg overflow-hidden"
@@ -1592,52 +1594,50 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                       </p>
                     </div>
 
-                    {/* Coin packages — radio style */}
-                    <div className="space-y-3 mb-6">
-                      {COIN_PACKAGES.map((pkg, i) => {
-                        const selected = topUpSelected === pkg.id;
-                        return (
-                          <motion.button key={pkg.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.08 }}
-                            onClick={() => setTopUpSelected(pkg.id)}
-                            className="relative w-full rounded-lg p-4 text-left transition-all overflow-hidden"
-                            style={{
-                              background: selected ? 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(234,179,8,0.04))' : 'linear-gradient(135deg, rgba(234,179,8,0.04), transparent)',
-                              border: `1px solid ${selected ? 'rgba(234,179,8,0.5)' : 'rgba(234,179,8,0.12)'}`,
-                              boxShadow: selected ? '0 0 18px rgba(234,179,8,0.15), inset 0 0 12px rgba(234,179,8,0.05)' : 'none',
-                            }}>
-                            {selected && <>
-                              <div className="absolute top-0 left-0 w-2.5 h-2.5" style={{ borderTop: '2px solid rgba(234,179,8,0.6)', borderLeft: '2px solid rgba(234,179,8,0.6)' }} />
-                              <div className="absolute bottom-0 right-0 w-2.5 h-2.5" style={{ borderBottom: '2px solid rgba(234,179,8,0.6)', borderRight: '2px solid rgba(234,179,8,0.6)' }} />
-                              <div className="absolute left-0 top-[20%] bottom-[20%] w-[2px]" style={{ background: '#eab308', boxShadow: '0 0 6px #eab308' }} />
-                            </>}
-                            <div className="flex items-center justify-between relative z-10">
-                              <div className="flex items-center gap-3">
-                                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${selected ? 'border-yellow-400' : 'border-gray-600'}`} style={{ boxShadow: selected ? '0 0 6px rgba(234,179,8,0.4)' : 'none' }}>
-                                  {selected && <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" style={{ boxShadow: '0 0 4px #eab308' }} />}
-                                </div>
-                                <div>
-                                  <span className="font-ninja text-white" style={{ textShadow: selected ? '0 0 8px rgba(234,179,8,0.3)' : 'none' }}>{pkg.coins.toLocaleString()} {ar ? 'توكنز' : 'tokens'}</span>
-                                  {(pkg.bonusPercentage || 0) > 0 && (
-                                    <span className="font-ninja text-[10px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}% BONUS</span>
-                                  )}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                {pkg.popular && <span className="px-2 py-0.5 rounded font-ninja text-[9px]" style={{ background: 'rgba(234,179,8,0.15)', color: '#eab308', border: '1px solid rgba(234,179,8,0.3)' }}>{ar ? 'الأفضل' : 'BEST'}</span>}
-                                <span className="font-ninja text-lg text-white" style={{ textShadow: '0 0 8px rgba(234,179,8,0.2)' }}>{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
-                              </div>
-                            </div>
-                          </motion.button>
-                        );
-                      })}
+                    {/* Custom token amount */}
+                    <div
+                      className="relative rounded-lg p-5 mb-4"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(234,179,8,0.06), transparent)',
+                        border: `1px solid ${topUpCustomValid ? 'rgba(234,179,8,0.5)' : 'rgba(234,179,8,0.15)'}`,
+                        boxShadow: topUpCustomValid ? '0 0 20px rgba(234,179,8,0.15)' : 'none',
+                      }}
+                    >
+                      <label className="block font-ninja text-[11px] tracking-wider text-gray-400 mb-2">
+                        {ar ? 'كم توكنز تريد؟' : 'HOW MANY TOKENS?'}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 relative">
+                          <input
+                            type="number"
+                            min={TOKEN_MIN}
+                            step={50}
+                            inputMode="numeric"
+                            value={topUpCustomTokens}
+                            onChange={(e) => setTopUpCustomTokens(e.target.value)}
+                            placeholder={ar ? 'أدخل التوكنز' : 'Enter tokens'}
+                            className="w-full bg-white/5 border border-yellow-500/30 rounded-md px-3 py-2.5 font-ninja text-xl text-white outline-none focus:border-yellow-400 placeholder:text-gray-600"
+                          />
+                          <Coins size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-500/60 pointer-events-none" />
+                        </div>
+                        <div className="text-right">
+                          <div className="font-ninja text-2xl text-white leading-none">
+                            {topUpCustomValid ? topUpCustomPriceJOD.toFixed(2) : '—'}
+                          </div>
+                          <div className="font-body text-[10px] text-gray-500 mt-0.5">JOD</div>
+                        </div>
+                      </div>
+                      <p className="font-body text-[10px] text-gray-500 mt-2">
+                        {ar ? `الحد الأدنى ${TOKEN_MIN} · ${TOKENS_PER_JOD} توكنز = 1 دينار` : `Min ${TOKEN_MIN} · ${TOKENS_PER_JOD} tokens = 1 JOD`}
+                      </p>
                     </div>
 
                     {/* Buy button */}
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      disabled={!topUpSelected || topUpLoading}
-                      onClick={() => topUpSelected && requestTopup(topUpSelected)}
+                      disabled={!topUpCustomValid || topUpLoading}
+                      onClick={requestTopup}
                       className="w-full ninja-btn ninja-btn-green-fill ninja-btn-lg flex items-center justify-center gap-2 py-3.5 rounded-xl font-ninja text-base"
-                      style={{ background: topUpSelected ? 'linear-gradient(135deg, #FFD700, #FFA000)' : undefined, color: topUpSelected ? '#000' : undefined }}>
+                      style={{ background: topUpCustomValid ? 'linear-gradient(135deg, #FFD700, #FFA000)' : undefined, color: topUpCustomValid ? '#000' : undefined }}>
                       {topUpLoading ? <span className="animate-spin w-4 h-4 border-2 border-black border-t-transparent rounded-full" /> : <Coins size={18} />}
                       {topUpLoading ? (ar ? 'جاري الإرسال...' : 'SENDING...') : (ar ? 'طلب شحن' : 'REQUEST TOP-UP')}
                     </motion.button>
