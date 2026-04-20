@@ -8,7 +8,7 @@ import { CHESTS, CHEST_REWARDS } from '@/lib/constants';
 import {
   Package, Search, TrendingUp, Crown, Gift, Clock, Filter,
   ChevronDown, ChevronUp, Coins, Star, Trophy, Sparkles,
-  Settings, Send, Percent, DollarSign, BarChart3, Zap, Users, AlertTriangle
+  Settings, Send, Percent, DollarSign, BarChart3, Zap, Users, AlertTriangle, Sliders
 } from 'lucide-react';
 
 interface ChestDrop {
@@ -277,18 +277,26 @@ export function ChestManagement() {
       </div>
 
       {/* Section Tabs */}
-      <div className="flex items-center gap-2 mb-4">
+      <div className="flex items-center gap-2 mb-4 flex-wrap">
         {([
-          { key: 'history', label: 'Drop History', icon: Clock },
-          { key: 'profit', label: 'Profit & Analytics', icon: BarChart3 },
-          { key: 'config', label: 'Settings', icon: Settings },
-          { key: 'promo', label: 'Promotions', icon: Send },
+          { key: 'history', label: 'Drop History', icon: Clock, accent: '#0071e3' },
+          { key: 'profit', label: 'Profit & Analytics', icon: BarChart3, accent: '#0071e3' },
+          { key: 'config', label: 'Luck Slider & Settings', icon: Sliders, accent: '#ff9500' },
+          { key: 'promo', label: 'Promotions', icon: Send, accent: '#0071e3' },
         ] as const).map(s => (
           <button key={s.key} onClick={() => setActiveSection(s.key)}
             className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
-              activeSection === s.key ? 'bg-[#0071e3] text-white' : 'bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f] border border-[#e5e5ea]/60'
-            }`}>
+              activeSection === s.key
+                ? 'text-white'
+                : 'bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f] border border-[#e5e5ea]/60'
+            }`}
+            style={activeSection === s.key ? { background: s.accent } : undefined}>
             <s.icon size={14} /> {s.label}
+            {s.key === 'config' && activeSection !== 'config' && (
+              <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[#ff9500]/10 text-[#ff9500] text-[9px] font-bold tracking-wider">
+                LUCK
+              </span>
+            )}
           </button>
         ))}
       </div>
