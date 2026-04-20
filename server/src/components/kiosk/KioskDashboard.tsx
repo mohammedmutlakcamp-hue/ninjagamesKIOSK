@@ -5,7 +5,7 @@ import { Lang, t } from '@/lib/translations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, addDoc, collection, increment, writeBatch, query, where, getDocs } from 'firebase/firestore';
-import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, TIME_PACKAGES } from '@/lib/constants';
+import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, TIME_PACKAGES, COIN_PACKAGES } from '@/lib/constants';
 import { launchOnPc } from '@/lib/launch';
 import { installLifecycleListeners, dlog } from '@/lib/debug-logger';
 import { DebugOverlay } from './DebugOverlay';
@@ -2295,6 +2295,47 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     </span>
                   </motion.div>
 
+                  {/* ── Package grid (1 / 2.25 / 5 / 10 / 20 / 30 / 50 JOD) ── */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
+                    {COIN_PACKAGES.map((pkg, idx) => {
+                      const active = topUpSelected === pkg.id;
+                      return (
+                        <motion.button
+                          key={pkg.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.25 + idx * 0.03 }}
+                          whileHover={{ scale: 1.02 }}
+                          whileTap={{ scale: 0.97 }}
+                          onClick={() => { setTopUpSelected(pkg.id); setTopUpCustomTokens(''); }}
+                          className="relative rounded-lg px-3 py-2.5 text-left overflow-hidden transition-all"
+                          style={{
+                            background: active
+                              ? 'linear-gradient(135deg, rgba(234,179,8,0.18), rgba(234,179,8,0.05))'
+                              : 'rgba(255,255,255,0.025)',
+                            border: `1px solid ${active ? 'rgba(234,179,8,0.55)' : 'rgba(255,255,255,0.08)'}`,
+                            boxShadow: active ? '0 0 18px rgba(234,179,8,0.18)' : 'none',
+                          }}
+                        >
+                          {pkg.popular && (
+                            <span className="absolute top-1 right-1 text-[8px] font-ninja tracking-wider px-1.5 py-0.5 rounded"
+                              style={{ background: '#eab308', color: '#000' }}>POPULAR</span>
+                          )}
+                          <div className="flex items-baseline gap-1 mb-0.5">
+                            <span className="font-ninja text-lg text-yellow-400">{pkg.price}</span>
+                            <span className="font-body text-[10px] text-gray-500">JOD</span>
+                          </div>
+                          <div className="font-ninja text-[11px] text-white/90">
+                            {pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}
+                          </div>
+                          {pkg.bonusPercentage !== undefined && pkg.bonusPercentage > 0 && (
+                            <div className="font-body text-[9px] text-green-400 mt-0.5">+{pkg.bonusPercentage}%</div>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+
                   {/* ── TOP-UP AMOUNT card ── */}
                   <motion.div
                     initial={{ opacity: 0, x: -30 }}
@@ -2383,7 +2424,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
                     style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
                     {(() => {
-                      const canSubmit = topUpCustomValid;
+                      const selectedPkg = topUpSelected && topUpSelected !== 'custom'
+                        ? COIN_PACKAGES.find(p => p.id === topUpSelected)
+                        : null;
+                      // Valid if: a package is selected OR a valid custom amount typed.
+                      const canSubmit = !!selectedPkg || topUpCustomValid;
                       return (
                         <button
                           disabled={!canSubmit || topUpLoading}
@@ -2391,10 +2436,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                             if (!canSubmit) return;
                             setTopUpLoading(true);
                             try {
+                              const payload = selectedPkg
+                                ? { packageId: selectedPkg.id, coins: selectedPkg.coins, priceJOD: selectedPkg.price, custom: false }
+                                : { packageId: 'custom', coins: topUpCustomNum, priceJOD: topUpCustomPriceJOD, custom: true };
                               await addDoc(collection(db, 'topup-requests'), {
                                 playerId: player.uid, playerName: topUpPlayerName || player.username,
-                                packageId: 'custom', coins: topUpCustomNum, priceJOD: topUpCustomPriceJOD,
-                                custom: true,
+                                ...payload,
                                 status: 'pending', createdAt: Date.now(),
                               });
                             } catch (err) {
