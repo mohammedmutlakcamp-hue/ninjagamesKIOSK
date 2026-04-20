@@ -155,11 +155,14 @@ export function HubblyTab({ player }: Props) {
         status: 'pending',
         createdAt: Date.now(),
       });
-      notifyAdmin(
-        'shisha_order',
-        'Shisha Order — UNPAID',
-        `${player.username} ordered ${selected.name}${iceInWater ? ' (with ice)' : ''} · collect ${totalJOD.toFixed(2)} JOD`
-      );
+      {
+        const pcLabel = player.pcName || player.lastPcUsed || 'Unknown PC';
+        notifyAdmin(
+          'shisha_order',
+          'Shisha Order — UNPAID',
+          `${player.username} on ${pcLabel}\nFlavor: ${selected.name}${iceInWater ? ' (with ice in water)' : ' (no ice)'}\nCollect ${totalJOD.toFixed(2)} JOD at counter`
+        );
+      }
       setOrderSent(true);
       setTimeout(() => {
         setOrderSent(false);
@@ -196,11 +199,14 @@ export function HubblyTab({ player }: Props) {
         status: 'pending',
         createdAt: Date.now(),
       });
-      notifyAdmin(
-        'tobacco_order',
-        'Tobacco Order — UNPAID',
-        `${player.username} ordered ${tobaccoSelected.name} · collect ${totalJOD.toFixed(2)} JOD`
-      );
+      {
+        const pcLabel = player.pcName || player.lastPcUsed || 'Unknown PC';
+        notifyAdmin(
+          'tobacco_order',
+          'Tobacco Order — UNPAID',
+          `${player.username} on ${pcLabel}\nBrand: ${tobaccoSelected.name}\nCollect ${totalJOD.toFixed(2)} JOD at counter`
+        );
+      }
       setOrderSent(true);
       setTimeout(() => {
         setOrderSent(false);

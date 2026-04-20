@@ -951,7 +951,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       bundle: activePromo.bundle, method: 'tokens', tokensPaid: activePromo.priceTokens,
                       status: 'paid', paid: true, paidAt: nowTs, createdAt: nowTs,
                     });
-                    notifyAdmin('order', 'Promo Order — PAID (tokens)', `${player.username} bought ${activePromo.name} with ${activePromo.priceTokens} tokens`);
+                    {
+                      const pcLabel = player.lastPcUsed || player.pcName || 'Unknown PC';
+                      const bundleList = activePromo.bundle.map(b => `${b.qty}× ${b.name}`).join(', ');
+                      notifyAdmin('order', 'Promo Order — PAID (tokens)',
+                        `${player.username} on ${pcLabel}\nPromo: ${activePromo.name}\nIncludes: ${bundleList}\n−${activePromo.priceTokens} tokens`);
+                    }
                   } else {
                     // Cash order — admin must confirm at counter
                     await addDoc(collection(db, 'promo-orders'), {
@@ -959,7 +964,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       bundle: activePromo.bundle, method: 'cash', priceJOD: activePromo.priceJOD,
                       paid: false, paymentMethod: 'cash', status: 'pending', createdAt: nowTs,
                     });
-                    notifyAdmin('order', 'Promo Order — UNPAID', `${player.username} ordered ${activePromo.name} · collect ${activePromo.priceJOD.toFixed(2)} JOD at counter`);
+                    {
+                      const pcLabel = player.lastPcUsed || player.pcName || 'Unknown PC';
+                      const bundleList = activePromo.bundle.map(b => `${b.qty}× ${b.name}`).join(', ');
+                      notifyAdmin('order', 'Promo Order — UNPAID',
+                        `${player.username} on ${pcLabel}\nPromo: ${activePromo.name}\nIncludes: ${bundleList}\nCollect ${activePromo.priceJOD.toFixed(2)} JOD at counter`);
+                    }
                   }
                   setPromoOrderResult({
                     ok: true,
@@ -2919,9 +2929,16 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 : { packageId: 'custom', coins: topUpCustomNum, priceJOD: topUpCustomPriceJOD, custom: true };
                               await addDoc(collection(db, 'topup-requests'), {
                                 playerId: player.uid, playerName: topUpPlayerName || player.username,
+                                pcName: player.lastPcUsed || player.pcName || 'Unknown PC',
                                 ...payload,
                                 status: 'pending', createdAt: Date.now(),
                               });
+                              // Notify admin (OneSignal + WhatsApp fanout)
+                              const nameForTitle = topUpPlayerName || player.username;
+                              const pkgLabel = selectedPkg ? selectedPkg.name : 'Custom';
+                              const pcLabel = player.lastPcUsed || player.pcName || 'Unknown PC';
+                              notifyAdmin('topup', 'Top-Up Request',
+                                `${nameForTitle} on ${pcLabel} wants ${payload.coins.toLocaleString()} tokens (${payload.priceJOD.toFixed(2)} JOD · ${pkgLabel} pack)`);
                             } catch (err) {
                               console.error('TopUp request failed:', err);
                             }
@@ -3263,8 +3280,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                             remainingPlaytime: increment(playtimeMinutes),
                           });
                           // Notify admin (OneSignal + WhatsApp fanout)
-                          notifyAdmin('top_up', 'Time Purchased',
-                            `${player.username} bought ${pkg.hours}h of play (${pkg.coins} tokens)`);
+                          {
+                            const pcLabel = player.lastPcUsed || player.pcName || 'Unknown PC';
+                            notifyAdmin('top_up', 'Time Purchased',
+                              `${player.username} on ${pcLabel}\nBought: ${pkg.hours}h of play time\n−${pkg.coins} tokens`);
+                          }
                           setShowBuyTimeModal(false);
                           setBuyTimeSelected(null);
                         } catch (err) { console.error('Buy time failed:', err); }

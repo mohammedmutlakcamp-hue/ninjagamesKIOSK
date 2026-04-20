@@ -154,7 +154,11 @@ export function FoodTab({ player }: Props) {
       });
       trackDailyTask(player.uid, 'order_food');
       const totalJODStr = (Math.round(totalJOD * 100) / 100).toFixed(2);
-      notifyAdmin('order', 'New Food Order — UNPAID', `${player.username} ordered ${cartCount} item${cartCount > 1 ? 's' : ''} · collect ${totalJODStr} JOD at counter`);
+      // Human-readable item breakdown for the admin WhatsApp / OneSignal message
+      const itemList = orderItems.map(i => `${i.quantity}× ${i.name}`).join(', ');
+      const pcLabel = player.lastPcUsed || player.pcName || 'Unknown PC';
+      notifyAdmin('order', 'New Food Order — UNPAID',
+        `${player.username} on ${pcLabel}\nItems: ${itemList}\nCollect ${totalJODStr} JOD at counter`);
       setLastOrderTotalJOD(Math.round(totalJOD * 100) / 100);
       setCart({});
       setOrderSuccess(true);
