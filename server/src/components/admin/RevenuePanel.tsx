@@ -8,6 +8,7 @@ import {
   Users, UserCheck, Coins, BarChart3, Clock,
   ClipboardList, UtensilsCrossed, RefreshCw, Lightbulb
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 export function RevenuePanel() {
   const [stats, setStats] = useState({
@@ -71,7 +72,19 @@ export function RevenuePanel() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Revenue & Stats</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Revenue & Stats
+            <HelpTip title={{ en: 'Revenue & Stats', ar: 'الإيرادات والإحصائيات' }}
+              ar={(
+                <>
+                  <p className="mb-2">ملخص سريع لإحصائيات المحل: عدد اللاعبين، التوكنز المتداولة، الطلبات، الجلسات، إلخ.</p>
+                  <p className="text-[#86868b]">للأرقام المالية الكاملة (الربح، الهامش، تفصيل المصاريف)، استخدم تبويب "Real P&L".</p>
+                </>
+              )}>
+              <p className="mb-2">Quick summary of shop stats: player count, tokens in circulation, orders, sessions, etc.</p>
+              <p className="text-[#86868b]">For full financial numbers (profit, margin, cost breakdown), use the <strong>Real P&L</strong> tab.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">Business overview</p>
         </div>
         <button

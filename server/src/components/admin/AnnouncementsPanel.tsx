@@ -17,6 +17,7 @@ import {
   serverTimestamp,
   Timestamp,
 } from 'firebase/firestore';
+import { HelpTip } from './HelpTip';
 import {
   Megaphone,
   AlertTriangle,
@@ -230,6 +231,20 @@ export function AnnouncementsPanel() {
       {/* Header */}
       <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-6 flex items-center gap-3">
         <Megaphone size={24} className="text-[#0071e3]" /> Announcements & Maintenance
+        <HelpTip title={{ en: 'Announcements & Maintenance', ar: 'الإعلانات والصيانة' }}
+          ar={(
+            <>
+              <p className="mb-2"><strong>الإعلانات:</strong> رسالة تظهر كبانر في أعلى كل الأجهزة — مفيدة لـ"البطولة 8 مساءً" أو "خصم 20% الليلة".</p>
+              <p className="mb-1.5">اختر العنوان، الرسالة، الستايل (معلومات/تحذير/عاجل/عرض)، ومدة الظهور. احفظ → يظهر فوراً.</p>
+              <p className="mb-2"><strong>وضع الصيانة:</strong> عند التفعيل، كل الأجهزة تظهر شاشة "الصيانة" مع رسالتك. مفيد وقت التحديثات أو الإغلاق الطارئ.</p>
+              <p className="text-[#86868b]">للإعلانات المجدولة (بأوقات معينة)، استخدم تبويب Scheduled Tasks.</p>
+            </>
+          )}>
+          <p className="mb-2"><strong>Announcements:</strong> banner message shown at the top of every kiosk — "Tournament 8pm" or "20% off tonight".</p>
+          <p className="mb-1.5">Pick title, message, style (info/warning/urgent/promo), duration. Save → appears instantly.</p>
+          <p className="mb-2"><strong>Maintenance mode:</strong> when ON, every kiosk shows your maintenance screen. Use during updates or emergency close.</p>
+          <p className="text-[#86868b]">For scheduled announcements (fire at specific times), use Scheduled Tasks.</p>
+        </HelpTip>
       </h1>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { ToggleLeft, ToggleRight, UtensilsCrossed, CreditCard, Loader2, CheckCircle2 } from 'lucide-react';
 import { useFeatureFlags, setFeatureFlag, type FeatureFlags } from '@/lib/feature-flags';
+import { HelpTip } from './HelpTip';
 
 interface FlagDef {
   key: keyof FeatureFlags;
@@ -63,7 +64,19 @@ export function FeatureFlagsPanel() {
           <ToggleRight size={22} className="text-[#39FF14]" />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Feature Flags</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Feature Flags
+            <HelpTip title={{ en: 'Feature Flags', ar: 'مفاتيح الميزات' }}
+              ar={(
+                <>
+                  <p className="mb-2">مفاتيح تشغيل/إيقاف للميزات الكبيرة بدون إعادة نشر — تعمل على كل الأجهزة خلال ثانيتين.</p>
+                  <p className="text-[#86868b]">كل مفتاح يشرح نفسه أسفله (أين يظهر وماذا يحدث عند التفعيل).</p>
+                </>
+              )}>
+              <p className="mb-2">ON/OFF switches for big features, no redeploy needed — propagates to every kiosk in &lt;2s.</p>
+              <p className="text-[#86868b]">Each flag has its own description below (where it shows up, what it controls).</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">
             Live toggles — changes hit every kiosk in &lt; 2 seconds. {enabledCount}/{FLAG_DEFS.length} features enabled.
           </p>

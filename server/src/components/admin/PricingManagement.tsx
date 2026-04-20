@@ -53,16 +53,27 @@ function SectionHeader({
   title,
   help,
   helpTitle,
+  helpAr,
+  helpTitleAr,
 }: {
   icon: React.ElementType;
   title: string;
   help?: React.ReactNode;
   helpTitle?: string;
+  helpAr?: React.ReactNode;
+  helpTitleAr?: string;
 }) {
   return (
     <h3 className="text-lg font-semibold text-[#1d1d1f] mb-4 flex items-center gap-2">
       <Icon size={18} className="text-[#0071e3]" /> {title}
-      {help && <HelpTip title={helpTitle || title}>{help}</HelpTip>}
+      {help && (
+        <HelpTip title={helpTitleAr
+          ? { en: helpTitle || title, ar: helpTitleAr }
+          : (helpTitle || title)}
+          ar={helpAr}>
+          {help}
+        </HelpTip>
+      )}
     </h3>
   );
 }
@@ -302,11 +313,19 @@ export function PricingManagement() {
         >
           <div className="flex items-center justify-between mb-4">
             <SectionHeader icon={Clock} title="Time Packages"
+              helpTitleAr="باقات الوقت"
               help={(
                 <>
                   <p className="mb-2">How players convert tokens to play time. Each row: a package name, how many hours it grants, and the token cost.</p>
                   <p className="mb-2"><strong>How it works:</strong> a player clicks "Buy Time" in the kiosk sidebar → picks a package → tokens are deducted and minutes are added to their session.</p>
-                  <p className="text-[#86868b]"><strong>Tip:</strong> longer packages should be cheaper per hour. That's what pulls customers toward bigger buys. Current Gold tier (7h / 500 tokens ≈ 0.71 JOD/hr) is your best deal — players see a "BEST" badge on it.</p>
+                  <p className="text-[#86868b]"><strong>Tip:</strong> longer packages should be cheaper per hour. The Gold tier shows a "BEST" badge to pull customers toward the sweet spot.</p>
+                </>
+              )}
+              helpAr={(
+                <>
+                  <p className="mb-2">هنا تُحوِّل التوكنز إلى وقت لعب. كل صف فيه اسم الباقة، عدد الساعات، وتكلفتها بالتوكنز.</p>
+                  <p className="mb-2"><strong>كيف يعمل:</strong> اللاعب يضغط "شراء وقت" من الشريط الجانبي → يختار الباقة → تُخصم التوكنز وتُضاف الدقائق لجلسته.</p>
+                  <p className="text-[#86868b]"><strong>نصيحة:</strong> الباقات الأطول يجب أن تكون أرخص للساعة الواحدة. باقة الذهب تظهر عليها "الأفضل" لجذب اللاعبين.</p>
                 </>
               )} />
 
@@ -364,11 +383,19 @@ export function PricingManagement() {
         >
           <div className="flex items-center justify-between mb-4">
             <SectionHeader icon={Settings2} title="Base Rates"
+              helpTitleAr="الأسعار الأساسية"
               help={(
                 <>
-                  <p className="mb-2"><strong>Coins per hour:</strong> how many tokens a player burns per hour just by being logged in (the kiosk deducts 1 min of their `remainingPlaytime` every 60 sec — this field is the display rate used across the app).</p>
-                  <p className="mb-2"><strong>JOD → Coins rate:</strong> how many tokens 1 JOD buys at the base rate (no bonus). All 7 coin packages are priced around this anchor; bigger packs add 2%–5% bonus on top.</p>
-                  <p className="text-[#ff9500]"><strong>Careful:</strong> changing these numbers affects every kiosk immediately. Don't drop prices during peak hours without a reason.</p>
+                  <p className="mb-2"><strong>Coins per hour:</strong> how many tokens a player burns per hour of play.</p>
+                  <p className="mb-2"><strong>JOD → Coins rate:</strong> how many tokens 1 JOD buys at the base rate. All 7 packages price around this anchor; bigger packs add 2%–5% bonus.</p>
+                  <p className="text-[#ff9500]"><strong>Careful:</strong> changes apply to every kiosk instantly.</p>
+                </>
+              )}
+              helpAr={(
+                <>
+                  <p className="mb-2"><strong>التوكنز لكل ساعة:</strong> كم توكن يُستهلك في الساعة من اللعب.</p>
+                  <p className="mb-2"><strong>سعر الدينار → التوكنز:</strong> كم توكن يُعطى مقابل 1 دينار بدون إضافات. الباقات الأكبر تضيف 2%–5% كمكافأة.</p>
+                  <p className="text-[#ff9500]"><strong>احذر:</strong> التغييرات تُطبَّق فوراً على كل الأجهزة.</p>
                 </>
               )} />
 
@@ -414,12 +441,21 @@ export function PricingManagement() {
         >
           <div className="flex items-center justify-between mb-4">
             <SectionHeader icon={Crown} title="VIP Configuration"
+              helpTitleAr="إعدادات VIP"
               help={(
                 <>
-                  <p className="mb-2">Settings for your VIP membership — the paid upgrade that gives a player perks like discounted cafe items, daily free tokens, daily task bonus, and invite bonus.</p>
-                  <p className="mb-2"><strong>Price:</strong> how many tokens a player spends to become VIP for the set duration.</p>
-                  <p className="mb-2"><strong>Duration:</strong> how long the VIP perks last (days).</p>
-                  <p><strong>Bonuses:</strong> daily free tokens, cafe discount %, daily task completion bonus, invite bonus — applied automatically while VIP is active.</p>
+                  <p className="mb-2">Settings for the VIP membership — paid upgrade with cafe discount, daily free tokens, task bonus, invite bonus.</p>
+                  <p className="mb-1.5"><strong>Price:</strong> token cost to become VIP for the set duration.</p>
+                  <p className="mb-1.5"><strong>Duration:</strong> how long VIP lasts (days).</p>
+                  <p><strong>Bonuses:</strong> daily tokens, cafe %, task bonus, invite bonus — auto-applied while active.</p>
+                </>
+              )}
+              helpAr={(
+                <>
+                  <p className="mb-2">إعدادات عضوية VIP — ترقية مدفوعة تعطي خصم على الكافيه، توكنز يومية مجانية، مكافأة على المهام اليومية، ومكافأة على الدعوات.</p>
+                  <p className="mb-1.5"><strong>السعر:</strong> عدد التوكنز المطلوبة للاشتراك لمدة محددة.</p>
+                  <p className="mb-1.5"><strong>المدة:</strong> كم يوم تستمر العضوية.</p>
+                  <p><strong>المكافآت:</strong> توكنز يومية، خصم الكافيه %، مكافأة المهام، مكافأة الدعوة — تُطبَّق تلقائياً.</p>
                 </>
               )} />
 
@@ -487,10 +523,17 @@ export function PricingManagement() {
         >
           <div className="flex items-center justify-between mb-4">
             <SectionHeader icon={PenLine} title="Username Change Cost"
+              helpTitleAr="تكلفة تغيير اسم المستخدم"
               help={(
                 <>
-                  <p className="mb-2">Players get the first couple of username changes free. This field sets the token cost for every change AFTER that.</p>
-                  <p className="text-[#86868b]"><strong>Why charge for it:</strong> without a cost, players farm usernames to look like admin or other players. The small fee kills the abuse.</p>
+                  <p className="mb-2">First couple of username changes are free. This sets the token cost for every change after that.</p>
+                  <p className="text-[#86868b]"><strong>Why charge:</strong> stops farming/impersonation.</p>
+                </>
+              )}
+              helpAr={(
+                <>
+                  <p className="mb-2">أول تغييرين لاسم المستخدم مجانيان. هذا الحقل يحدد تكلفة التوكنز لكل تغيير بعدهم.</p>
+                  <p className="text-[#86868b]"><strong>لماذا ندفع:</strong> لمنع اللاعبين من تغيير الاسم ليقلِّدوا غيرهم.</p>
                 </>
               )} />
 
@@ -523,13 +566,23 @@ export function PricingManagement() {
           className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
         >
           <SectionHeader icon={BarChart3} title="Economy Overview"
+            helpTitleAr="نظرة عامة على الاقتصاد"
             help={(
               <>
-                <p className="mb-2">Live snapshot of your shop's token economy.</p>
-                <p className="mb-1.5"><strong>Total in circulation:</strong> every token currently sitting in a player balance. If this grows uncontrolled, players are accumulating wealth without spending it.</p>
-                <p className="mb-1.5"><strong>Total spent:</strong> lifetime tokens burned on chests, food, time, etc. Grows monotonically.</p>
-                <p className="mb-1.5"><strong>Player count:</strong> registered accounts (excluding guests).</p>
-                <p className="text-[#86868b]">Watch these numbers over time. A healthy economy has spend ≈ purchase rate.</p>
+                <p className="mb-2">Live snapshot of the shop's token economy.</p>
+                <p className="mb-1.5"><strong>Total in circulation:</strong> tokens in all player balances.</p>
+                <p className="mb-1.5"><strong>Total spent:</strong> lifetime tokens burned on chests / food / time.</p>
+                <p className="mb-1.5"><strong>Player count:</strong> registered accounts.</p>
+                <p className="text-[#86868b]">Healthy economy: spend ≈ purchase rate.</p>
+              </>
+            )}
+            helpAr={(
+              <>
+                <p className="mb-2">صورة حيّة لاقتصاد التوكنز في المحل.</p>
+                <p className="mb-1.5"><strong>المجموع المتداول:</strong> التوكنز في أرصدة اللاعبين.</p>
+                <p className="mb-1.5"><strong>إجمالي الإنفاق:</strong> التوكنز التي أُحرقت على الصناديق والطعام والوقت.</p>
+                <p className="mb-1.5"><strong>عدد اللاعبين:</strong> الحسابات المسجّلة.</p>
+                <p className="text-[#86868b]">اقتصاد صحي = الإنفاق يساوي الشراء.</p>
               </>
             )} />
 

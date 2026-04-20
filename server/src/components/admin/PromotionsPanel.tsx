@@ -137,12 +137,21 @@ export function PromotionsPanel() {
           <div>
             <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
               Promotions & Bundles
-              <HelpTip title="Promotions & Bundles">
+              <HelpTip title={{ en: 'Promotions & Bundles', ar: 'العروض والباقات' }}
+                ar={(
+                  <>
+                    <p className="mb-2">عروض في وقت محدد — مثل "هابي هاور 6-9 مساءً: كولا + برغر + ساعة لعب = 5 دينار".</p>
+                    <p className="mb-1.5"><strong>ماذا يرى اللاعب:</strong> خلال النافذة المحدّدة، بانر أخضر أعلى الكشك فيه زر "اشترِ الآن". الضغط يفتح نافذة طلب يدفع فيها كاش (يجمعه الأدمن) أو توكنز (تُخصم فوراً).</p>
+                    <p className="mb-1.5"><strong>الطلبات بالكاش</strong> تُحفظ بحالة غير مدفوع — الأدمن يعلّمها مدفوعة عند الدفع، تماماً مثل طلبات الكافيه.</p>
+                    <p className="mb-1.5"><strong>الطلبات بالتوكنز</strong> فورية: تُخصم وتُعلَم مدفوعة.</p>
+                    <p className="text-[#86868b]"><strong>نصيحة:</strong> اجعل نص البانر قصيرًا ولافتًا. "🔥 هابي هاور · كولا + برغر + 1h = 5 دينار" مثالي.</p>
+                  </>
+                )}>
                 <p className="mb-2">Time-window deals — like "Happy Hour 6–9pm Mon–Fri: Cola + Burger + 1h play for 5 JOD".</p>
-                <p className="mb-1.5"><strong>How players see it:</strong> during the active window, a green banner appears at the top of every kiosk with a BUY NOW button. Clicking it opens an order popup where they pay either in cash (collect at counter) or tokens (auto-deducted).</p>
-                <p className="mb-1.5"><strong>Cash orders</strong> create a promo-order with paid=false — admin marks paid at the counter just like regular cafe orders.</p>
-                <p className="mb-1.5"><strong>Token orders</strong> are instant: tokens deducted, order marked paid.</p>
-                <p className="text-[#86868b]"><strong>Tip:</strong> make the banner text short and loud (emojis help). "🔥 HAPPY HOUR ·  Cola + Burger + 1h = 5 JOD" is perfect.</p>
+                <p className="mb-1.5"><strong>Player view:</strong> green banner at top of every kiosk with BUY NOW, opens cash/tokens order popup.</p>
+                <p className="mb-1.5"><strong>Cash:</strong> saved as unpaid, admin marks paid at counter.</p>
+                <p className="mb-1.5"><strong>Tokens:</strong> deducted instantly.</p>
+                <p className="text-[#86868b]"><strong>Tip:</strong> short + loud banner text. Emojis help.</p>
               </HelpTip>
             </h2>
             <p className="text-[#86868b] text-sm">

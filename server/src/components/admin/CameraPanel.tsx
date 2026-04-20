@@ -111,11 +111,19 @@ export function CameraPanel() {
           <div>
             <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
               Cameras
-              <HelpTip title="Camera Panel">
-                <p className="mb-2">Watch every Hikvision camera in the shop from one place. Grid of live snapshots refreshing every {REFRESH_INTERVAL / 1000}s; click any tile for a bigger fullscreen view.</p>
-                <p className="mb-1.5"><strong>Each tile shows:</strong> camera name, zone, live-pulse dot, host IP, channel number.</p>
-                <p className="mb-1.5"><strong>Add a camera:</strong> click "Add Camera", enter name + IP + port + channel (101 for main stream) + Hikvision admin user + password. Credentials never leave the server.</p>
-                <p className="text-[#86868b]"><strong>For remote access</strong> (checking cameras from home), click "Setup Guide" for the step-by-step port-forwarding walkthrough.</p>
+              <HelpTip title={{ en: 'Camera Panel', ar: 'لوحة الكاميرات' }}
+                ar={(
+                  <>
+                    <p className="mb-2">راقب كل كاميرات Hikvision في المحل من مكان واحد. شبكة صور مباشرة تتجدد كل {REFRESH_INTERVAL / 1000} ثانية؛ اضغط على أي صورة لعرض كامل.</p>
+                    <p className="mb-1.5"><strong>كل بلاطة تظهر:</strong> اسم الكاميرا، المنطقة، نقطة حيّة، الـ IP، رقم القناة.</p>
+                    <p className="mb-1.5"><strong>إضافة كاميرا:</strong> اضغط "Add Camera"، اكتب الاسم + الـIP + البورت + القناة (101 للبث الرئيسي) + اسم المستخدم وكلمة السر. بيانات الدخول لا تخرج من الخادم.</p>
+                    <p className="text-[#86868b]"><strong>للوصول عن بُعد</strong> (من البيت)، اضغط "Setup Guide" لشرح Port Forwarding.</p>
+                  </>
+                )}>
+                <p className="mb-2">Watch every Hikvision camera in the shop. Live snapshots refresh every {REFRESH_INTERVAL / 1000}s; click for fullscreen.</p>
+                <p className="mb-1.5"><strong>Each tile:</strong> name, zone, live dot, IP, channel.</p>
+                <p className="mb-1.5"><strong>Add:</strong> name + IP + port + channel (101=main) + user + password. Credentials never leave server.</p>
+                <p className="text-[#86868b]"><strong>Remote access:</strong> see "Setup Guide" for port-forwarding.</p>
               </HelpTip>
             </h2>
             <p className="text-[#86868b] text-sm">

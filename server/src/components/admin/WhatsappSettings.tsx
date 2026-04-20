@@ -143,15 +143,27 @@ export function WhatsappSettings() {
           <div>
             <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
               WhatsApp — Admin Notifications
-              <HelpTip title="WhatsApp Admin Notifications">
-                <p className="mb-2">Mirror every kiosk event (food orders, top-up requests, time purchases, hubbly orders, chat, registrations) to your phone via WhatsApp — so you don't need to stare at the admin screen.</p>
-                <p className="mb-1.5"><strong>Two provider options:</strong></p>
+              <HelpTip title={{ en: 'WhatsApp Admin Notifications', ar: 'تنبيهات واتساب للأدمن' }}
+                ar={(
+                  <>
+                    <p className="mb-2">كل حركة تصير في المحل (طلب طعام، شحن توكنز، شراء وقت، أرجيلة، تسجيل، شات) تصل إلى واتساب الأدمن مباشرة — بدون ما تفضل تطل على الشاشة.</p>
+                    <p className="mb-1.5"><strong>مزودان:</strong></p>
+                    <ul className="list-disc pr-5 mb-1.5">
+                      <li><strong>Twilio Sandbox</strong> — تشغيل مجاني خلال 5 دقائق. يحتاج الأدمن يرسل كود انضمام مرة وحدة.</li>
+                      <li><strong>Meta Cloud API</strong> — للإنتاج. 1000 محادثة مجانية شهرياً بدون أي تعقيد.</li>
+                    </ul>
+                    <p className="mb-1.5"><strong>أرقام الأدمن:</strong> الرقم الذي يستقبل كل الأحداث. افصل بين الأرقام بفاصلة لأكثر من شخص.</p>
+                    <p className="text-[#86868b]"><strong>اختبر:</strong> اضغط "Send test" للتأكد من وصول الرسالة.</p>
+                  </>
+                )}>
+                <p className="mb-2">Mirror every kiosk event to your phone via WhatsApp.</p>
+                <p className="mb-1.5"><strong>Providers:</strong></p>
                 <ul className="list-disc pl-5 mb-1.5">
-                  <li><strong>Twilio Sandbox</strong> — 5-min free setup, good for testing. Admin phones must send a one-time opt-in code.</li>
-                  <li><strong>Meta Cloud API</strong> — production path. 1000 free conversations/month. No opt-in friction.</li>
+                  <li><strong>Twilio Sandbox</strong> — free, 5-min setup, opt-in code required once.</li>
+                  <li><strong>Meta Cloud API</strong> — production, 1000 free convos/month, no opt-in.</li>
                 </ul>
-                <p className="mb-1.5"><strong>Admin phone(s):</strong> the number that receives every event. Comma-separate multiple owners.</p>
-                <p className="text-[#86868b]"><strong>Test it:</strong> click "Send test to admin phone" once configured — a synthetic event fires so you can verify end-to-end.</p>
+                <p className="mb-1.5"><strong>Admin phone(s):</strong> comma-separate multiple owners.</p>
+                <p className="text-[#86868b]"><strong>Test</strong> button verifies end-to-end.</p>
               </HelpTip>
             </h2>
             <p className="text-[#86868b] text-sm">

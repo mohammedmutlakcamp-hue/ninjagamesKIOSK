@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
+import { HelpTip } from './HelpTip';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { Coins, Check, X, Clock, User, AlertTriangle, Loader2, Package, Gamepad2, Timer } from 'lucide-react';
 import { blendRate } from '@/lib/pricing';
@@ -149,7 +150,23 @@ export function TopUpRequests() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Top Up Requests</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Top Up Requests
+            <HelpTip title={{ en: 'Top-Up Requests', ar: 'طلبات شحن التوكنز' }}
+              ar={(
+                <>
+                  <p className="mb-2">قائمة بطلبات اللاعبين لشراء التوكنز. كل طلب يبيّن: اسم اللاعب، عدد التوكنز، المبلغ بالدينار، ورقم الجهاز.</p>
+                  <p className="mb-1.5"><strong>المطلوب منك:</strong> اقبض المبلغ من اللاعب على الكاونتر، ثم اضغط "Approve" → التوكنز تُضاف فوراً لرصيده.</p>
+                  <p className="mb-1.5"><strong>"Reject"</strong> ترفض الطلب بدون إضافة توكنز — مفيدة إذا اللاعب غيّر رأيه.</p>
+                  <p className="text-[#86868b]">كل طلب جديد يرنّ كنبيوتر الأدمن وواتساب (إذا مُفعّل).</p>
+                </>
+              )}>
+              <p className="mb-2">Queue of players who want to buy tokens. Each row: player name, tokens requested, JOD amount, PC.</p>
+              <p className="mb-1.5"><strong>Your job:</strong> collect the cash at the counter, click <strong>Approve</strong> → tokens are added to their balance instantly.</p>
+              <p className="mb-1.5"><strong>Reject</strong> denies without adding tokens (customer changed their mind).</p>
+              <p className="text-[#86868b]">Every new request rings the admin PC + WhatsApp if enabled.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">
             {pending.length} pending · {handled.length} handled
           </p>

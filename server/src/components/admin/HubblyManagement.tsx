@@ -214,12 +214,21 @@ export function HubblyManagement() {
           <div>
             <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
               Hubbly Menu
-              <HelpTip title="Hubbly Menu Editor">
-                <p className="mb-2">Controls what players see when they open the Hubbly Bubbly tab on the kiosk — shisha flavors + cigarette brands.</p>
-                <p className="mb-1.5"><strong>Flavors:</strong> the 12-card flavor grid. Toggle availability, edit prices (in tokens), change icons/colors, mark some as POPULAR.</p>
-                <p className="mb-1.5"><strong>Cigarettes:</strong> the tobacco-only flow. Same edits plus an optional badge (CLASSIC / SMOOTH).</p>
-                <p className="mb-1.5"><strong>First visit auto-imports</strong> the 12 default flavors + 3 default cigarettes so there's always something on the menu.</p>
-                <p className="text-[#86868b]"><strong>Hubbly orders are cash-only</strong> — customers pay at the counter. Admin marks paid in the Orders panel.</p>
+              <HelpTip title={{ en: 'Hubbly Menu Editor', ar: 'محرر قائمة الأرجيلة' }}
+                ar={(
+                  <>
+                    <p className="mb-2">يتحكم فيما يراه اللاعبون في تبويب الأرجيلة — نكهات الشيشة + ماركات السجائر.</p>
+                    <p className="mb-1.5"><strong>النكهات:</strong> شبكة من 12 بطاقة. فعّل/ألغِ، عدّل الأسعار، غيّر الأيقونات والألوان، حدّد "شعبية".</p>
+                    <p className="mb-1.5"><strong>السجائر:</strong> بنفس الفكرة مع شارة اختيارية (CLASSIC / SMOOTH).</p>
+                    <p className="mb-1.5"><strong>أول زيارة تستورد</strong> النكهات والسجائر الافتراضية تلقائياً.</p>
+                    <p className="text-[#86868b]"><strong>طلبات الأرجيلة كاش فقط</strong> — يدفع الزبون على الكاونتر، الأدمن يعلّمها مدفوعة من شاشة الطلبات.</p>
+                  </>
+                )}>
+                <p className="mb-2">Controls what players see on the Hubbly tab — flavors + cigarettes.</p>
+                <p className="mb-1.5"><strong>Flavors:</strong> toggle availability, edit prices, icons, colors, POPULAR badge.</p>
+                <p className="mb-1.5"><strong>Cigarettes:</strong> same + optional badge (CLASSIC / SMOOTH).</p>
+                <p className="mb-1.5"><strong>First visit auto-imports</strong> defaults.</p>
+                <p className="text-[#86868b]"><strong>Cash-only</strong> at the counter; admin marks paid in Orders.</p>
               </HelpTip>
             </h2>
             <p className="text-[#86868b] text-sm">

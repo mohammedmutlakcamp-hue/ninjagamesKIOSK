@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { MenuItem } from '@/types';
 import { getMenuImage } from '@/lib/menu-images';
+import { HelpTip } from './HelpTip';
 import {
   Plus, CupSoda, Cookie, Pizza, UtensilsCrossed, Pencil,
   Trash2, ToggleLeft, ToggleRight, Coins, X, Image as ImageIcon, Link2, Folder, AlertTriangle,
@@ -109,7 +110,23 @@ export function MenuManagement() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Menu Management</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Menu Management
+            <HelpTip title={{ en: 'Food Menu', ar: 'قائمة الطعام' }}
+              ar={(
+                <>
+                  <p className="mb-2">قائمة الكافيه كما يراها اللاعبون في الكشك. ثلاث فئات: مشروبات، سناكات، وطعام.</p>
+                  <p className="mb-1.5"><strong>إضافة/تعديل:</strong> الاسم (إنجليزي + عربي)، السعر بالتوكنز والدينار، الصورة، وقت التحضير، التوفّر.</p>
+                  <p className="mb-1.5"><strong>الأسعار بالدينار</strong> هي المستخدمة في طلبات الكاش (الكافيه كاش فقط حالياً).</p>
+                  <p className="text-[#86868b]">اضغط ON/OFF لإخفاء صنف مؤقتاً (مثلاً انتهى من المخزون).</p>
+                </>
+              )}>
+              <p className="mb-2">The cafe menu as players see it in the kiosk. Three categories: drinks, snacks, food.</p>
+              <p className="mb-1.5"><strong>Add/edit:</strong> name (EN + AR), price (tokens + JOD), image, prep time, availability.</p>
+              <p className="mb-1.5"><strong>JOD prices</strong> are what cash orders charge (cafe is cash-only now).</p>
+              <p className="text-[#86868b]">Toggle ON/OFF to hide an item temporarily (out of stock).</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">{items.length} items · {items.filter(i => i.available).length} available</p>
         </div>
         <motion.button

@@ -499,12 +499,21 @@ export function ScheduledTasks() {
                 {/* Task Type */}
                 <div className="flex items-center justify-between mb-1 -mt-1">
                   <span className="text-[10px] text-[#86868b] uppercase tracking-wider">Pick a task type</span>
-                  <HelpTip title="Task types">
-                    <p className="mb-1.5"><strong>Restart All PCs:</strong> sends a restart command to every kiosk (for nightly updates, weekly reboots).</p>
+                  <HelpTip title={{ en: 'Task types', ar: 'أنواع المهام' }}
+                    ar={(
+                      <>
+                        <p className="mb-1.5"><strong>إعادة تشغيل الكل:</strong> ترسل أمر إعادة تشغيل لكل الأجهزة (لتحديثات الليل).</p>
+                        <p className="mb-1.5"><strong>إطفاء الكل:</strong> إطفاء نظيف وقت الإغلاق.</p>
+                        <p className="mb-1.5"><strong>إرسال إعلان:</strong> بانر لكل الأجهزة (عنوان + رسالة + ستايل). مفيد لـ"الإغلاق بعد 30 دقيقة" أو "بطولة 8 مساءً".</p>
+                        <p className="mb-1.5"><strong>تشغيل حملة:</strong> يشغّل حملة مكافآت مخصصة.</p>
+                        <p className="text-[#86868b]">المهام تنفّذ من السيرفر حتى لو ما كنت فاتح الصفحة.</p>
+                      </>
+                    )}>
+                    <p className="mb-1.5"><strong>Restart All PCs:</strong> restart every kiosk (nightly updates).</p>
                     <p className="mb-1.5"><strong>Shutdown All PCs:</strong> clean shutdown at close time.</p>
-                    <p className="mb-1.5"><strong>Send Announcement:</strong> pushes a banner to every kiosk (title + message + style). Great for "Closing in 30 min" or "Tournament 8pm tonight".</p>
-                    <p className="mb-1.5"><strong>Run Campaign:</strong> triggers a custom rewards campaign (if configured in the Campaigns panel).</p>
-                    <p className="text-[#86868b]">Tasks fire via the server cron even if no admin has the page open.</p>
+                    <p className="mb-1.5"><strong>Send Announcement:</strong> banner to every kiosk (title + message + style).</p>
+                    <p className="mb-1.5"><strong>Run Campaign:</strong> triggers a custom rewards campaign.</p>
+                    <p className="text-[#86868b]">Tasks fire via server cron even if no admin has the page open.</p>
                   </HelpTip>
                 </div>
                 <div>

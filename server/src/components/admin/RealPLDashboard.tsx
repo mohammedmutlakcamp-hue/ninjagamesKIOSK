@@ -206,12 +206,21 @@ export function RealPLDashboard() {
           <div>
             <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
               Profit & Loss
-              <HelpTip title="Real Profit & Loss">
-                <p className="mb-2">Live financial view of the shop for the selected period.</p>
-                <p className="mb-1.5"><strong>Revenue:</strong> tokens sold (JOD paid in top-ups) + cafeteria cash + hubbly cash + promo bundle sales.</p>
-                <p className="mb-1.5"><strong>Costs:</strong> food raw cost (% of cafeteria revenue), hubbly raw cost (% of hubbly revenue), plus a prorated slice of your monthly fixed costs (rent, electricity, etc).</p>
-                <p className="mb-1.5"><strong>Net Profit = Revenue − Costs.</strong> Margin % is net profit as a fraction of revenue.</p>
-                <p className="text-[#86868b]"><strong>Click Configure</strong> to set your COGS % and monthly fixed costs.</p>
+              <HelpTip title={{ en: 'Real Profit & Loss', ar: 'الأرباح والخسائر الفعلية' }}
+                ar={(
+                  <>
+                    <p className="mb-2">نظرة حيّة على المال في المحل للفترة المحددة.</p>
+                    <p className="mb-1.5"><strong>الإيرادات:</strong> بيع التوكنز (دنانير) + كاش الكافيه + كاش الأرجيلة + عروض الباقات.</p>
+                    <p className="mb-1.5"><strong>التكاليف:</strong> تكلفة الطعام الخام (% من إيرادات الكافيه)، تكلفة الأرجيلة الخام، + حصة نسبية من المصاريف الشهرية الثابتة (إيجار، كهرباء، إلخ).</p>
+                    <p className="mb-1.5"><strong>صافي الربح = الإيرادات − التكاليف.</strong></p>
+                    <p className="text-[#86868b]"><strong>اضغط "Configure"</strong> لضبط نسب الـ COGS والمصاريف الشهرية.</p>
+                  </>
+                )}>
+                <p className="mb-2">Live financial view for the selected period.</p>
+                <p className="mb-1.5"><strong>Revenue:</strong> tokens sold + cafeteria cash + hubbly cash + promo bundles.</p>
+                <p className="mb-1.5"><strong>Costs:</strong> food COGS %, hubbly COGS %, + prorated monthly fixed (rent, electricity, etc).</p>
+                <p className="mb-1.5"><strong>Net = Revenue − Costs.</strong> Margin % = net / revenue.</p>
+                <p className="text-[#86868b]"><strong>Click Configure</strong> to set COGS % and monthly fixed costs.</p>
               </HelpTip>
             </h2>
             <p className="text-[#86868b] text-sm">{label} · {totals.daysInPeriod.toFixed(1)}-day window</p>

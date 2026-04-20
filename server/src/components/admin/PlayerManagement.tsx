@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, setDoc, deleteDoc, query, where, orderBy, limit, getDocs, arrayUnion, arrayRemove, writeBatch } from 'firebase/firestore';
 import { NinjaAvatar } from '@/components/NinjaAvatar';
 import { NINJA_SKINS, CHEST_REWARDS, COINS_PER_MINUTE } from '@/lib/constants';
+import { HelpTip } from './HelpTip';
 
 // Time-left helper. Player's coin balance → playable minutes.
 // Default rate: 2.5 coins/min (= 150 coins/hour).
@@ -640,7 +641,25 @@ export function PlayerManagement() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Players</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Players
+            <HelpTip title={{ en: 'Players', ar: 'اللاعبون' }}
+              ar={(
+                <>
+                  <p className="mb-2">قائمة كل الحسابات المسجّلة. ابحث، رتّب، واضغط أي لاعب لفتح لوحة التفاصيل.</p>
+                  <p className="mb-1.5"><strong>اللوحة تفتح:</strong> أرصدة (توكنز، وقت)، مخزون، رتبة VIP، جلسات، خصوم.</p>
+                  <p className="mb-1.5"><strong>أزرار سريعة:</strong> إضافة وقت (مثل TinaSoft!)، إضافة توكنز، حظر، إعادة تعيين PIN، تعديل اليوزر.</p>
+                  <p className="mb-1.5"><strong>التحديد المتعدد:</strong> علّم أكثر من لاعب لعمل إجراء جماعي.</p>
+                  <p className="text-[#86868b]">هنا يضيف الأدمن الوقت يدوياً كما كان يفعل في TinaSoft.</p>
+                </>
+              )}>
+              <p className="mb-2">Every registered account. Search, sort, click any player to open their detail panel.</p>
+              <p className="mb-1.5"><strong>Detail panel:</strong> balances (tokens, time), inventory, VIP status, sessions, discounts.</p>
+              <p className="mb-1.5"><strong>Quick actions:</strong> Add Time (TinaSoft-style!), Add Tokens, Ban, Reset PIN, Edit username.</p>
+              <p className="mb-1.5"><strong>Bulk select:</strong> multi-select checkbox for batch grants, bans, PIN resets.</p>
+              <p className="text-[#86868b]">This is where you manually add time exactly like you did in TinaSoft.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">{players.length} registered players</p>
         </div>
         <div className="flex items-center gap-3">

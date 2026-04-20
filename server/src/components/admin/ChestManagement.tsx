@@ -501,10 +501,18 @@ export function ChestManagement() {
           <div className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 space-y-6">
             <h3 className="text-lg font-semibold text-[#1d1d1f] flex items-center gap-2">
               <Settings size={18} className="text-[#0071e3]" /> Chest Settings
-              <HelpTip title="Chest Settings">
+              <HelpTip title={{ en: 'Chest Settings', ar: 'إعدادات الصناديق' }}
+                ar={(
+                  <>
+                    <p className="mb-2">تحكُّم عام باقتصاد الصناديق. ثلاثة مفاتيح:</p>
+                    <p className="mb-1.5"><strong>منزلق الحظ:</strong> يميل احتمالات الدروب النادرة لصالح اللاعب أو الكازينو. 50 = عادل.</p>
+                    <p className="mb-1.5"><strong>هدف الربح:</strong> عندما يتخطى الربح هذا الرقم بالدينار، المنصة تقترح عليك تفعيل عرض ترويجي.</p>
+                    <p><strong>العرض مفعَّل:</strong> عند التفعيل، يرى اللاعبون رسالة "درّوبات معززة" في الكشك.</p>
+                  </>
+                )}>
                 <p className="mb-2">Global controls for the chest economy. Three knobs:</p>
-                <p className="mb-1.5"><strong>Luck Slider:</strong> tilts rare+ drop odds toward the house or the player. 50 = Fair. See the slider's own tooltip for details.</p>
-                <p className="mb-1.5"><strong>Profit Target:</strong> when the house margin exceeds this JOD number, the panel suggests running a promo to keep players happy.</p>
+                <p className="mb-1.5"><strong>Luck Slider:</strong> tilts rare+ drop odds toward the house or the player. 50 = Fair.</p>
+                <p className="mb-1.5"><strong>Profit Target:</strong> when house margin exceeds this JOD number, the panel suggests a promo.</p>
                 <p><strong>Promotion Active:</strong> when ON, players see a boosted-drops message on the kiosk chest screen.</p>
               </HelpTip>
             </h3>
@@ -514,12 +522,21 @@ export function ChestManagement() {
               <div className="flex justify-between items-center mb-2">
                 <label className="text-xs font-medium text-[#86868b] uppercase flex items-center gap-1.5">
                   Chest Luck — rare+ drop rate boost
-                  <HelpTip title="Luck Slider">
-                    <p className="mb-2">Scales how often players hit rare / legendary / mythical drops. Common and uncommon drops are unaffected — so every chest still feels rewarding regardless of this number.</p>
-                    <p className="mb-1.5"><strong>+%</strong> = players luckier (more rare hits, less house margin).</p>
-                    <p className="mb-1.5"><strong>−%</strong> = house favored (fewer rare hits, more margin).</p>
-                    <p className="mb-2"><strong>Fair (0 / 1.0x)</strong> = the economy's default balance.</p>
-                    <p className="text-[#86868b]"><strong>Use case:</strong> nudge to +50% during slow weekends to give players a win streak and bring them back; nudge to −25% when margins get tight.</p>
+                  <HelpTip title={{ en: 'Luck Slider', ar: 'منزلق الحظ' }}
+                    ar={(
+                      <>
+                        <p className="mb-2">يضبط احتمالية الحصول على دروبات نادرة / أسطورية / خرافية. الدروب العادية لا تتأثر.</p>
+                        <p className="mb-1.5"><strong>+%</strong> = حظ أفضل للّاعبين (دروبات نادرة أكثر، أرباح أقل للمحل).</p>
+                        <p className="mb-1.5"><strong>−%</strong> = لصالح المحل (دروبات نادرة أقل، أرباح أعلى).</p>
+                        <p className="mb-2"><strong>عادل (0 / 1.0×)</strong> = التوازن الافتراضي.</p>
+                        <p className="text-[#86868b]"><strong>نصيحة:</strong> +50% في العطلات البطيئة ليرجع اللاعبون، −25% عندما الأرباح تضغط.</p>
+                      </>
+                    )}>
+                    <p className="mb-2">Scales how often players hit rare / legendary / mythical drops. Common + uncommon drops unaffected.</p>
+                    <p className="mb-1.5"><strong>+%</strong> = players luckier, less house margin.</p>
+                    <p className="mb-1.5"><strong>−%</strong> = house favored, more margin.</p>
+                    <p className="mb-2"><strong>Fair (0 / 1.0x)</strong> = default balance.</p>
+                    <p className="text-[#86868b]"><strong>Use case:</strong> +50% on slow weekends to bring players back; −25% when margins tighten.</p>
                   </HelpTip>
                 </label>
                 <span className="text-lg font-semibold" style={{ color: config.luckMultiplier > 1 ? '#ff9500' : config.luckMultiplier < 1 ? '#ff3b30' : '#1d1d1f' }}>

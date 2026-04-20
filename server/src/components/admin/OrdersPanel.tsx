@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, query, orderBy, limit } from 'firebase/firestore';
 import { OrderStatus } from '@/types';
+import { HelpTip } from './HelpTip';
 import {
   Clock, ChefHat, CheckCircle2, Package, XCircle, User,
   Coins, ClipboardList, Ban, Bell, UtensilsCrossed, Wind, Snowflake, Droplet
@@ -290,7 +291,25 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
     <div className="relative">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Orders</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Orders
+            <HelpTip title={{ en: 'Orders', ar: 'الطلبات' }}
+              ar={(
+                <>
+                  <p className="mb-2">كل طلبات الطعام والأرجيلة من الأجهزة تُعرض هنا.</p>
+                  <p className="mb-1.5"><strong>غير مدفوع (UNPAID):</strong> الزبون طلب بالكاش — لمّا يدفع على الكاونتر، اضغط "CASH RECEIVED · PREPARE" لتعليمه مدفوع وبدء التحضير.</p>
+                  <p className="mb-1.5"><strong>المراحل:</strong> Pending → Preparing → Ready → Delivered.</p>
+                  <p className="mb-1.5"><strong>شارات:</strong> 🍔 طعام أو 🔥 أرجيلة لسرعة التمييز.</p>
+                  <p className="text-[#86868b]">كل طلب جديد ينبّه بنغمة ويصل واتساب الأدمن (إذا مُفعّل).</p>
+                </>
+              )}>
+              <p className="mb-2">Every food + hubbly order from the kiosks lands here.</p>
+              <p className="mb-1.5"><strong>UNPAID (cash):</strong> customer pays at counter, hit <strong>CASH RECEIVED · PREPARE</strong> to mark paid + start the clock.</p>
+              <p className="mb-1.5"><strong>Stages:</strong> Pending → Preparing → Ready → Delivered.</p>
+              <p className="mb-1.5"><strong>Badges:</strong> 🍔 food · 🔥 hubbly — scan at a glance.</p>
+              <p className="text-[#86868b]">Every new order chimes + pings WhatsApp if enabled.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">
             {activeOrders.length} active ({foodOrders.filter(o => ['pending','preparing','ready'].includes(o.status)).length} food · {shishaOrders.filter(o => ['pending','preparing','ready'].includes(o.status)).length} hubbly)
           </p>
