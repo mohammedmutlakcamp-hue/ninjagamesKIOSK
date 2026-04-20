@@ -44,6 +44,8 @@ import { DebugLogsPanel } from './DebugLogsPanel';
 import { FeatureFlagsPanel } from './FeatureFlagsPanel';
 import { RemoteInstallPanel } from './RemoteInstallPanel';
 import { GameReportPanel } from './GameReportPanel';
+import { HubblyManagement } from './HubblyManagement';
+import { CameraPanel } from './CameraPanel';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -51,10 +53,10 @@ import {
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
   BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check,
-  ToggleRight, HardDriveDownload, ListChecks, Flame
+  ToggleRight, HardDriveDownload, ListChecks, Flame, Video
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'hubbly' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -661,9 +663,11 @@ export function AdminDashboard({ admin }: Props) {
         { id: 'reports', label: 'Reports', icon: <Flag size={18} /> },
         { id: 'topups', label: 'Top Ups', icon: <Coins size={18} /> },
         { id: 'transfers', label: 'Transfers', icon: <ArrowLeftRight size={18} /> },
-        { id: 'menu', label: 'Menu', icon: <UtensilsCrossed size={18} /> },
+        { id: 'menu', label: 'Food Menu', icon: <UtensilsCrossed size={18} /> },
+        { id: 'hubblymenu', label: 'Hubbly Menu', icon: <Flame size={18} /> },
         { id: 'orders', label: 'Orders', icon: <ClipboardList size={18} /> },
         { id: 'hubbly', label: 'Hubbly Bubbly', icon: <Flame size={18} /> },
+        { id: 'cameras', label: 'Cameras', icon: <Video size={18} /> },
         { id: 'tournaments', label: 'Tournaments', icon: <Swords size={18} /> },
         { id: 'vip', label: 'VIP', icon: <Crown size={18} /> },
         { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
@@ -824,6 +828,8 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'menu' && <MenuManagement />}
           {tab === 'orders' && <OrdersPanel />}
           {tab === 'hubbly' && <OrdersPanel kindFilter="shisha" />}
+          {tab === 'hubblymenu' && <HubblyManagement />}
+          {tab === 'cameras' && <CameraPanel />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}

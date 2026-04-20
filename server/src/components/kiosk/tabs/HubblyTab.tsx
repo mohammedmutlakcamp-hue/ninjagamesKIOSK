@@ -22,7 +22,9 @@ interface ShishaFlavor {
 
 // Hookah base price = 2.5 JOD = 250 tokens (1 JOD = 100 tokens). Premium
 // flavors keep their previous proportional upcharge (rose +10%, mixed +20%).
-const SHISHA_FLAVORS: ShishaFlavor[] = [
+// NOTE: These are defaults — admin-edited flavors in Firestore
+// (collection `shisha-flavors`) override these via useEffect below.
+const DEFAULT_FLAVORS: ShishaFlavor[] = [
   { id: 'grape', name: 'Grape', icon: '🍇', color: '#8B5CF6', price: 250, popular: true },
   { id: 'mint', name: 'Mint', icon: '🌿', color: '#10B981', price: 250 },
   { id: 'double-apple', name: 'Double Apple', icon: '🍎', color: '#EF4444', price: 250, popular: true },
@@ -60,7 +62,9 @@ interface CigaretteOption {
   badge?: string;
 }
 
-const CIGARETTES: CigaretteOption[] = [
+// Default cigarettes — admin-edited list in Firestore collection `cigarettes`
+// overrides this via useEffect below.
+const DEFAULT_CIGS: CigaretteOption[] = [
   { id: 'marlboro-red',   name: 'Marlboro Red',   color: '#DC2626', price: 200, badge: 'CLASSIC' },
   { id: 'marlboro-gold',  name: 'Marlboro Gold',  color: '#D4A017', price: 200, badge: 'SMOOTH' },
   { id: 'winston',        name: 'Winston',        color: '#3B82F6', price: 180 },
@@ -69,6 +73,31 @@ const CIGARETTES: CigaretteOption[] = [
 export function HubblyTab({ player }: Props) {
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
+
+  // Admin-editable lists from Firestore. Fallback to hardcoded defaults if
+  // the collections are empty (fresh install, or before admin adds any items).
+  const [shishaFlavors, setShishaFlavors] = useState<ShishaFlavor[]>(DEFAULT_FLAVORS);
+  const [cigarettes, setCigarettes] = useState<CigaretteOption[]>(DEFAULT_CIGS);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'shisha-flavors'), (snap) => {
+      const custom = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }) as ShishaFlavor & { available?: boolean })
+        .filter((f) => f.available !== false);
+      setShishaFlavors(custom.length > 0 ? custom : DEFAULT_FLAVORS);
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'cigarettes'), (snap) => {
+      const custom = snap.docs
+        .map((d) => ({ id: d.id, ...(d.data() as any) }) as CigaretteOption & { available?: boolean })
+        .filter((c) => c.available !== false);
+      setCigarettes(custom.length > 0 ? custom : DEFAULT_CIGS);
+    });
+    return () => unsub();
+  }, []);
 
   // Main tab — HOOKAH (shisha flow) or TOBACCO (cigarettes alone)
   const [mainTab, setMainTab] = useState<MainTab>('hookah');
@@ -99,8 +128,8 @@ export function HubblyTab({ player }: Props) {
     return () => unsub();
   }, [player?.uid]);
 
-  const selected = SHISHA_FLAVORS.find(f => f.id === selectedFlavor);
-  const tobaccoSelected = CIGARETTES.find(c => c.id === tobaccoPick);
+  const selected = shishaFlavors.find(f => f.id === selectedFlavor);
+  const tobaccoSelected = cigarettes.find(c => c.id === tobaccoPick);
 
   // ── Place a HOOKAH (shisha) order ──
   const placeHookahOrder = async () => {
@@ -251,7 +280,7 @@ export function HubblyTab({ player }: Props) {
             {activeOrders.map(order => (
               <div key={order.id} className="flex items-center justify-between py-1">
                 <span className="font-body text-xs text-gray-400 flex items-center gap-1.5">
-                  {order.type === 'tobacco' ? '🚬' : (SHISHA_FLAVORS.find(f => f.id === order.flavor)?.icon || '💨')} {order.flavorName}
+                  {order.type === 'tobacco' ? '🚬' : (shishaFlavors.find(f => f.id === order.flavor)?.icon || '💨')} {order.flavorName}
                   {order.iceInWater && <Snowflake size={10} className="text-cyan-400" />}
                 </span>
                 <span className="font-ninja text-[9px] px-2 py-0.5 rounded" style={{
@@ -309,7 +338,7 @@ export function HubblyTab({ player }: Props) {
               <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
                 <p className="font-body text-xs text-gray-500 text-center mb-4">{ar ? 'اختر نكهتك' : 'Pick your flavor'}</p>
                 <div className="space-y-2 mb-5">
-                  {SHISHA_FLAVORS.map((flavor, i) => {
+                  {shishaFlavors.map((flavor, i) => {
                     const isSelected = selectedFlavor === flavor.id;
                     return (
                       <motion.div key={flavor.id}
@@ -525,7 +554,7 @@ export function HubblyTab({ player }: Props) {
             </p>
 
             <div className="space-y-2.5 mb-5">
-              {CIGARETTES.map((cig, i) => {
+              {cigarettes.map((cig, i) => {
                 const isSel = tobaccoPick === cig.id;
                 return (
                   <motion.div key={cig.id}
