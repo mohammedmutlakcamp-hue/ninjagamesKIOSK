@@ -130,7 +130,14 @@ export function FoodTab({ player }: Props) {
     try {
       const orderItems = Object.entries(cart).map(([id, qty]) => {
         const item = items.find(i => i.id === id)!;
-        return { menuItemId: id, name: item.name, quantity: qty, price: item.price, priceJOD: item.priceJOD || (item.price / 100) };
+        return {
+          menuItemId: id,
+          name: item.name,
+          category: item.category,
+          quantity: qty,
+          price: item.price,
+          priceJOD: item.priceJOD || (item.price / 100),
+        };
       });
       // Sum JOD using each item's priceJOD field; fallback to coins/100 (100 tokens = 1 JOD).
       const totalJOD = Object.entries(cart).reduce((s, [id, qty]) => {
@@ -636,18 +643,20 @@ export function FoodTab({ player }: Props) {
                 </div>
               )}
 
-              {/* Actions */}
-              <button
+              {/* Actions — big, bold, highly visible Skip/Done */}
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
                 onClick={closeBundlePopup}
-                className="w-full py-3 rounded-xl font-ninja text-sm tracking-wider flex items-center justify-center gap-2 transition-all"
+                className="w-full py-5 rounded-2xl font-ninja text-2xl font-black tracking-widest flex items-center justify-center gap-3 transition-all shadow-[0_6px_20px_rgba(57,255,20,0.25)]"
                 style={{
-                  background: 'rgba(255,255,255,0.03)',
-                  border: '1px solid rgba(255,255,255,0.08)',
-                  color: '#888',
+                  background: 'linear-gradient(135deg, rgba(57,255,20,0.15), rgba(57,255,20,0.05))',
+                  border: '2px solid rgba(57,255,20,0.55)',
+                  color: '#39FF14',
                 }}
               >
-                {bundlePopup.suggestions.length > 0 ? (ar ? 'تخطي' : 'SKIP') : (ar ? 'تم' : 'DONE')} <ArrowRight size={14} />
-              </button>
+                {bundlePopup.suggestions.length > 0 ? (ar ? 'تخطي' : 'SKIP') : (ar ? 'تم' : 'DONE')} <ArrowRight size={22} />
+              </motion.button>
             </motion.div>
           </motion.div>
         )}

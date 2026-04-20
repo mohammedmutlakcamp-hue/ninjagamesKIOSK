@@ -8,7 +8,7 @@ import { OrderStatus } from '@/types';
 import { HelpTip } from './HelpTip';
 import {
   Clock, ChefHat, CheckCircle2, Package, XCircle, User,
-  Coins, ClipboardList, Ban, Bell, UtensilsCrossed, Wind, Snowflake, Droplet
+  Coins, ClipboardList, Ban, Bell, BellOff, UtensilsCrossed, Wind, Snowflake, Droplet, FileText
 } from 'lucide-react';
 
 // Unified order type covering both food and shisha
@@ -27,11 +27,13 @@ interface UnifiedOrder {
   paymentMethod?: string;  // 'cash' for cafeteria, future: 'tokens'
   createdAt: number;
   updatedAt?: number;
+  updatedBy?: string; // employee who last advanced the order
   items: { name: string; quantity: number; price: number }[];
   iceInWater?: boolean; // shisha only
   flavorName?: string;
   prepTime?: number;
   cigarette?: { id: string; name: string; price: number } | null;
+  category?: string; // for EOD grouping
 }
 
 interface OrdersPanelProps {
@@ -42,8 +44,29 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
   const [foodOrders, setFoodOrders] = useState<UnifiedOrder[]>([]);
   const [shishaOrders, setShishaOrders] = useState<UnifiedOrder[]>([]);
   const [newOrderPopup, setNewOrderPopup] = useState<UnifiedOrder | null>(null);
+  const [readyAlertMuted, setReadyAlertMuted] = useState(false);
+  const [showEodReport, setShowEodReport] = useState(false);
+  const [employeeName, setEmployeeName] = useState<string>('');
+  const [showEmployeePrompt, setShowEmployeePrompt] = useState(false);
   const prevFoodCountRef = useRef<number>(0);
   const prevShishaCountRef = useRef<number>(0);
+  const readyLoopRef = useRef<number | null>(null);
+
+  // Load / prompt for the current employee so each action stamps who did it.
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('admin-employee-name');
+      if (saved && saved.trim()) setEmployeeName(saved.trim());
+      else setShowEmployeePrompt(true);
+    } catch {/* ignore */}
+  }, []);
+  const saveEmployee = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setEmployeeName(trimmed);
+    try { localStorage.setItem('admin-employee-name', trimmed); } catch {/* ignore */}
+    setShowEmployeePrompt(false);
+  };
 
   // Food orders listener
   useEffect(() => {
@@ -66,6 +89,7 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
           paymentMethod: data.paymentMethod,
           createdAt: data.createdAt || 0,
           updatedAt: data.updatedAt,
+          updatedBy: data.updatedBy,
           items: data.items || [],
           prepTime: data.prepTime,
         };
@@ -104,6 +128,7 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
           paymentMethod: data.paymentMethod,
           createdAt: data.createdAt || 0,
           updatedAt: data.updatedAt,
+          updatedBy: data.updatedBy,
           items: [
             { name: data.flavorName || data.flavor || 'Shisha', quantity: data.quantity || 1, price: data.shishaPrice || data.price || 0 },
             ...(data.cigarette ? [{ name: data.cigarette.name, quantity: 1, price: data.cigarette.price }] : []),
@@ -112,6 +137,7 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
           flavorName: data.flavorName,
           prepTime: data.prepTime,
           cigarette: data.cigarette,
+          category: data.type === 'tobacco' ? 'tobacco' : 'hookah',
         };
       });
       setShishaOrders(all);
@@ -147,6 +173,30 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
     } catch { /* ignore */ }
   };
 
+  // Louder, urgent looping siren for READY orders — keeps going until
+  // staff marks the order delivered or mutes the bell.
+  const playReadyAlarm = () => {
+    try {
+      const ctx = new AudioContext();
+      const now = ctx.currentTime;
+      const toneAt = (freq: number, delay: number, duration: number, vol = 0.45) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = freq; osc.type = 'square';
+        gain.gain.setValueAtTime(0, now + delay);
+        gain.gain.linearRampToValueAtTime(vol, now + delay + 0.03);
+        gain.gain.linearRampToValueAtTime(0, now + delay + duration);
+        osc.start(now + delay);
+        osc.stop(now + delay + duration);
+      };
+      toneAt(1400, 0,    0.18);
+      toneAt(900,  0.2,  0.18);
+      toneAt(1400, 0.4,  0.18);
+      toneAt(900,  0.6,  0.18);
+    } catch { /* ignore */ }
+  };
+
   // Fire a customer WhatsApp when the order is marked "ready for pickup".
   const sendReadyMessage = async (order: UnifiedOrder) => {
     if (!order.playerId) return;
@@ -172,7 +222,9 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
   };
 
   const updateStatus = async (order: UnifiedOrder, status: OrderStatus) => {
-    await updateDoc(doc(db, order.collection, order.id), { status, updatedAt: Date.now() });
+    await updateDoc(doc(db, order.collection, order.id), {
+      status, updatedAt: Date.now(), updatedBy: employeeName || 'Unknown',
+    });
     if (newOrderPopup?.id === order.id) setNewOrderPopup(null);
     // When admin marks an order "ready", send the customer a WhatsApp ping.
     if (status === 'ready') sendReadyMessage(order);
@@ -181,7 +233,8 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
   // Cash-payment cafeteria flow: admin marks paid + advances to preparing in one click.
   const markPaidAndPrepare = async (order: UnifiedOrder) => {
     await updateDoc(doc(db, order.collection, order.id), {
-      paid: true, paidAt: Date.now(), status: 'preparing', updatedAt: Date.now(),
+      paid: true, paidAt: Date.now(), status: 'preparing',
+      updatedAt: Date.now(), updatedBy: employeeName || 'Unknown',
     });
     if (newOrderPopup?.id === order.id) setNewOrderPopup(null);
   };
@@ -196,6 +249,31 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
   const preparingOrders = activeOrders.filter(o => o.status === 'preparing');
   const readyOrders = activeOrders.filter(o => o.status === 'ready');
   const completedOrders = orders.filter(o => ['delivered', 'cancelled'].includes(o.status));
+
+  // Continuous alarm while any order is READY. Loops every 2.5s until
+  // all ready orders are delivered/cancelled or staff hits the mute button.
+  useEffect(() => {
+    if (readyOrders.length > 0 && !readyAlertMuted) {
+      if (readyLoopRef.current == null) {
+        playReadyAlarm(); // immediate
+        readyLoopRef.current = window.setInterval(playReadyAlarm, 2500);
+      }
+    } else if (readyLoopRef.current != null) {
+      clearInterval(readyLoopRef.current);
+      readyLoopRef.current = null;
+    }
+    return () => {
+      if (readyLoopRef.current != null) {
+        clearInterval(readyLoopRef.current);
+        readyLoopRef.current = null;
+      }
+    };
+  }, [readyOrders.length, readyAlertMuted]);
+
+  // Auto-unmute once all ready orders are cleared, so next ready order alerts.
+  useEffect(() => {
+    if (readyOrders.length === 0 && readyAlertMuted) setReadyAlertMuted(false);
+  }, [readyOrders.length, readyAlertMuted]);
 
   const statusConfig: Record<string, { label: string; color: string; bg: string; icon: React.ReactNode; next?: OrderStatus; nextLabel?: string; nextIcon?: React.ReactNode }> = {
     pending:   { label: 'PENDING',   color: 'text-[#ff9500]', bg: 'bg-[#ff9500]/5 border-[#ff9500]/15', icon: <Clock size={20} className="text-[#ff9500]" />,        next: 'preparing', nextLabel: 'Accept & Prepare', nextIcon: <ChefHat size={16} /> },
@@ -235,6 +313,11 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
               <p className="text-xs text-[#86868b]">
                 {order.pcName || order.pcId || '—'} · {formatTime(order.createdAt)} · {getTimeSince(order.createdAt)}
               </p>
+              {order.updatedBy && (
+                <p className="text-[10px] text-[#86868b] mt-0.5">
+                  Handled by <span className="font-semibold text-[#1d1d1f]">{order.updatedBy}</span>
+                </p>
+              )}
             </div>
           </div>
           <div className="text-right">
@@ -242,14 +325,14 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
             {/* Voucher redemption: green VOUCHER pill, no cash collection. */}
             {order.paymentMethod === 'voucher' ? (
               <>
-                <p className="text-sm text-[#A855F7] font-semibold mt-0.5">FREE</p>
+                <p className="text-lg text-[#A855F7] font-extrabold mt-0.5">FREE</p>
                 <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#A855F7]/10 text-[#7C3AED] border border-[#A855F7]/30 text-[10px] font-bold tracking-wider">
                   🎟️ VOUCHER
                 </span>
               </>
             ) : order.totalJOD !== undefined ? (
               <>
-                <p className="text-sm text-[#1d1d1f] font-semibold mt-0.5">{order.totalJOD.toFixed(2)} JOD</p>
+                <p className="text-2xl text-[#1d1d1f] font-extrabold mt-0.5 leading-none">{order.totalJOD.toFixed(2)} <span className="text-sm font-bold text-[#86868b]">JOD</span></p>
                 {!order.paid && (
                   <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/25 text-[10px] font-bold tracking-wider">
                     UNPAID · CASH
@@ -262,8 +345,8 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
                 )}
               </>
             ) : (
-              <p className="text-sm text-[#0071e3] flex items-center gap-1 justify-end font-medium">
-                <Coins size={12} /> {order.totalCoins}
+              <p className="text-lg text-[#0071e3] flex items-center gap-1 justify-end font-extrabold">
+                <Coins size={14} /> {order.totalCoins}
               </p>
             )}
           </div>
@@ -347,7 +430,7 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
             {activeOrders.length} active ({foodOrders.filter(o => ['pending','preparing','ready'].includes(o.status)).length} food · {shishaOrders.filter(o => ['pending','preparing','ready'].includes(o.status)).length} hubbly)
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           {pendingOrders.length > 0 && (
             <span className="px-3 py-1 rounded-full bg-[#ff9500]/10 border border-[#ff9500]/20 text-[#ff9500] text-xs font-medium flex items-center gap-1">
               <Clock size={12} /> {pendingOrders.length} Pending
@@ -363,6 +446,26 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
               <CheckCircle2 size={12} /> {readyOrders.length} Ready
             </span>
           )}
+          {readyOrders.length > 0 && (
+            <button
+              onClick={() => setReadyAlertMuted(m => !m)}
+              title={readyAlertMuted ? 'Alarm muted — click to unmute' : 'Mute ready-order alarm'}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 border transition-colors ${
+                readyAlertMuted
+                  ? 'bg-[#f5f5f7] text-[#86868b] border-[#d2d2d7]'
+                  : 'bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/30 animate-pulse'
+              }`}
+            >
+              {readyAlertMuted ? <BellOff size={12} /> : <Bell size={12} />}
+              {readyAlertMuted ? 'Muted' : 'Alarm ON'}
+            </button>
+          )}
+          <button
+            onClick={() => setShowEodReport(true)}
+            className="px-3 py-1.5 rounded-full text-xs font-semibold flex items-center gap-1 bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/25 hover:bg-[#0071e3]/15"
+          >
+            <FileText size={12} /> End of Day Report
+          </button>
         </div>
       </div>
 
@@ -442,6 +545,193 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
           </div>
         </div>
       )}
+
+      {/* EMPLOYEE NAME PROMPT — shown on first load or when editing */}
+      <AnimatePresence>
+        {showEmployeePrompt && (
+          <motion.div
+            initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[400] flex items-center justify-center"
+          >
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-white rounded-2xl p-6 w-[400px] shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+            >
+              <h3 className="text-lg font-bold text-[#1d1d1f] mb-1">Who's on shift?</h3>
+              <p className="text-xs text-[#86868b] mb-4">Your name will be attached to every order you handle so owners can see who did what.</p>
+              <input
+                autoFocus
+                defaultValue={employeeName}
+                placeholder="Your name (e.g., Ahmad)"
+                onKeyDown={(e) => { if (e.key === 'Enter') saveEmployee((e.target as HTMLInputElement).value); }}
+                className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none mb-4"
+              />
+              <button
+                onClick={(e) => {
+                  const input = (e.currentTarget.previousElementSibling as HTMLInputElement);
+                  saveEmployee(input.value);
+                }}
+                className="w-full py-3 bg-[#0071e3] text-white rounded-xl font-semibold hover:bg-[#0077ED]"
+              >
+                Continue
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Current employee badge — click to switch */}
+      {!showEmployeePrompt && (
+        <button
+          onClick={() => setShowEmployeePrompt(true)}
+          className="fixed bottom-6 left-6 z-[150] bg-white border border-[#d2d2d7] rounded-full px-3 py-1.5 shadow-[0_4px_12px_rgba(0,0,0,0.08)] text-xs text-[#86868b] hover:bg-[#f5f5f7] flex items-center gap-1.5"
+        >
+          <User size={12} /> On shift: <span className="font-semibold text-[#1d1d1f]">{employeeName || '—'}</span>
+        </button>
+      )}
+
+      {/* END OF DAY REPORT */}
+      <AnimatePresence>
+        {showEodReport && (() => {
+          const startOfDay = new Date(); startOfDay.setHours(0, 0, 0, 0);
+          const todayOrders = orders.filter(o => o.createdAt >= startOfDay.getTime() && o.status !== 'cancelled');
+          type RowAcc = { count: number; qty: number; coins: number; jod: number };
+          const byCat: Record<string, RowAcc> = {};
+          const byEmp: Record<string, { count: number; jod: number; coins: number }> = {};
+          let totalJOD = 0, totalCoins = 0, totalOrders = todayOrders.length;
+          for (const o of todayOrders) {
+            if (o.kind === 'food') {
+              for (const it of o.items) {
+                const cat = (it as any).category || 'food';
+                const row = (byCat[cat] ||= { count: 0, qty: 0, coins: 0, jod: 0 });
+                row.qty += it.quantity;
+                row.jod += (it as any).priceJOD ? (it as any).priceJOD * it.quantity : (it.price * it.quantity) / 100;
+                row.coins += it.price * it.quantity;
+                row.count++;
+              }
+            } else {
+              const cat = o.category || 'hookah';
+              const row = (byCat[cat] ||= { count: 0, qty: 0, coins: 0, jod: 0 });
+              row.qty += 1;
+              row.jod += o.totalJOD || (o.totalCoins / 100);
+              row.coins += o.totalCoins;
+              row.count++;
+            }
+            totalJOD += o.totalJOD || (o.totalCoins / 100);
+            totalCoins += o.totalCoins;
+            const emp = o.updatedBy || 'Unassigned';
+            const erow = (byEmp[emp] ||= { count: 0, jod: 0, coins: 0 });
+            erow.count++;
+            erow.jod += o.totalJOD || (o.totalCoins / 100);
+            erow.coins += o.totalCoins;
+          }
+          const catRows = Object.entries(byCat).sort((a, b) => b[1].jod - a[1].jod);
+          const empRows = Object.entries(byEmp).sort((a, b) => b[1].count - a[1].count);
+          const dateStr = startOfDay.toLocaleDateString();
+          return (
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[400] flex items-center justify-center p-6"
+              onClick={() => setShowEodReport(false)}
+            >
+              <motion.div
+                initial={{ scale: 0.92, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.92, opacity: 0 }}
+                onClick={(e) => e.stopPropagation()}
+                className="bg-white rounded-2xl w-full max-w-[720px] max-h-[85vh] overflow-y-auto shadow-[0_20px_60px_rgba(0,0,0,0.25)]"
+              >
+                <div className="flex items-center justify-between p-6 border-b border-[#e5e5ea] sticky top-0 bg-white z-10">
+                  <div>
+                    <h3 className="text-xl font-bold text-[#1d1d1f] flex items-center gap-2"><FileText size={20} /> End of Day Report</h3>
+                    <p className="text-xs text-[#86868b] mt-0.5">{dateStr} · {totalOrders} orders</p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button onClick={() => window.print()} className="px-3 py-1.5 rounded-lg text-xs bg-[#0071e3] text-white font-semibold hover:bg-[#0077ED]">
+                      Print
+                    </button>
+                    <button onClick={() => setShowEodReport(false)} className="w-8 h-8 rounded-full hover:bg-[#f5f5f7] text-[#86868b] flex items-center justify-center">
+                      <XCircle size={18} />
+                    </button>
+                  </div>
+                </div>
+
+                <div className="p-6 space-y-6">
+                  {/* Top-level totals */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="rounded-xl p-4 bg-[#0071e3]/5 border border-[#0071e3]/15">
+                      <p className="text-[10px] text-[#86868b] font-semibold uppercase tracking-wider">Total Orders</p>
+                      <p className="text-2xl font-extrabold text-[#0071e3]">{totalOrders}</p>
+                    </div>
+                    <div className="rounded-xl p-4 bg-[#34c759]/5 border border-[#34c759]/15">
+                      <p className="text-[10px] text-[#86868b] font-semibold uppercase tracking-wider">Cash (JOD)</p>
+                      <p className="text-2xl font-extrabold text-[#34c759]">{totalJOD.toFixed(2)}</p>
+                    </div>
+                    <div className="rounded-xl p-4 bg-[#ff9500]/5 border border-[#ff9500]/15">
+                      <p className="text-[10px] text-[#86868b] font-semibold uppercase tracking-wider">Tokens</p>
+                      <p className="text-2xl font-extrabold text-[#ff9500]">{totalCoins}</p>
+                    </div>
+                  </div>
+
+                  {/* Sales by Category */}
+                  <div>
+                    <h4 className="text-sm font-bold text-[#1d1d1f] mb-2">Sales by Category</h4>
+                    <div className="rounded-xl border border-[#e5e5ea] overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#f5f5f7] text-[#86868b] text-xs uppercase tracking-wider">
+                          <tr>
+                            <th className="text-left px-4 py-2">Category</th>
+                            <th className="text-right px-4 py-2">Items</th>
+                            <th className="text-right px-4 py-2">Qty</th>
+                            <th className="text-right px-4 py-2">JOD</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {catRows.length === 0 ? (
+                            <tr><td colSpan={4} className="px-4 py-6 text-center text-[#86868b]">No sales today</td></tr>
+                          ) : catRows.map(([cat, r]) => (
+                            <tr key={cat} className="border-t border-[#e5e5ea]">
+                              <td className="px-4 py-2 font-semibold text-[#1d1d1f] capitalize">{cat}</td>
+                              <td className="px-4 py-2 text-right">{r.count}</td>
+                              <td className="px-4 py-2 text-right">{r.qty}</td>
+                              <td className="px-4 py-2 text-right font-semibold">{r.jod.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* By Employee */}
+                  <div>
+                    <h4 className="text-sm font-bold text-[#1d1d1f] mb-2">By Employee</h4>
+                    <div className="rounded-xl border border-[#e5e5ea] overflow-hidden">
+                      <table className="w-full text-sm">
+                        <thead className="bg-[#f5f5f7] text-[#86868b] text-xs uppercase tracking-wider">
+                          <tr>
+                            <th className="text-left px-4 py-2">Employee</th>
+                            <th className="text-right px-4 py-2">Orders</th>
+                            <th className="text-right px-4 py-2">JOD</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {empRows.length === 0 ? (
+                            <tr><td colSpan={3} className="px-4 py-6 text-center text-[#86868b]">—</td></tr>
+                          ) : empRows.map(([emp, r]) => (
+                            <tr key={emp} className="border-t border-[#e5e5ea]">
+                              <td className="px-4 py-2 font-semibold text-[#1d1d1f]">{emp}</td>
+                              <td className="px-4 py-2 text-right">{r.count}</td>
+                              <td className="px-4 py-2 text-right font-semibold">{r.jod.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </motion.div>
+          );
+        })()}
+      </AnimatePresence>
 
       {/* NEW ORDER POPUP */}
       <AnimatePresence>

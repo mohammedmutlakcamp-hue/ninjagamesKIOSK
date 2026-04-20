@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc, setDoc } from 'firebase/firestore';
 import { MenuItem } from '@/types';
 import { getMenuImage } from '@/lib/menu-images';
 import { HelpTip } from './HelpTip';
@@ -45,10 +45,39 @@ export function MenuManagement() {
   const [items, setItems] = useState<MenuItem[]>([]);
   const [showAdd, setShowAdd] = useState(false);
   const [editItem, setEditItem] = useState<MenuItem | null>(null);
-  const [category, setCategory] = useState<'all' | 'drinks' | 'snacks' | 'food'>('all');
+  const [category, setCategory] = useState<string>('all');
+  // Custom categories admin has added via "+ New Category". Merged into
+  // the tab strip alongside the built-in drinks/snacks/food.
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [newCategoryInput, setNewCategoryInput] = useState('');
+  // Load custom categories (persisted in config/menu-categories)
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'menu-categories'), (snap) => {
+      const data = snap.exists() ? (snap.data() as any) : {};
+      setCustomCategories(Array.isArray(data.list) ? data.list : []);
+    });
+    return () => unsub();
+  }, []);
+  const BUILT_IN_CATEGORIES = ['drinks', 'snacks', 'food'];
+  const ALL_CATEGORIES = useMemo(
+    () => [...BUILT_IN_CATEGORIES, ...customCategories.filter(c => !BUILT_IN_CATEGORIES.includes(c))],
+    [customCategories]
+  );
+  const addNewCategory = async () => {
+    const name = newCategoryInput.trim().toLowerCase().replace(/\s+/g, '-');
+    if (!name || ALL_CATEGORIES.includes(name)) { setNewCategoryInput(''); return; }
+    const next = [...customCategories, name];
+    await setDoc(doc(db, 'config', 'menu-categories'), { list: next }, { merge: true });
+    setNewCategoryInput('');
+  };
+  const removeCustomCategory = async (name: string) => {
+    if (!confirm(`Remove category "${name}"? Items in it will still exist but show under this category until re-categorized.`)) return;
+    const next = customCategories.filter(c => c !== name);
+    await setDoc(doc(db, 'config', 'menu-categories'), { list: next }, { merge: true });
+  };
 
   const [formName, setFormName] = useState('');
-  const [formCategory, setFormCategory] = useState<'drinks' | 'snacks' | 'food'>('drinks');
+  const [formCategory, setFormCategory] = useState<string>('drinks');
   const [formPrice, setFormPrice] = useState('');
   const [formDescription, setFormDescription] = useState('');
   const [formImage, setFormImage] = useState('');
@@ -70,7 +99,7 @@ export function MenuManagement() {
 
   const openEdit = (item: MenuItem) => {
     setEditItem(item);
-    setFormName(item.name); setFormCategory(item.category);
+    setFormName(item.name); setFormCategory(item.category as string);
     setFormPrice(item.price.toString()); setFormDescription(item.description);
     setFormImage(item.image); setFormPrepTime(item.preparationTime.toString());
     setShowAdd(true);
@@ -79,7 +108,7 @@ export function MenuManagement() {
   const handleSave = async () => {
     if (!formName || !formPrice) return;
     const data = {
-      name: formName, category: formCategory, price: parseInt(formPrice) || 0,
+      name: formName, category: formCategory as any, price: parseInt(formPrice) || 0,
       description: formDescription, image: formImage, available: true,
       preparationTime: parseInt(formPrepTime) || 5,
     };
@@ -140,20 +169,58 @@ export function MenuManagement() {
         </motion.button>
       </div>
 
-      {/* Category filter */}
-      <div className="flex gap-2 mb-6">
-        {(['all', 'drinks', 'snacks', 'food'] as const).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setCategory(cat)}
-            className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${
-              category === cat ? 'bg-[#0071e3] text-white font-semibold' : 'bg-[#f5f5f7] text-[#86868b] hover:bg-[#e8e8ed] border border-[#d2d2d7]'
-            }`}
-          >
-            {cat === 'all' ? <UtensilsCrossed size={16} /> : categoryIcons[cat]}
-            {cat.charAt(0).toUpperCase() + cat.slice(1)}
-          </button>
-        ))}
+      {/* Category filter + custom category creator */}
+      <div className="flex gap-2 mb-6 flex-wrap items-center">
+        <button
+          onClick={() => setCategory('all')}
+          className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${
+            category === 'all' ? 'bg-[#0071e3] text-white font-semibold' : 'bg-[#f5f5f7] text-[#86868b] hover:bg-[#e8e8ed] border border-[#d2d2d7]'
+          }`}
+        >
+          <UtensilsCrossed size={16} /> All
+        </button>
+        {ALL_CATEGORIES.map((cat) => {
+          const isCustom = !BUILT_IN_CATEGORIES.includes(cat);
+          return (
+            <div key={cat} className="relative group">
+              <button
+                onClick={() => setCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-sm transition-all flex items-center gap-2 ${
+                  category === cat ? 'bg-[#0071e3] text-white font-semibold' : 'bg-[#f5f5f7] text-[#86868b] hover:bg-[#e8e8ed] border border-[#d2d2d7]'
+                }`}
+              >
+                {categoryIcons[cat] || <Folder size={16} />}
+                {cat.charAt(0).toUpperCase() + cat.slice(1)}
+              </button>
+              {isCustom && (
+                <button
+                  onClick={(e) => { e.stopPropagation(); removeCustomCategory(cat); }}
+                  title="Remove category"
+                  className="absolute -top-1 -right-1 w-5 h-5 bg-[#ff3b30] text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          );
+        })}
+        <div className="flex items-center gap-1 ml-2">
+          <input
+            value={newCategoryInput}
+            onChange={(e) => setNewCategoryInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') addNewCategory(); }}
+            placeholder="+ New Category"
+            className="px-3 py-2 rounded-xl text-sm bg-white border border-dashed border-[#0071e3]/40 text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none w-40"
+          />
+          {newCategoryInput.trim() && (
+            <button
+              onClick={addNewCategory}
+              className="px-3 py-2 rounded-xl text-sm bg-[#0071e3] text-white font-medium hover:bg-[#0077ED] flex items-center gap-1"
+            >
+              <Plus size={14} /> Add
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Items Grid */}
@@ -288,11 +355,11 @@ export function MenuManagement() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="text-[#86868b] text-sm font-medium mb-1 block">Category</label>
-                    <select value={formCategory} onChange={(e) => setFormCategory(e.target.value as any)}
+                    <select value={formCategory} onChange={(e) => setFormCategory(e.target.value)}
                       className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-2.5 text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none">
-                      <option value="drinks">Drinks</option>
-                      <option value="snacks">Snacks</option>
-                      <option value="food">Food</option>
+                      {ALL_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</option>
+                      ))}
                     </select>
                   </div>
                   <div>
