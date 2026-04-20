@@ -51,10 +51,10 @@ import {
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
   BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check,
-  ToggleRight, HardDriveDownload, ListChecks
+  ToggleRight, HardDriveDownload, ListChecks, Flame
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'orders' | 'hubbly' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -663,6 +663,7 @@ export function AdminDashboard({ admin }: Props) {
         { id: 'transfers', label: 'Transfers', icon: <ArrowLeftRight size={18} /> },
         { id: 'menu', label: 'Menu', icon: <UtensilsCrossed size={18} /> },
         { id: 'orders', label: 'Orders', icon: <ClipboardList size={18} /> },
+        { id: 'hubbly', label: 'Hubbly Bubbly', icon: <Flame size={18} /> },
         { id: 'tournaments', label: 'Tournaments', icon: <Swords size={18} /> },
         { id: 'vip', label: 'VIP', icon: <Crown size={18} /> },
         { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
@@ -822,6 +823,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'topups' && <TopUpRequests />}
           {tab === 'menu' && <MenuManagement />}
           {tab === 'orders' && <OrdersPanel />}
+          {tab === 'hubbly' && <OrdersPanel kindFilter="shisha" />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}

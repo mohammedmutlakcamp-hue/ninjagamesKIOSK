@@ -2532,18 +2532,25 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 </div>
                               </div>
 
-                              {/* POPULAR pill */}
-                              {isPopular && (
-                                <motion.div
-                                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 8px rgba(234,179,8,0.25)', '0 0 16px rgba(234,179,8,0.45)', '0 0 8px rgba(234,179,8,0.25)'] }}
-                                  transition={{ duration: 2, repeat: Infinity }}
-                                  className="absolute -top-1.5 right-3 px-2 py-[1px] rounded font-ninja text-[9px] tracking-[0.2em] z-10"
-                                  style={{ background: 'linear-gradient(135deg, #fbbf24, #eab308)', color: '#000' }}>
-                                  ⭐ POPULAR
-                                </motion.div>
-                              )}
                             </div>
                           </motion.div>
+
+                          {/* POPULAR pill — rendered outside the overflow-hidden card so
+                              the bubble can float above the edge at full size. */}
+                          {isPopular && (
+                            <motion.div
+                              animate={{ y: [0, -2, 0], scale: [1, 1.05, 1], boxShadow: ['0 0 10px rgba(234,179,8,0.35)', '0 0 22px rgba(234,179,8,0.6)', '0 0 10px rgba(234,179,8,0.35)'] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                              className="absolute -top-2.5 right-4 px-2.5 py-[3px] rounded-full font-ninja text-[10px] tracking-[0.25em] flex items-center gap-1 z-20 whitespace-nowrap pointer-events-none"
+                              style={{
+                                background: 'linear-gradient(135deg, #fde047, #fbbf24, #eab308)',
+                                color: '#000',
+                                border: '1px solid rgba(255,220,0,0.6)',
+                                textShadow: '0 1px 0 rgba(255,255,255,0.2)',
+                              }}>
+                              ⭐ {lang === 'ar' ? 'الأكثر شعبية' : 'POPULAR'}
+                            </motion.div>
+                          )}
                         </motion.button>
                       );
                     })}
@@ -2955,19 +2962,26 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 </div>
 
                               </div>
-                              {/* Animated BEST badge — floats above the card so it doesn't squeeze the swap numbers */}
-                              {isBest && (
-                                <motion.div
-                                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 10px rgba(57,255,20,0.2)', '0 0 20px rgba(57,255,20,0.45)', '0 0 10px rgba(57,255,20,0.2)'] }}
-                                  transition={{ duration: 2, repeat: Infinity }}
-                                  className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-md font-ninja text-[10px] tracking-[0.2em] text-white flex items-center gap-1 z-10"
-                                  style={{ background: 'linear-gradient(135deg, #39FF14, #06b6d4)', color: '#000' }}>
-                                  <Shield size={10} />
-                                  {lang === 'ar' ? 'الأفضل' : 'BEST'}
-                                </motion.div>
-                              )}
                             </div>
                           </motion.div>
+
+                          {/* BEST badge — rendered outside the overflow-hidden card so
+                              the bubble can float fully above the edge, no clipping. */}
+                          {isBest && (
+                            <motion.div
+                              animate={{ y: [0, -2, 0], scale: [1, 1.05, 1], boxShadow: ['0 0 12px rgba(57,255,20,0.35)', '0 0 24px rgba(57,255,20,0.6)', '0 0 12px rgba(57,255,20,0.35)'] }}
+                              transition={{ duration: 2, repeat: Infinity }}
+                              className="absolute -top-2.5 right-4 px-2.5 py-[3px] rounded-full font-ninja text-[10px] tracking-[0.25em] flex items-center gap-1 z-20 whitespace-nowrap pointer-events-none"
+                              style={{
+                                background: 'linear-gradient(135deg, #86efac, #39FF14, #06b6d4)',
+                                color: '#000',
+                                border: '1px solid rgba(120,255,140,0.7)',
+                                textShadow: '0 1px 0 rgba(255,255,255,0.2)',
+                              }}>
+                              <Shield size={10} />
+                              {lang === 'ar' ? 'الأفضل' : 'BEST'}
+                            </motion.div>
+                          )}
                         </motion.button>
                       );
                     })}

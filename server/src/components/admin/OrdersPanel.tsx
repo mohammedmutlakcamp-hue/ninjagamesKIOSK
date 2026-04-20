@@ -33,7 +33,11 @@ interface UnifiedOrder {
   cigarette?: { id: string; name: string; price: number } | null;
 }
 
-export function OrdersPanel() {
+interface OrdersPanelProps {
+  kindFilter?: 'food' | 'shisha'; // when set, only show one kind
+}
+
+export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
   const [foodOrders, setFoodOrders] = useState<UnifiedOrder[]>([]);
   const [shishaOrders, setShishaOrders] = useState<UnifiedOrder[]>([]);
   const [newOrderPopup, setNewOrderPopup] = useState<UnifiedOrder | null>(null);
@@ -155,7 +159,11 @@ export function OrdersPanel() {
     if (newOrderPopup?.id === order.id) setNewOrderPopup(null);
   };
 
-  const orders = [...foodOrders, ...shishaOrders].sort((a, b) => b.createdAt - a.createdAt);
+  // Apply optional kind filter (e.g. Hubbly-only view hides food).
+  const orders = [
+    ...(kindFilter === 'shisha' ? [] : foodOrders),
+    ...(kindFilter === 'food' ? [] : shishaOrders),
+  ].sort((a, b) => b.createdAt - a.createdAt);
   const activeOrders = orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
   const pendingOrders = activeOrders.filter(o => o.status === 'pending');
   const preparingOrders = activeOrders.filter(o => o.status === 'preparing');

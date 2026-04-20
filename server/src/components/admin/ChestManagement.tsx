@@ -451,19 +451,67 @@ export function ChestManagement() {
           <div className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 space-y-6">
             <h3 className="text-lg font-semibold text-[#1d1d1f] flex items-center gap-2"><Settings size={18} className="text-[#0071e3]" /> Chest Settings</h3>
 
-            {/* Luck Multiplier */}
+            {/* Luck Slider — % boost on rare+ drop chance (mirrors the Crash bias slider UX) */}
             <div>
-              <label className="text-xs font-medium text-[#86868b] uppercase block mb-2">Luck Multiplier (rare+ drop rate boost)</label>
-              <div className="flex items-center gap-3">
-                <input type="range" min="0.5" max="5" step="0.1" value={config.luckMultiplier}
-                  onChange={(e) => setConfig({ ...config, luckMultiplier: parseFloat(e.target.value) })}
-                  className="flex-1 accent-[#0071e3]" />
-                <span className="text-lg font-semibold w-14 text-center" style={{ color: config.luckMultiplier > 1 ? '#ff9500' : config.luckMultiplier < 1 ? '#ff3b30' : '#1d1d1f' }}>
-                  {config.luckMultiplier.toFixed(1)}x
+              <div className="flex justify-between items-center mb-2">
+                <label className="text-xs font-medium text-[#86868b] uppercase">Chest Luck — rare+ drop rate boost</label>
+                <span className="text-lg font-semibold" style={{ color: config.luckMultiplier > 1 ? '#ff9500' : config.luckMultiplier < 1 ? '#ff3b30' : '#1d1d1f' }}>
+                  {config.luckMultiplier >= 1
+                    ? `+${Math.round((config.luckMultiplier - 1) * 100)}%`
+                    : `−${Math.round((1 - config.luckMultiplier) * 100)}%`}
+                  <span className="text-xs text-[#86868b] ml-1.5">({config.luckMultiplier.toFixed(2)}x)</span>
                 </span>
               </div>
-              <p className="text-[10px] text-[#86868b] mt-1">
-                1.0x = normal | &gt;1 = better drops for players | &lt;1 = worse drops (more profit)
+              {/* Slider: 0-100 slider position maps to 0.5x-5x multiplier, with 50 = 1.0x */}
+              <input
+                type="range"
+                min={0}
+                max={100}
+                step={1}
+                value={config.luckMultiplier <= 1
+                  ? Math.round((config.luckMultiplier - 0.5) / 0.5 * 50)   // 0.5→0, 1.0→50
+                  : Math.round(50 + (config.luckMultiplier - 1) / 4 * 50)} // 1.0→50, 5.0→100
+                onChange={(e) => {
+                  const pct = Number(e.target.value);
+                  const mult = pct <= 50
+                    ? 0.5 + (pct / 50) * 0.5            // 0→0.5, 50→1.0
+                    : 1 + ((pct - 50) / 50) * 4;        // 50→1.0, 100→5.0
+                  setConfig({ ...config, luckMultiplier: Math.round(mult * 100) / 100 });
+                }}
+                className="w-full accent-[#ff9500] h-2"
+              />
+              <div className="flex justify-between text-xs text-[#86868b] mt-1">
+                <span>−50% — House favored</span>
+                <span>0% — Fair</span>
+                <span>+400% — Players favored</span>
+              </div>
+
+              {/* Quick-select percentage buttons (matches Crash slider UX) */}
+              <div className="grid grid-cols-6 gap-2 mt-3">
+                {[
+                  { label: '−50%', mult: 0.5 },
+                  { label: '−25%', mult: 0.75 },
+                  { label: 'Fair', mult: 1.0 },
+                  { label: '+50%', mult: 1.5 },
+                  { label: '+100%', mult: 2.0 },
+                  { label: '+200%', mult: 3.0 },
+                ].map((p) => (
+                  <button
+                    key={p.label}
+                    onClick={() => setConfig({ ...config, luckMultiplier: p.mult })}
+                    className={`py-2 rounded-xl text-xs font-medium transition-all border ${
+                      Math.abs(config.luckMultiplier - p.mult) < 0.01
+                        ? 'bg-[#ff9500]/10 border-[#ff9500]/40 text-[#ff9500]'
+                        : 'bg-[#f5f5f7] border-[#d2d2d7] text-[#86868b] hover:text-[#1d1d1f]'
+                    }`}
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+
+              <p className="text-[10px] text-[#86868b] mt-2">
+                Applies to <strong>rare / legendary / mythical</strong> drop chances only. Common + uncommon always stay at baseline so every chest still feels rewarding.
               </p>
             </div>
 
