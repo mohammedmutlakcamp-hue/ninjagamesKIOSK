@@ -1,9 +1,4 @@
 {
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/cron/scheduled-tasks",
-      "schedule": "* * * * *"
-    }
-  ]
+  "framework": "nextjs"
 }
+
