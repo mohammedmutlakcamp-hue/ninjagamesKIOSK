@@ -2295,42 +2295,95 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     </span>
                   </motion.div>
 
-                  {/* ── Package grid (1 / 2.25 / 5 / 10 / 20 / 30 / 50 JOD) ── */}
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 mb-4">
+                  {/* ── Package list (7 tiers, vertical stack — TinaSoft-style rows) ── */}
+                  <div className="flex flex-col gap-2 mb-4 max-h-[52vh] overflow-y-auto pr-1 scrollbar-thin">
                     {COIN_PACKAGES.map((pkg, idx) => {
                       const active = topUpSelected === pkg.id;
+                      const hasBonus = pkg.bonusPercentage !== undefined && pkg.bonusPercentage > 0;
                       return (
                         <motion.button
                           key={pkg.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: 0.25 + idx * 0.03 }}
-                          whileHover={{ scale: 1.02 }}
-                          whileTap={{ scale: 0.97 }}
+                          initial={{ opacity: 0, x: -24 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: 0.25 + idx * 0.04, type: 'spring', stiffness: 180, damping: 22 }}
+                          whileHover={{ scale: 1.015, x: 2 }}
+                          whileTap={{ scale: 0.98 }}
                           onClick={() => { setTopUpSelected(pkg.id); setTopUpCustomTokens(''); }}
-                          className="relative rounded-lg px-3 py-2.5 text-left overflow-hidden transition-all"
+                          className="relative rounded-xl text-left overflow-hidden transition-all group w-full"
                           style={{
                             background: active
-                              ? 'linear-gradient(135deg, rgba(234,179,8,0.18), rgba(234,179,8,0.05))'
-                              : 'rgba(255,255,255,0.025)',
-                            border: `1px solid ${active ? 'rgba(234,179,8,0.55)' : 'rgba(255,255,255,0.08)'}`,
-                            boxShadow: active ? '0 0 18px rgba(234,179,8,0.18)' : 'none',
+                              ? 'linear-gradient(90deg, rgba(234,179,8,0.18) 0%, rgba(234,179,8,0.06) 40%, rgba(234,179,8,0.02) 100%)'
+                              : 'linear-gradient(90deg, rgba(255,255,255,0.035) 0%, rgba(255,255,255,0.015) 100%)',
+                            border: `1px solid ${active ? 'rgba(234,179,8,0.6)' : 'rgba(255,255,255,0.08)'}`,
+                            boxShadow: active
+                              ? '0 0 22px rgba(234,179,8,0.22), inset 0 0 22px rgba(234,179,8,0.05)'
+                              : '0 0 6px rgba(0,0,0,0.3)',
                           }}
                         >
+                          {/* HUD corners */}
+                          <div className="absolute top-0 left-0 w-3 h-3 pointer-events-none"
+                            style={{ borderTop: `2px solid ${active ? '#eab308' : 'rgba(234,179,8,0.3)'}`, borderLeft: `2px solid ${active ? '#eab308' : 'rgba(234,179,8,0.3)'}` }} />
+                          <div className="absolute bottom-0 right-0 w-3 h-3 pointer-events-none"
+                            style={{ borderBottom: `2px solid ${active ? '#eab308' : 'rgba(234,179,8,0.3)'}`, borderRight: `2px solid ${active ? '#eab308' : 'rgba(234,179,8,0.3)'}` }} />
+
+                          {/* Active left glow bar */}
+                          <div className="absolute left-0 top-2 bottom-2 w-[3px] rounded-r-full transition-all"
+                            style={{ background: '#eab308', boxShadow: '0 0 8px #eab308, 0 0 16px rgba(234,179,8,0.4)', opacity: active ? 1 : 0 }} />
+
+                          {/* Hover shimmer */}
+                          <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"
+                            style={{ background: 'linear-gradient(105deg, transparent 40%, rgba(234,179,8,0.08) 50%, transparent 60%)' }} />
+
                           {pkg.popular && (
-                            <span className="absolute top-1 right-1 text-[8px] font-ninja tracking-wider px-1.5 py-0.5 rounded"
-                              style={{ background: '#eab308', color: '#000' }}>POPULAR</span>
+                            <span className="absolute top-2 right-2 text-[9px] font-ninja tracking-widest px-2 py-0.5 rounded-full z-10"
+                              style={{ background: 'linear-gradient(135deg, #eab308, #fbbf24)', color: '#000', boxShadow: '0 0 10px rgba(234,179,8,0.45)' }}>
+                              ⭐ POPULAR
+                            </span>
                           )}
-                          <div className="flex items-baseline gap-1 mb-0.5">
-                            <span className="font-ninja text-lg text-yellow-400">{pkg.price}</span>
-                            <span className="font-body text-[10px] text-gray-500">JOD</span>
+
+                          <div className="flex items-center gap-4 px-4 py-3 relative z-[1]">
+                            {/* Radio */}
+                            <div className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0 transition-all"
+                              style={{ border: `2px solid ${active ? '#eab308' : 'rgba(150,150,150,0.35)'}`, background: active ? 'rgba(234,179,8,0.1)' : 'transparent' }}>
+                              {active && <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" style={{ boxShadow: '0 0 8px #eab308' }} />}
+                            </div>
+
+                            {/* Package name + JOD price */}
+                            <div className="flex-shrink-0 min-w-[90px]">
+                              <div className="font-ninja text-[11px] tracking-[0.2em] text-gray-400 uppercase">{pkg.name}</div>
+                              <div className="flex items-baseline gap-1 mt-0.5">
+                                <span className="font-ninja text-2xl leading-none" style={{ color: active ? '#fbbf24' : '#eab308', textShadow: active ? '0 0 12px rgba(234,179,8,0.5)' : 'none' }}>
+                                  {pkg.price}
+                                </span>
+                                <span className="font-body text-[11px] text-gray-500">JOD</span>
+                              </div>
+                            </div>
+
+                            {/* Divider */}
+                            <div className="h-10 w-px" style={{ background: 'linear-gradient(180deg, transparent, rgba(234,179,8,0.3), transparent)' }} />
+
+                            {/* Tokens + bonus */}
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-1.5">
+                                <Coins size={13} className="text-yellow-500/70 flex-shrink-0" />
+                                <span className="font-ninja text-base text-white/95 truncate">{pkg.coins.toLocaleString()}</span>
+                                <span className="font-body text-[10px] text-gray-500">{lang === 'ar' ? 'توكنز' : 'tokens'}</span>
+                              </div>
+                              {hasBonus && (
+                                <div className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded"
+                                  style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)' }}>
+                                  <TrendingUp size={9} className="text-green-400" />
+                                  <span className="font-ninja text-[9px] text-green-400 tracking-wider">+{pkg.bonusPercentage}% {lang === 'ar' ? 'مكافأة' : 'BONUS'}</span>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Rate hint */}
+                            <div className="hidden sm:block text-right flex-shrink-0">
+                              <div className="font-body text-[9px] text-gray-500 leading-tight">{lang === 'ar' ? 'السعر' : 'Rate'}</div>
+                              <div className="font-ninja text-[10px] text-gray-400 leading-tight">{(pkg.coins / pkg.price).toFixed(0)} / 1 JOD</div>
+                            </div>
                           </div>
-                          <div className="font-ninja text-[11px] text-white/90">
-                            {pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}
-                          </div>
-                          {pkg.bonusPercentage !== undefined && pkg.bonusPercentage > 0 && (
-                            <div className="font-body text-[9px] text-green-400 mt-0.5">+{pkg.bonusPercentage}%</div>
-                          )}
                         </motion.button>
                       );
                     })}
