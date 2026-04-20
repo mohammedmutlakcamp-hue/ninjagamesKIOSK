@@ -48,6 +48,7 @@ import { HubblyManagement } from './HubblyManagement';
 import { CameraPanel } from './CameraPanel';
 import { WhatsappSettings } from './WhatsappSettings';
 import { PromotionsPanel } from './PromotionsPanel';
+import { LivePCsDashboard } from './LivePCsDashboard';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -58,7 +59,7 @@ import {
   ToggleRight, HardDriveDownload, ListChecks, Flame, Video
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -657,6 +658,7 @@ export function AdminDashboard({ admin }: Props) {
     {
       title: 'Operations',
       items: [
+        { id: 'livepcs', label: 'Live PCs', icon: <Activity size={18} /> },
         { id: 'pcs', label: 'PCs', icon: <Monitor size={18} /> },
         { id: 'zones', label: 'PC Zones', icon: <MapPin size={18} /> },
         { id: 'reservations', label: 'Reservations', icon: <BookmarkCheck size={18} /> },
@@ -836,6 +838,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'cameras' && <CameraPanel />}
           {tab === 'whatsapp' && <WhatsappSettings />}
           {tab === 'promotions' && <PromotionsPanel />}
+          {tab === 'livepcs' && <LivePCsDashboard />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}
