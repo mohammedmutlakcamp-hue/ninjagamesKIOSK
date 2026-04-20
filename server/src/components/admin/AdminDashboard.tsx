@@ -54,6 +54,7 @@ import { PCsHub } from './PCsHub';
 import { HubblyHub } from './HubblyHub';
 import { DarkModeProvider, useDarkMode } from './DarkModeProvider';
 import { CommandPalette } from './CommandPalette';
+import { ResetPanel } from './ResetPanel';
 import { Moon, Sun } from 'lucide-react';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
@@ -62,10 +63,10 @@ import {
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
   BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check,
-  ToggleRight, HardDriveDownload, ListChecks, Flame, Video
+  ToggleRight, HardDriveDownload, ListChecks, Flame, Video, RefreshCw
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcshub' | 'hubblyhub' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcshub' | 'hubblyhub' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport' | 'reset';
 
 interface Props {
   admin: any;
@@ -748,6 +749,7 @@ function AdminDashboardInner({ admin }: Props) {
         { id: 'scheduled', label: 'Scheduled', icon: <CalendarClock size={18} /> },
         { id: 'debuglogs', label: 'Debug Logs', icon: <Activity size={18} /> },
         { id: 'settings', label: 'Settings', icon: <Settings size={18} /> },
+        { id: 'reset', label: 'Reset & Wipe', icon: <RefreshCw size={18} /> },
       ]
     },
   ];
@@ -881,6 +883,7 @@ function AdminDashboardInner({ admin }: Props) {
           {tab === 'pcshub' && <PCsHub />}
           {tab === 'hubblyhub' && <HubblyHub />}
           {tab === 'realpl' && <RealPLDashboard />}
+          {tab === 'reset' && <ResetPanel />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}
