@@ -333,7 +333,13 @@ export function ProfileTab({ player }: Props) {
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !player?.uid) return;
-    if (file.size > 5 * 1024 * 1024) return; // 5MB max
+    // Bump the size limit to 20MB raw because we downscale to 400×400 JPEG
+    // before writing. Previous silent 5MB cap made uploads of regular
+    // phone-camera photos just fail invisibly.
+    if (file.size > 20 * 1024 * 1024) {
+      alert(ar ? 'الصورة كبيرة جداً (الحد 20MB)' : 'Image too large (max 20 MB)');
+      return;
+    }
     setUploadingPhoto(true);
     try {
       // Resize and compress to keep Firestore doc small
@@ -343,7 +349,8 @@ export function ProfileTab({ player }: Props) {
           const img = new window.Image();
           img.onload = () => {
             const canvas = document.createElement('canvas');
-            const size = 200;
+            // 400×400 square for sharper display on the kiosk HUD.
+            const size = 400;
             canvas.width = size;
             canvas.height = size;
             const ctx = canvas.getContext('2d')!;
@@ -352,7 +359,7 @@ export function ProfileTab({ player }: Props) {
             const sx = (img.width - min) / 2;
             const sy = (img.height - min) / 2;
             ctx.drawImage(img, sx, sy, min, min, 0, 0, size, size);
-            resolve(canvas.toDataURL('image/jpeg', 0.7));
+            resolve(canvas.toDataURL('image/jpeg', 0.82));
           };
           img.src = reader.result as string;
         };

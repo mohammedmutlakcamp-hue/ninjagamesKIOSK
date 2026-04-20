@@ -328,10 +328,12 @@ export const VIP_CONFIG = {
   trialDays: 7,
   priceCoins: 5000, // coin price to buy VIP from store
   durationDays: 30, // VIP lasts 30 days when activated
-  cafeDiscountPercent: 0,
-  dailyTaskBonusCoins: 1, // +1 coin for each daily task
-  dailyInviteFreeMinutes: 30, // 30 min free play gift
-  dailyInviteBonusCoins: 50, // 50 coins to receiver (transfer-only)
+  cafeDiscountPercent: 10,      // 10% off cafe / hubbly orders for VIP
+  dailyTaskBonusCoins: 1,       // +1 coin for each daily task
+  dailyInviteFreeMinutes: 30,   // 30 min free play gift
+  dailyInviteBonusCoins: 50,    // 50 coins to receiver (transfer-only)
+  dailyLoginBonusCoins: 10,     // VIP daily login bonus — auto-awarded once/day
+  bookingDurationMinutes: 45,   // VIP booking hold window (regular = 30)
   exclusiveSkins: ['vip-gold', 'vip-diamond', 'vip-platinum'],
 };
 

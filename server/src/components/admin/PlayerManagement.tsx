@@ -310,6 +310,20 @@ export function PlayerManagement() {
     try {
       const currentCoins = selected.coins || 0;
       await updateDoc(doc(db, 'players', selected.uid), { coins: currentCoins + amount });
+      // Log the admin grant/remove to the coin-transfers audit trail so
+      // it shows up in the Transfers admin panel.
+      try {
+        const { addDoc, collection } = await import('firebase/firestore');
+        await addDoc(collection(db, 'coin-transfers'), {
+          senderId: 'ADMIN',
+          senderName: 'Admin',
+          receiverId: selected.uid,
+          receiverName: selected.username,
+          amount,
+          type: amount >= 0 ? 'admin-add' : 'admin-remove',
+          timestamp: Date.now(),
+        });
+      } catch (logErr) { console.error('coin-transfer log failed', logErr); }
       setAddCoinsMsg(`+${amount} coins added!`);
       setAddCoinsAmount('');
     } catch (err: any) {
@@ -515,7 +529,9 @@ export function PlayerManagement() {
     try {
       const id = `player_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
       await setDoc(doc(db, 'players', id), {
-        username, pin: '', coins, totalCoinsSpent: 0, totalPlaytime: 0,
+        // Default PIN for admin-created accounts: 000000.
+        // Player is prompted to change it on first login.
+        username, pin: '000000', coins, totalCoinsSpent: 0, totalPlaytime: 0,
         character: { skinColor: '#39FF14', outfitId: 'default', maskId: '', accessoryId: '', equippedSkins: [] },
         inventory: [], titles: [], activeTitle: 'Newcomer',
         stats: { totalKills: 0, totalDeaths: 0, totalHeadshots: 0, totalWins: 0, gamesPlayed: 0, chestsOpened: 0, foodOrdered: 0, longestStreak: 0, favoriteGame: '' },

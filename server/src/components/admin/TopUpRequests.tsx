@@ -116,6 +116,22 @@ export function TopUpRequests() {
         approvedAt: Date.now(),
       });
 
+      // Audit log: record this in coin-transfers so the Transfers admin
+      // panel shows it. Type 'admin-add' because the admin triggered it.
+      try {
+        const { addDoc, collection } = await import('firebase/firestore');
+        await addDoc(collection(db, 'coin-transfers'), {
+          senderId: 'ADMIN',
+          senderName: 'Admin (top-up)',
+          receiverId: req.playerId,
+          receiverName: req.playerName,
+          amount: req.coins,
+          type: 'admin-add',
+          priceJOD,
+          timestamp: Date.now(),
+        });
+      } catch (logErr) { console.error('coin-transfer log', logErr); }
+
       // Customer receipt via WhatsApp (fire-and-forget). Skipped silently
       // if the player has no phone on file or WhatsApp integration is off.
       try {

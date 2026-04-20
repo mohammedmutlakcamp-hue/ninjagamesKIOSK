@@ -854,6 +854,26 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     setShowRating(true);
   };
 
+  // VIP daily login bonus — award 10 coins once per day to VIP players.
+  // Stored on the player doc as lastDailyBonus (epoch ms). Gated by VIP
+  // active + expiry so lapsed VIPs stop getting the bonus automatically.
+  useEffect(() => {
+    if (isGuest) return;
+    const vipActive = player.vip?.active && (player.vip?.expiresAt || 0) > Date.now();
+    if (!vipActive) return;
+    const last = player.lastDailyBonus || 0;
+    const now = Date.now();
+    const oneDay = 24 * 60 * 60 * 1000;
+    if (now - last < oneDay) return;
+    const bonus = 10;
+    updateDoc(doc(db, 'players', player.uid), {
+      coins: increment(bonus),
+      lastDailyBonus: now,
+    }).catch(() => { /* non-fatal */ });
+    setTokensReceived({ amount: bonus, ts: now });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [player.uid, player.vip?.active, player.vip?.expiresAt]);
+
   // Guest auto-logout when free play expires
   if (isGuest && player.freePlayUntil && player.freePlayUntil <= Date.now()) {
     onLogout();
