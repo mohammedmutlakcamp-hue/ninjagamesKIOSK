@@ -49,6 +49,7 @@ import { CameraPanel } from './CameraPanel';
 import { WhatsappSettings } from './WhatsappSettings';
 import { PromotionsPanel } from './PromotionsPanel';
 import { LivePCsDashboard } from './LivePCsDashboard';
+import { RealPLDashboard } from './RealPLDashboard';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -59,7 +60,7 @@ import {
   ToggleRight, HardDriveDownload, ListChecks, Flame, Video
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -683,7 +684,8 @@ export function AdminDashboard({ admin }: Props) {
       title: 'Business',
       items: [
         { id: 'revenue', label: 'Revenue', icon: <DollarSign size={18} /> },
-        { id: 'profit', label: 'Profit & Loss', icon: <TrendingUp size={18} /> },
+        { id: 'realpl', label: 'Real P&L', icon: <TrendingUp size={18} /> },
+        { id: 'profit', label: 'Profit & Loss (old)', icon: <TrendingUp size={18} /> },
         { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} /> },
         { id: 'shifts', label: 'Shifts', icon: <Clock size={18} /> },
         { id: 'analytics', label: 'Game Stats', icon: <BarChart3 size={18} /> },
@@ -839,6 +841,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'whatsapp' && <WhatsappSettings />}
           {tab === 'promotions' && <PromotionsPanel />}
           {tab === 'livepcs' && <LivePCsDashboard />}
+          {tab === 'realpl' && <RealPLDashboard />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}
