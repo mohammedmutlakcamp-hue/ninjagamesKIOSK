@@ -11,6 +11,7 @@ import {
   ChevronDown, ChevronUp, Star, Eye, Save, RotateCcw, Plus, Pencil, Loader2, Upload,
 } from 'lucide-react';
 import { HelpTip } from './HelpTip';
+import { UploadButton } from './ImageUploadField';
 
 interface CustomSkin {
   id: string;
@@ -546,12 +547,17 @@ export function SkinsManagement() {
                     </div>
 
                     <div>
-                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Profile Image URL</label>
-                      <input type="text" value={editingCustom.profileImage || ''}
-                        onChange={(e) => setEditingCustom({ ...editingCustom, profileImage: e.target.value })}
-                        placeholder="/ninjas/profiles/your-ninja.png or full URL"
-                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
-                      <p className="text-[10px] text-[#86868b] mt-1">Upload to /public/ninjas/profiles/ via file manager, then paste the path here.</p>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Profile Image</label>
+                      <div className="flex items-stretch gap-2">
+                        <input type="text"
+                          value={editingCustom.profileImage && !editingCustom.profileImage.startsWith('data:') ? editingCustom.profileImage : ''}
+                          onChange={(e) => setEditingCustom({ ...editingCustom, profileImage: e.target.value })}
+                          placeholder={editingCustom.profileImage?.startsWith('data:') ? 'Uploaded image' : '/ninjas/profiles/your-ninja.png OR upload'}
+                          disabled={editingCustom.profileImage?.startsWith('data:')}
+                          className="flex-1 bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm disabled:opacity-60" />
+                        <UploadButton onUpload={(d) => setEditingCustom({ ...editingCustom, profileImage: d })} maxWidth={400} maxHeight={400} />
+                      </div>
+                      <p className="text-[10px] text-[#86868b] mt-1">Paste a URL or upload from PC (compressed to 400×400 JPEG).</p>
                       {editingCustom.profileImage && (
                         <div className="mt-2 inline-block rounded-lg overflow-hidden border border-[#e5e5ea]">
                           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -1214,11 +1220,16 @@ export function SkinsManagement() {
 
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Profile Image URL</label>
-                  <input type="text" value={draftMedia.profileImage || ''}
-                    onChange={(e) => setDraftMedia({ ...draftMedia, profileImage: e.target.value })}
-                    placeholder={NINJA_SKINS.find((s) => s.id === editingMediaFor)?.profileImage || '/ninjas/profiles/...'}
-                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm font-mono" />
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Profile Image</label>
+                  <div className="flex items-stretch gap-2">
+                    <input type="text"
+                      value={draftMedia.profileImage && !draftMedia.profileImage.startsWith('data:') ? draftMedia.profileImage : ''}
+                      onChange={(e) => setDraftMedia({ ...draftMedia, profileImage: e.target.value })}
+                      placeholder={draftMedia.profileImage?.startsWith('data:') ? 'Uploaded image' : NINJA_SKINS.find((s) => s.id === editingMediaFor)?.profileImage || '/ninjas/profiles/...'}
+                      disabled={draftMedia.profileImage?.startsWith('data:')}
+                      className="flex-1 bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm font-mono disabled:opacity-60" />
+                    <UploadButton onUpload={(d) => setDraftMedia({ ...draftMedia, profileImage: d })} maxWidth={400} maxHeight={400} />
+                  </div>
                   <div className="flex items-center gap-3 mt-2">
                     <div className="text-[10px] text-[#86868b]">Preview:</div>
                     {draftMedia.profileImage && (

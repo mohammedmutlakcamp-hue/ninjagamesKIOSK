@@ -12,6 +12,7 @@ import {
   Loader2, X as XIcon,
 } from 'lucide-react';
 import { HelpTip } from './HelpTip';
+import { UploadButton } from './ImageUploadField';
 
 interface ChestDrop {
   id: string;
@@ -941,12 +942,17 @@ export function ChestManagement() {
                       </div>
                     </div>
                     <div>
-                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Image URL (optional)</label>
-                      <input type="text" value={draftReward.image}
-                        onChange={(e) => setDraftReward({ ...draftReward, image: e.target.value })}
-                        placeholder="/img/reward-coins-50.png or full URL"
-                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
-                      <p className="text-[10px] text-[#86868b] mt-1">Leave blank to use a colored placeholder.</p>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Image (optional)</label>
+                      <div className="flex items-stretch gap-2">
+                        <input type="text"
+                          value={draftReward.image && !draftReward.image.startsWith('data:') ? draftReward.image : ''}
+                          onChange={(e) => setDraftReward({ ...draftReward, image: e.target.value })}
+                          placeholder={draftReward.image?.startsWith('data:') ? 'Uploaded image' : '/img/reward-coins-50.png or URL'}
+                          disabled={draftReward.image?.startsWith('data:')}
+                          className="flex-1 bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm disabled:opacity-60" />
+                        <UploadButton onUpload={(d) => setDraftReward({ ...draftReward, image: d })} maxWidth={256} maxHeight={256} />
+                      </div>
+                      <p className="text-[10px] text-[#86868b] mt-1">Paste URL or upload from PC. Leave blank to use a colored placeholder.</p>
                     </div>
 
                     <div className="bg-[#fef3c7] border border-[#f59e0b]/40 rounded-xl p-3 text-[11px] text-[#92400e]">

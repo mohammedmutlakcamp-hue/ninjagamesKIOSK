@@ -7,6 +7,7 @@ import { collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from 'fireb
 import { MenuItem } from '@/types';
 import { getMenuImage } from '@/lib/menu-images';
 import { HelpTip } from './HelpTip';
+import { UploadButton } from './ImageUploadField';
 import {
   Plus, CupSoda, Cookie, Pizza, UtensilsCrossed, Pencil,
   Trash2, ToggleLeft, ToggleRight, Coins, X, Image as ImageIcon, Link2, Folder, AlertTriangle,
@@ -332,14 +333,24 @@ export function MenuManagement() {
                       />
                     </div>
                     <div className="flex-1 flex flex-col gap-2">
-                      <div className="relative">
-                        <Link2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" />
-                        <input
-                          value={formImage}
-                          onChange={(e) => setFormImage(e.target.value)}
-                          placeholder="Paste image URL or /img/menu/your-photo.jpg"
-                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl pl-9 pr-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
-                        />
+                      <div className="flex items-stretch gap-2">
+                        <div className="relative flex-1">
+                          <Link2 size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b]" />
+                          <input
+                            value={formImage && !formImage.startsWith('data:') ? formImage : ''}
+                            onChange={(e) => setFormImage(e.target.value)}
+                            placeholder={formImage.startsWith('data:') ? 'Uploaded image (click Clear to re-upload)' : 'Paste image URL or /img/menu/your-photo.jpg'}
+                            disabled={formImage.startsWith('data:')}
+                            className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl pl-9 pr-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none disabled:opacity-60"
+                          />
+                        </div>
+                        <UploadButton onUpload={setFormImage} label="Upload" />
+                        {formImage && (
+                          <button type="button" onClick={() => setFormImage('')}
+                            className="px-2 rounded-xl text-[#ff3b30] bg-[#ff3b30]/10 border border-[#ff3b30]/25 hover:bg-[#ff3b30]/15 flex-shrink-0">
+                            <Trash2 size={13} />
+                          </button>
+                        )}
                       </div>
                       <div className="relative">
                         <Folder size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
