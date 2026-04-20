@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import {
   doc, getDoc, setDoc, collection, getDocs,
 } from 'firebase/firestore';
+import { HelpTip } from './HelpTip';
 import {
   Award, Plus, Pencil, Trash2, RefreshCw, Coins, Clock, Gift, Package,
   Save, X, ChevronUp, ChevronDown, Users, TrendingUp, Target, Star,
@@ -220,7 +221,13 @@ export function LoyaltyProgram() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Award className="text-[#0071e3]" size={28} />
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Loyalty Program</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Loyalty Program
+            <HelpTip title={{ en: 'Loyalty Program', ar: 'برنامج الولاء' }}
+              ar={<p>مراحل ولاء متدرّجة (برونزي/فضي/ذهبي...). حدد مقاطع الإنفاق والمميزات لكل مرحلة. الترقية تحدث تلقائياً.</p>}>
+              <p>Tiered loyalty (Bronze/Silver/Gold…). Set spend milestones + perks per tier. Upgrades happen automatically.</p>
+            </HelpTip>
+          </h2>
         </div>
         <div className="flex items-center gap-2">
           <motion.button

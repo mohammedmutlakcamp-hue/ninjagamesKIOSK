@@ -7,6 +7,7 @@ import {
   collection, onSnapshot, doc, addDoc, deleteDoc, updateDoc,
   query, where, getDocs, orderBy, Timestamp
 } from 'firebase/firestore';
+import { HelpTip } from './HelpTip';
 import {
   Monitor, User, Clock, Search, Plus, Trash2, X,
   CalendarClock, CheckCircle2, AlertCircle, XCircle,
@@ -222,7 +223,13 @@ export function PCReservation() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">PC Reservations</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            PC Reservations
+            <HelpTip title={{ en: 'PC Reservations', ar: 'حجوزات الأجهزة' }}
+              ar={<p>حجز أجهزة محددة لوقت محدد لزبون معين. يمنع غيره من الجلوس على الجهاز في وقت الحجز.</p>}>
+              <p>Reserve specific PCs at specific times for specific customers. Blocks other players from sitting at the PC during the reservation window.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm mt-1">
             {activeCount} active, {upcomingCount} upcoming
           </p>

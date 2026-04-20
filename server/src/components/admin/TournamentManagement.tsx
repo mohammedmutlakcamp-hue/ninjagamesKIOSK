@@ -9,6 +9,7 @@ import {
   Trophy, Plus, Coins, Users, Calendar, Swords, X, Edit, Trash2,
   Play, Ban, Award, DollarSign, ChevronDown, Check, AlertTriangle
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 export function TournamentManagement() {
   const [tournaments, setTournaments] = useState<Tournament[]>([]);
@@ -168,7 +169,13 @@ export function TournamentManagement() {
     <div>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Tournament Management</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Tournament Management
+            <HelpTip title={{ en: 'Tournaments', ar: 'البطولات' }}
+              ar={<p>أنشئ بطولات برسوم دخول وتواريخ. اللاعبون ينضمون من الكشك، أنت تحدد الفائزين، والجوائز تُوزَّع تلقائياً.</p>}>
+              <p>Create tournaments with entry fees and dates. Players join from the kiosk, you mark winners, prizes distribute automatically.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">
             {tournaments.filter(t => t.status === 'active').length} active · {tournaments.filter(t => t.status === 'registration').length} registration · Total revenue: {totalRevenue} coins
           </p>

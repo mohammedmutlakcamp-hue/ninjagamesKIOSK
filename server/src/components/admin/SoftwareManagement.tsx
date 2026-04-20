@@ -9,6 +9,7 @@ import {
   Monitor, MessageSquare, Cpu, Tv, Globe, Package,
   GripVertical, Save, AlertTriangle
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface SoftwareItem {
   id: string;
@@ -153,7 +154,13 @@ export function SoftwareManagement() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Software Management</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Software Management
+            <HelpTip title={{ en: 'Software Shortcuts', ar: 'اختصارات البرامج' }}
+              ar={<p>البرامج التي تظهر كاختصارات في الكشك (كروم، ديسكورد، OBS...). عدّل الاسم، الأيقونة، ومسار التثبيت.</p>}>
+              <p>Apps that show as shortcuts on the kiosk (Chrome, Discord, OBS, etc). Edit name, icon, and install path.</p>
+            </HelpTip>
+          </h2>
           <p className="text-sm text-[#86868b] mt-1">
             {items.length} apps configured
             {saving && <span className="ml-2 text-[#0071e3] animate-pulse">saving...</span>}

@@ -9,6 +9,7 @@ import {
   Coins, Flame, Trophy, Users, RefreshCw, TrendingUp, Calendar, CheckCircle2,
   ChevronDown, ChevronUp, Award, Instagram,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 // ── Task definitions (must match DailyTasksTab.tsx) ──────────
 interface TaskDef {
@@ -176,7 +177,13 @@ export function DailyTasksManagement() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <ListChecks className="text-[#0071e3]" size={28} />
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Daily Tasks</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Daily Tasks
+            <HelpTip title={{ en: 'Daily Tasks', ar: 'المهام اليومية' }}
+              ar={<p>مهام يومية/أسبوعية للاعبين (العب ساعة، أضف صديق، أكمل...). عدّل الأهداف والمكافآت. اللاعبون يرون تقدمهم في تبويب Tasks.</p>}>
+              <p>Daily / weekly missions players complete (Play 1h, Add a friend, Complete X...). Edit targets + rewards. Players track progress on the kiosk Tasks tab.</p>
+            </HelpTip>
+          </h2>
           <span className="text-[#86868b] text-sm">{todayKey}</span>
         </div>
         <motion.button

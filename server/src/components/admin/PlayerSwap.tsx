@@ -8,6 +8,7 @@ import {
   ArrowLeftRight, Monitor, User, Coins, Clock, X, AlertTriangle,
   CheckCircle, Loader2
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 function formatDuration(startTime: number): string {
   const diff = Date.now() - startTime;
@@ -109,7 +110,13 @@ export function PlayerSwap() {
           <ArrowLeftRight size={20} className="text-[#af52de]" />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Player Swap</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Player Swap
+            <HelpTip title={{ en: 'Player Swap', ar: 'نقل اللاعب' }}
+              ar={<p>انقل جلسة اللاعب من جهاز إلى جهاز آخر بدون ما يخسر التوكنز أو الوقت. مفيد لو كان جهازه معطّل.</p>}>
+              <p>Move a player's active session from one PC to another without them losing tokens or time left. Useful when a PC needs maintenance.</p>
+            </HelpTip>
+          </h2>
           <p className="text-sm text-[#86868b]">
             Move a player&apos;s session from one PC to another
           </p>

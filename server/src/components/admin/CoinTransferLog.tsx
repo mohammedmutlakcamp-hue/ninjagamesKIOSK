@@ -9,6 +9,7 @@ import {
   Coins, TrendingUp, Users, Crown, ChefHat, ShoppingBag,
   Shield, Gift, ArrowUpDown, Calendar, RefreshCw
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface CoinTransfer {
   id: string;
@@ -157,7 +158,13 @@ export function CoinTransferLog() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Coin Transfers</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Coin Transfers
+            <HelpTip title={{ en: 'Coin Transfers', ar: 'تحويلات التوكنز' }}
+              ar={<p>سجل كل تحويل توكنز بين اللاعبين. مسار تدقيق كامل: من، إلى، المبلغ، التاريخ. مفيد للكشف عن الغش.</p>}>
+              <p>Full audit trail of player-to-player token transfers: sender, recipient, amount, timestamp. Useful for detecting abuse.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">Track all coin movements between players</p>
         </div>
         <div className="flex items-center gap-2">

@@ -7,6 +7,7 @@ import {
   collection, addDoc, updateDoc, doc, getDocs, query, orderBy, limit,
   where, onSnapshot, Timestamp, serverTimestamp,
 } from 'firebase/firestore';
+import { HelpTip } from './HelpTip';
 import {
   Clock, DollarSign, User, LogIn, LogOut, RefreshCw, CalendarDays,
   Timer, Banknote, FileText, TrendingUp, AlertCircle,
@@ -212,7 +213,13 @@ export function ShiftManagement() {
           <Clock size={22} className="text-[#0071e3]" />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Shift Management</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Shift Management
+            <HelpTip title={{ en: 'Cashier Shifts', ar: 'مناوبات الكاشير' }}
+              ar={<p>تتبّع مناوبات الكاشير: المبلغ الافتتاحي، مبلغ الإقفال، تسوية الصندوق. ضروري لحساب النقد اليومي.</p>}>
+              <p>Cashier shift tracking: opening cash, closing cash, till reconciliation. Essential for daily cash accountability.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">Track staff shifts & cash register</p>
         </div>
       </div>

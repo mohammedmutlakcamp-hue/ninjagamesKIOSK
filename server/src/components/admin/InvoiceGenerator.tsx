@@ -12,6 +12,7 @@ import {
   Receipt, Plus, ChevronRight, X, Loader2, CreditCard,
   Calendar, CheckCircle, Zap
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface TopUpRecord {
   id: string;
@@ -344,7 +345,13 @@ export function InvoiceGenerator() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Invoice Generator</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Invoice Generator
+            <HelpTip title={{ en: 'Invoices', ar: 'الفواتير' }}
+              ar={<p>أنشئ فواتير للطباعة للشحن أو الطلبات أو الحجوزات. التصدير PDF.</p>}>
+              <p>Generate printable invoices for top-ups, food/hubbly orders, or reservations. Export to PDF.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">Generate and print receipts for top-ups</p>
         </div>
       </div>
