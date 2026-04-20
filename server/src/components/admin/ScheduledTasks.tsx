@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { addDoc, collection, doc, onSnapshot, setDoc } from 'firebase/firestore';
 import {
   Clock, Plus, Edit3, Trash2, X, Save, Power, RotateCcw,
   Megaphone, Zap, ToggleLeft, ToggleRight, Calendar,
@@ -18,6 +18,10 @@ interface ScheduledTask {
   enabled: boolean;
   lastRun?: number;
   description: string;
+  // send-announcement fields — used when type === 'send-announcement'
+  announcementTitle?: string;
+  announcementType?: 'info' | 'warning' | 'urgent' | 'promo';
+  announcementDuration?: number; // seconds the banner stays visible
   executionLog?: ExecutionEntry[];
 }
 
@@ -87,6 +91,10 @@ export function ScheduledTasks() {
   const [formDays, setFormDays] = useState<boolean[]>([false, true, true, true, true, true, false]);
   const [formEnabled, setFormEnabled] = useState(true);
   const [formDescription, setFormDescription] = useState('');
+  // Announcement-only form fields
+  const [formAnnouncementTitle, setFormAnnouncementTitle] = useState('');
+  const [formAnnouncementType, setFormAnnouncementType] = useState<'info' | 'warning' | 'urgent' | 'promo'>('info');
+  const [formAnnouncementDuration, setFormAnnouncementDuration] = useState(60);
 
   // Load tasks
   useEffect(() => {
@@ -101,7 +109,12 @@ export function ScheduledTasks() {
     return () => unsub();
   }, []);
 
-  // Client-side execution check every 60 seconds
+  // Client-side execution check every 60 seconds.
+  //
+  // NOTE: this only fires while this page is open in a browser. The same
+  // logic runs server-side via /api/cron/scheduled-tasks (Vercel Cron, 1 min)
+  // so tasks fire even when no admin is watching. The two checks share the
+  // `lastRun` field so a task can't fire twice in the same minute.
   useEffect(() => {
     const checkTasks = async () => {
       const now = new Date();
@@ -109,7 +122,7 @@ export function ScheduledTasks() {
       const currentDay = now.getDay();
 
       let changed = false;
-      const updatedTasks = tasks.map(task => {
+      const updatedTasks = await Promise.all(tasks.map(async (task) => {
         if (!task.enabled) return task;
         if (task.time !== currentTime) return task;
         if (!task.days[currentDay]) return task;
@@ -132,24 +145,48 @@ export function ScheduledTasks() {
           message: `Executed ${TASK_TYPES.find(t => t.value === task.type)?.label}`,
         };
 
-        // Actually dispatch the task
         try {
           switch (task.type) {
             case 'restart-all':
+              await setDoc(doc(db, 'config', 'scheduled-command'), {
+                type: 'restart-all', triggeredAt: Date.now(), source: 'scheduled-task',
+              });
+              break;
             case 'shutdown-all':
-              // These would communicate via Firestore commands to C# clients
-              console.log(`[ScheduledTask] ${task.type} triggered at ${currentTime}`);
+              await setDoc(doc(db, 'config', 'scheduled-command'), {
+                type: 'shutdown-all', triggeredAt: Date.now(), source: 'scheduled-task',
+              });
               break;
-            case 'send-announcement':
-              console.log(`[ScheduledTask] Announcement: ${task.description}`);
+            case 'send-announcement': {
+              // The kiosk listens to config/announcement and shows a banner.
+              // Pull announcement fields off the task; fall back to description.
+              const title = (task.announcementTitle || 'Announcement').trim();
+              const message = (task.description || '').trim();
+              const annType = task.announcementType || 'info';
+              const duration = task.announcementDuration || 60;
+              if (!message) { log.result = 'skipped'; log.message = 'No announcement message set on task'; break; }
+              const nowTs = Date.now();
+              await setDoc(doc(db, 'config', 'announcement'), {
+                active: true, title, message, type: annType, duration,
+                createdAt: nowTs, target: 'all', source: 'scheduled-task',
+              });
+              await addDoc(collection(db, 'announcements'), {
+                title, message, type: annType, duration,
+                createdAt: nowTs, sentBy: 'scheduled-task', target: 'all',
+              });
+              log.message = `Announcement sent: "${title}"`;
               break;
+            }
             case 'run-campaign':
-              console.log(`[ScheduledTask] Campaign triggered: ${task.description}`);
+              await setDoc(doc(db, 'config', 'scheduled-command'), {
+                type: 'run-campaign', description: task.description,
+                triggeredAt: Date.now(), source: 'scheduled-task',
+              });
               break;
           }
-        } catch {
+        } catch (err: any) {
           log.result = 'failed';
-          log.message = 'Execution error';
+          log.message = `Execution error: ${err?.message || 'unknown'}`;
         }
 
         const existingLog = task.executionLog || [];
@@ -158,7 +195,7 @@ export function ScheduledTasks() {
           lastRun: Date.now(),
           executionLog: [log, ...existingLog].slice(0, 10),
         };
-      });
+      }));
 
       if (changed) {
         await setDoc(doc(db, 'config', 'scheduled-tasks'), { tasks: updatedTasks });
@@ -182,6 +219,9 @@ export function ScheduledTasks() {
     setFormDays([false, true, true, true, true, true, false]);
     setFormEnabled(true);
     setFormDescription('');
+    setFormAnnouncementTitle('');
+    setFormAnnouncementType('info');
+    setFormAnnouncementDuration(60);
     setShowForm(true);
   };
 
@@ -192,26 +232,35 @@ export function ScheduledTasks() {
     setFormDays([...task.days]);
     setFormEnabled(task.enabled);
     setFormDescription(task.description);
+    setFormAnnouncementTitle(task.announcementTitle || '');
+    setFormAnnouncementType(task.announcementType || 'info');
+    setFormAnnouncementDuration(task.announcementDuration || 60);
     setShowForm(true);
   };
 
   const handleSave = async () => {
+    const commonFields = {
+      type: formType,
+      time: formTime,
+      days: formDays,
+      enabled: formEnabled,
+      description: formDescription.trim(),
+      ...(formType === 'send-announcement' ? {
+        announcementTitle: formAnnouncementTitle.trim() || 'Announcement',
+        announcementType: formAnnouncementType,
+        announcementDuration: formAnnouncementDuration,
+      } : {}),
+    };
     if (editingTask) {
       const updated = tasks.map(t =>
-        t.id === editingTask.id
-          ? { ...t, type: formType, time: formTime, days: formDays, enabled: formEnabled, description: formDescription.trim() }
-          : t
+        t.id === editingTask.id ? { ...t, ...commonFields } : t
       );
       await saveTasks(updated);
     } else {
       const id = 'task-' + Date.now().toString(36);
       const newTask: ScheduledTask = {
         id,
-        type: formType,
-        time: formTime,
-        days: formDays,
-        enabled: formEnabled,
-        description: formDescription.trim(),
+        ...commonFields,
         executionLog: [],
       };
       await saveTasks([...tasks, newTask]);
@@ -547,17 +596,68 @@ export function ScheduledTasks() {
                   </button>
                 </div>
 
-                {/* Description */}
+                {/* Description / Announcement message */}
                 <div>
-                  <label className="text-sm text-[#86868b] mb-1.5 block">Description (optional)</label>
+                  <label className="text-sm text-[#86868b] mb-1.5 block">
+                    {formType === 'send-announcement' ? 'Announcement Message' : 'Description (optional)'}
+                  </label>
                   <input
                     type="text"
                     value={formDescription}
                     onChange={e => setFormDescription(e.target.value)}
-                    placeholder="e.g. Nightly restart for updates"
+                    placeholder={formType === 'send-announcement'
+                      ? 'e.g. Shop closing in 30 minutes'
+                      : 'e.g. Nightly restart for updates'}
                     className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none transition-all"
                   />
+                  {formType === 'send-announcement' && (
+                    <p className="text-[11px] text-[#ff9500] mt-1.5">
+                      This text shows on every kiosk when the task fires.
+                    </p>
+                  )}
                 </div>
+
+                {/* Announcement-only extra fields */}
+                {formType === 'send-announcement' && (
+                  <>
+                    <div>
+                      <label className="text-sm text-[#86868b] mb-1.5 block">Announcement Title</label>
+                      <input
+                        type="text"
+                        value={formAnnouncementTitle}
+                        onChange={(e) => setFormAnnouncementTitle(e.target.value)}
+                        placeholder="e.g. Notice, Event, Closing Time"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] placeholder:text-[#86868b] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none transition-all"
+                      />
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-sm text-[#86868b] mb-1.5 block">Banner Style</label>
+                        <select
+                          value={formAnnouncementType}
+                          onChange={(e) => setFormAnnouncementType(e.target.value as any)}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-3 py-3 text-[#1d1d1f] focus:border-[#0071e3] outline-none"
+                        >
+                          <option value="info">Info (blue)</option>
+                          <option value="warning">Warning (yellow)</option>
+                          <option value="urgent">Urgent (red)</option>
+                          <option value="promo">Promo (green)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="text-sm text-[#86868b] mb-1.5 block">Duration (seconds)</label>
+                        <input
+                          type="number"
+                          value={formAnnouncementDuration}
+                          onChange={(e) => setFormAnnouncementDuration(Number(e.target.value) || 60)}
+                          min={5}
+                          max={3600}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl px-4 py-3 text-[#1d1d1f] focus:border-[#0071e3] outline-none"
+                        />
+                      </div>
+                    </div>
+                  </>
+                )}
               </div>
 
               <div className="flex gap-3 mt-6">
