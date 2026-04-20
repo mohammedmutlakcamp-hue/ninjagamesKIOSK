@@ -1654,14 +1654,23 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="absolute bottom-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: `2px solid ${accentC}`, borderRight: `2px solid ${accentC}` }} />
                     {/* Bottom neon accent line */}
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] z-[2] pointer-events-none" style={{ background: isVipPopup ? 'linear-gradient(90deg, transparent, rgba(255,215,0,0.3), rgba(255,140,0,0.25), transparent)' : 'linear-gradient(90deg, transparent, rgba(0,200,255,0.25), rgba(168,85,247,0.2), transparent)' }} />
-                    {/* Close button */}
+                    {/* Close button — opaque backdrop so no tab content (coins, timers,
+                        balance chips) ever bleeds through underneath it. */}
                     <button
                       onClick={() => setActivePopup(null)}
                       title={lang === 'ar' ? 'إغلاق' : 'Close'}
-                      className={`absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
-                      style={{ background: isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)', border: `1px solid ${isVipPopup ? 'rgba(255,215,0,0.15)' : 'rgba(57,255,20,0.15)'}`, boxShadow: `0 0 10px ${isVipPopup ? 'rgba(255,215,0,0.05)' : 'rgba(57,255,20,0.05)'}`, transition: 'all 0.3s' }}
+                      className={`absolute top-4 right-4 z-[100] w-12 h-12 flex items-center justify-center rounded-xl text-gray-300 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
+                      style={{
+                        background: isVipPopup
+                          ? 'linear-gradient(135deg, rgba(12,10,4,0.96), rgba(18,14,4,0.96))'
+                          : 'linear-gradient(135deg, rgba(8,10,12,0.96), rgba(12,16,20,0.96))',
+                        border: `1px solid ${isVipPopup ? 'rgba(255,215,0,0.4)' : 'rgba(57,255,20,0.35)'}`,
+                        boxShadow: `0 0 12px ${isVipPopup ? 'rgba(255,215,0,0.2)' : 'rgba(57,255,20,0.18)'}, 0 6px 16px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.4)`,
+                        backdropFilter: 'blur(6px)',
+                        transition: 'all 0.3s',
+                      }}
                     >
-                      <X size={22} />
+                      <X size={22} strokeWidth={2.4} />
                     </button>
                   </>
                   );
@@ -2363,9 +2372,15 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       </motion.button>
                       <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
                         onClick={() => setShowTopUpModal(false)}
-                        className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 hover:rotate-90"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}>
-                        <X size={22} className="text-gray-400" />
+                        className="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:rotate-90 relative z-[100]"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(8,10,12,0.96), rgba(12,16,20,0.96))',
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          boxShadow: '0 0 12px rgba(0,0,0,0.5), 0 6px 16px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.4)',
+                          backdropFilter: 'blur(6px)',
+                          transition: 'all 0.3s',
+                        }}>
+                        <X size={22} strokeWidth={2.4} className="text-gray-200" />
                       </motion.button>
                     </div>
                   </motion.div>
@@ -2781,9 +2796,15 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       </motion.button>
                       <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.3 }}
                         onClick={() => setShowBuyTimeModal(false)}
-                        className="w-11 h-11 rounded-xl flex items-center justify-center transition-all hover:bg-white/10 hover:rotate-90"
-                        style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', transition: 'all 0.3s' }}>
-                        <X size={22} className="text-gray-400" />
+                        className="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:rotate-90 relative z-[100]"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(8,10,12,0.96), rgba(12,16,20,0.96))',
+                          border: '1px solid rgba(255,255,255,0.18)',
+                          boxShadow: '0 0 12px rgba(0,0,0,0.5), 0 6px 16px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.4)',
+                          backdropFilter: 'blur(6px)',
+                          transition: 'all 0.3s',
+                        }}>
+                        <X size={22} strokeWidth={2.4} className="text-gray-200" />
                       </motion.button>
                     </div>
                   </motion.div>
