@@ -23,7 +23,7 @@
 import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy, getDocs } from 'firebase/firestore';
 import {
   Gift, Plus, Trash2, Save, X, CheckCircle2, Loader2, Clock,
   Coffee, Sandwich, Flame, Pill,
@@ -85,10 +85,28 @@ function isActiveNow(p: Promotion): boolean {
   return nowMin >= startMin && nowMin < endMin;
 }
 
+// Preset bundle options admin can click to add without typing.
+const PRESET_ITEMS: { label: string; examples: string }[] = [
+  { label: '1 Hour Play Time', examples: '1 hour session on any PC' },
+  { label: '3 Hour Play Time', examples: '3 hour session on any PC' },
+  { label: 'Cola (large)', examples: 'Food menu item' },
+  { label: 'Energy Drink', examples: 'Food menu item' },
+  { label: 'Burger', examples: 'Food menu item' },
+  { label: 'Pizza Slice', examples: 'Food menu item' },
+  { label: 'Shisha (any flavor)', examples: 'Hubbly Bubbly menu' },
+  { label: 'Marlboro Red', examples: 'Tobacco' },
+  { label: 'Common Chest', examples: 'Free chest reward' },
+  { label: '100 Bonus Tokens', examples: 'Tokens added on top' },
+  { label: 'Tournament Entry', examples: 'Free entry to any active tournament' },
+];
+
 export function PromotionsPanel() {
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [saving, setSaving] = useState(false);
+  // Menu items pulled from Firestore — used as a quick-pick list in the bundle editor.
+  const [menuItems, setMenuItems] = useState<{ id: string; name: string; priceJOD: number; category?: string }[]>([]);
+  const [hubblyFlavors, setHubblyFlavors] = useState<{ id: string; name: string; price: number }[]>([]);
 
   useEffect(() => {
     const unsub = onSnapshot(query(collection(db, 'promotions'), orderBy('createdAt', 'desc')), (snap) => {
@@ -96,6 +114,21 @@ export function PromotionsPanel() {
     });
     return () => unsub();
   }, []);
+
+  // Load menu + hubbly flavors once when the editor opens.
+  useEffect(() => {
+    if (!editing) return;
+    (async () => {
+      try {
+        const [menuSnap, shishaSnap] = await Promise.all([
+          getDocs(collection(db, 'menu')),
+          getDocs(collection(db, 'shisha-flavors')),
+        ]);
+        setMenuItems(menuSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
+        setHubblyFlavors(shishaSnap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })));
+      } catch { /* non-fatal */ }
+    })();
+  }, [editing]);
 
   const save = async () => {
     if (!editing) return;
@@ -321,24 +354,37 @@ export function PromotionsPanel() {
                   </div>
                 </div>
 
-                {/* Bundle items */}
+                {/* Bundle items — with quick-pick from menu + presets */}
                 <div>
-                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Bundle Items</label>
-                  <div className="space-y-2">
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block flex items-center gap-2">
+                    What's in the bundle?
+                    <span className="text-[10px] text-[#ff9500] font-normal">Each row = one thing the customer gets</span>
+                  </label>
+
+                  {/* Selected items */}
+                  <div className="space-y-2 mb-3">
+                    {editing.bundle.length === 0 && (
+                      <div className="text-center py-4 bg-[#f5f5f7] rounded-xl border border-dashed border-[#d2d2d7] text-xs text-[#86868b]">
+                        No items yet. Click a preset below or type a custom row.
+                      </div>
+                    )}
                     {editing.bundle.map((item, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <input type="number" min={1} value={item.qty}
-                          onChange={(e) => setEditing({
-                            ...editing,
-                            bundle: editing.bundle.map((b, idx) => idx === i ? { ...b, qty: Number(e.target.value) || 1 } : b),
-                          })}
-                          className={`${input} w-16 text-center`} />
+                        <div className="w-12 flex items-center gap-1">
+                          <input type="number" min={1} value={item.qty}
+                            onChange={(e) => setEditing({
+                              ...editing,
+                              bundle: editing.bundle.map((b, idx) => idx === i ? { ...b, qty: Number(e.target.value) || 1 } : b),
+                            })}
+                            className={`${input} w-12 text-center px-1`} />
+                          <span className="text-[#86868b] text-xs">×</span>
+                        </div>
                         <input type="text" value={item.name}
                           onChange={(e) => setEditing({
                             ...editing,
                             bundle: editing.bundle.map((b, idx) => idx === i ? { ...b, name: e.target.value } : b),
                           })}
-                          placeholder="e.g. Cola, Burger, 1h Play"
+                          placeholder="Item name (e.g. Cola Large, 1 Hour Play, Common Chest)"
                           className={`${input} flex-1`} />
                         <button onClick={() => setEditing({
                           ...editing,
@@ -349,10 +395,69 @@ export function PromotionsPanel() {
                         </button>
                       </div>
                     ))}
-                    <button onClick={() => setEditing({ ...editing, bundle: [...editing.bundle, { name: '', qty: 1 }] })}
-                      className="text-xs text-[#0071e3] hover:underline flex items-center gap-1">
-                      <Plus size={12} /> Add item
-                    </button>
+                  </div>
+
+                  <button onClick={() => setEditing({ ...editing, bundle: [...editing.bundle, { name: '', qty: 1 }] })}
+                    className="text-xs text-[#0071e3] hover:underline flex items-center gap-1 mb-3">
+                    <Plus size={12} /> Add blank row
+                  </button>
+
+                  {/* Quick-pick presets */}
+                  <div className="bg-[#f5f5f7] rounded-xl p-3 mb-2">
+                    <div className="text-[10px] text-[#86868b] uppercase tracking-wider mb-2 font-medium">
+                      Quick pick — click to add
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {PRESET_ITEMS.map((p) => (
+                        <button key={p.label}
+                          onClick={() => setEditing({ ...editing, bundle: [...editing.bundle, { name: p.label, qty: 1 }] })}
+                          title={p.examples}
+                          className="px-2.5 py-1 rounded-lg bg-white border border-[#d2d2d7] hover:border-[#ff9500] hover:bg-[#ff9500]/5 text-[11px] text-[#1d1d1f] transition-all flex items-center gap-1">
+                          <Plus size={10} className="text-[#ff9500]" /> {p.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Pick from live menu */}
+                  {menuItems.length > 0 && (
+                    <div className="bg-[#f5f5f7] rounded-xl p-3 mb-2">
+                      <div className="text-[10px] text-[#86868b] uppercase tracking-wider mb-2 font-medium flex items-center gap-1.5">
+                        <Coffee size={10} /> From your Food Menu ({menuItems.length} items)
+                      </div>
+                      <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto">
+                        {menuItems.map((m) => (
+                          <button key={m.id}
+                            onClick={() => setEditing({ ...editing, bundle: [...editing.bundle, { name: m.name, qty: 1 }] })}
+                            title={`${(m.priceJOD || 0).toFixed(2)} JOD`}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-[#d2d2d7] hover:border-[#ff6f00] hover:bg-[#ff6f00]/5 text-[11px] text-[#1d1d1f] transition-all flex items-center gap-1">
+                            <Plus size={10} className="text-[#ff6f00]" /> {m.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {hubblyFlavors.length > 0 && (
+                    <div className="bg-[#f5f5f7] rounded-xl p-3">
+                      <div className="text-[10px] text-[#86868b] uppercase tracking-wider mb-2 font-medium flex items-center gap-1.5">
+                        <Flame size={10} /> From your Hubbly Menu ({hubblyFlavors.length} flavors)
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {hubblyFlavors.map((f) => (
+                          <button key={f.id}
+                            onClick={() => setEditing({ ...editing, bundle: [...editing.bundle, { name: `${f.name} Shisha`, qty: 1 }] })}
+                            className="px-2.5 py-1 rounded-lg bg-white border border-[#d2d2d7] hover:border-[#06B6D4] hover:bg-[#06B6D4]/5 text-[11px] text-[#1d1d1f] transition-all flex items-center gap-1">
+                            <Plus size={10} className="text-[#06B6D4]" /> {f.name} Shisha
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-3 text-[11px] text-[#86868b] leading-relaxed">
+                    <strong>Tip:</strong> the bundle list is what players see on the order popup — keep names short and clear.
+                    The prices below are what you charge; the items in the bundle are just the <em>description</em> of what they get.
                   </div>
                 </div>
 
