@@ -21,6 +21,9 @@ interface UnifiedOrder {
   pcName?: string;
   status: OrderStatus;
   totalCoins: number;
+  totalJOD?: number;       // cash amount admin must collect
+  paid?: boolean;          // admin marks true once cash received
+  paymentMethod?: string;  // 'cash' for cafeteria, future: 'tokens'
   createdAt: number;
   updatedAt?: number;
   items: { name: string; quantity: number; price: number }[];
@@ -53,6 +56,9 @@ export function OrdersPanel() {
           pcName: data.pcName,
           status: data.status,
           totalCoins: data.totalCoins || 0,
+          totalJOD: data.totalJOD,
+          paid: data.paid !== undefined ? data.paid : true, // legacy orders treated as paid
+          paymentMethod: data.paymentMethod,
           createdAt: data.createdAt || 0,
           updatedAt: data.updatedAt,
           items: data.items || [],
@@ -88,6 +94,9 @@ export function OrdersPanel() {
           pcName: data.pcName,
           status: data.status,
           totalCoins: data.price || data.totalCoins || 0,
+          totalJOD: data.totalJOD,
+          paid: data.paid !== undefined ? data.paid : true, // legacy treated as paid
+          paymentMethod: data.paymentMethod,
           createdAt: data.createdAt || 0,
           updatedAt: data.updatedAt,
           items: [
@@ -135,6 +144,14 @@ export function OrdersPanel() {
 
   const updateStatus = async (order: UnifiedOrder, status: OrderStatus) => {
     await updateDoc(doc(db, order.collection, order.id), { status, updatedAt: Date.now() });
+    if (newOrderPopup?.id === order.id) setNewOrderPopup(null);
+  };
+
+  // Cash-payment cafeteria flow: admin marks paid + advances to preparing in one click.
+  const markPaidAndPrepare = async (order: UnifiedOrder) => {
+    await updateDoc(doc(db, order.collection, order.id), {
+      paid: true, paidAt: Date.now(), status: 'preparing', updatedAt: Date.now(),
+    });
     if (newOrderPopup?.id === order.id) setNewOrderPopup(null);
   };
 
@@ -187,9 +204,26 @@ export function OrdersPanel() {
           </div>
           <div className="text-right">
             <p className={`text-sm font-semibold ${config.color}`}>{config.label}</p>
-            <p className="text-sm text-[#0071e3] flex items-center gap-1 justify-end font-medium">
-              <Coins size={12} /> {order.totalCoins}
-            </p>
+            {/* Show JOD cash amount + UNPAID badge for cash-payment cafeteria orders. */}
+            {order.totalJOD !== undefined ? (
+              <>
+                <p className="text-sm text-[#1d1d1f] font-semibold mt-0.5">{order.totalJOD.toFixed(2)} JOD</p>
+                {!order.paid && (
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/25 text-[10px] font-bold tracking-wider">
+                    UNPAID · CASH
+                  </span>
+                )}
+                {order.paid && order.status === 'pending' && (
+                  <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#34c759]/10 text-[#34c759] border border-[#34c759]/25 text-[10px] font-bold tracking-wider">
+                    PAID
+                  </span>
+                )}
+              </>
+            ) : (
+              <p className="text-sm text-[#0071e3] flex items-center gap-1 justify-end font-medium">
+                <Coins size={12} /> {order.totalCoins}
+              </p>
+            )}
           </div>
         </div>
 
@@ -219,7 +253,14 @@ export function OrdersPanel() {
 
         {/* Actions */}
         <div className="flex gap-2">
-          {config.next && (
+          {/* Unpaid pending order: single button marks paid + advances to preparing */}
+          {order.status === 'pending' && order.paid === false ? (
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+              onClick={() => markPaidAndPrepare(order)}
+              className="flex-1 py-2.5 bg-[#34c759] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#2eb350] transition-colors">
+              <CheckCircle2 size={16} /> CASH RECEIVED · PREPARE
+            </motion.button>
+          ) : config.next && (
             <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
               onClick={() => updateStatus(order, config.next!)}
               className="flex-1 py-2.5 bg-[#0071e3] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-[#0077ED] transition-colors">
@@ -390,17 +431,31 @@ export function OrdersPanel() {
                       : <span className="text-[#86868b] flex items-center gap-1"><Droplet size={11} /> No ice</span>}
                   </p>
                 )}
-                <p className={`text-sm mt-2 flex items-center gap-1 font-semibold ${newOrderPopup.kind === 'shisha' ? 'text-[#06B6D4]' : 'text-[#ff9500]'}`}>
-                  <Coins size={12} /> {newOrderPopup.totalCoins} tokens
-                </p>
+                {newOrderPopup.totalJOD !== undefined ? (
+                  <p className="text-base mt-2 font-bold text-[#1d1d1f]">
+                    Collect <span className="text-[#ff3b30]">{newOrderPopup.totalJOD.toFixed(2)} JOD</span> at counter
+                  </p>
+                ) : (
+                  <p className={`text-sm mt-2 flex items-center gap-1 font-semibold ${newOrderPopup.kind === 'shisha' ? 'text-[#06B6D4]' : 'text-[#ff9500]'}`}>
+                    <Coins size={12} /> {newOrderPopup.totalCoins} tokens
+                  </p>
+                )}
               </div>
 
               <div className="flex gap-2">
-                <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                  onClick={() => updateStatus(newOrderPopup, 'preparing')}
-                  className="flex-1 py-2.5 bg-[#0071e3] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-[#0077ED]">
-                  <ChefHat size={16} /> Accept & Prepare
-                </motion.button>
+                {newOrderPopup.paid === false ? (
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    onClick={() => markPaidAndPrepare(newOrderPopup)}
+                    className="flex-1 py-2.5 bg-[#34c759] text-white rounded-xl font-bold text-sm flex items-center justify-center gap-2 hover:bg-[#2eb350]">
+                    <CheckCircle2 size={16} /> CASH RECEIVED · PREPARE
+                  </motion.button>
+                ) : (
+                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    onClick={() => updateStatus(newOrderPopup, 'preparing')}
+                    className="flex-1 py-2.5 bg-[#0071e3] text-white rounded-xl font-medium text-sm flex items-center justify-center gap-2 hover:bg-[#0077ED]">
+                    <ChefHat size={16} /> Accept & Prepare
+                  </motion.button>
+                )}
                 <button onClick={() => { updateStatus(newOrderPopup, 'cancelled'); setNewOrderPopup(null); }}
                   className="px-4 py-2.5 text-[#ff3b30] rounded-xl text-sm hover:bg-[#fff5f5] border border-[#d2d2d7]">
                   <Ban size={14} />

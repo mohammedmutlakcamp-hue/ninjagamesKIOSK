@@ -44,6 +44,7 @@ export function FoodTab({ player }: Props) {
   const [cart, setCart] = useState<Record<string, number>>({});
   const [ordering, setOrdering] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
+  const [lastOrderTotalJOD, setLastOrderTotalJOD] = useState(0);
   const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([]);
 
   // Bundle suggestion popup
@@ -116,39 +117,48 @@ export function FoodTab({ player }: Props) {
   const cartCount = Object.values(cart).reduce((a, b) => a + b, 0);
 
   const placeOrder = async () => {
-    const currentlyVip = player.vip?.active && (player.vip?.expiresAt || 0) > Date.now();
-    const actualDiscount = currentlyVip ? Math.floor(subtotalCoins * VIP_CONFIG.cafeDiscountPercent / 100) : 0;
-    const actualTotal = personalCoinCost(subtotalCoins - actualDiscount, player);
-    if (actualTotal > (player.coins || 0) || cartCount === 0) return;
+    if (cartCount === 0) return;
+    // CASH-PAYMENT MODEL: cafeteria items are paid in JOD at the counter, not
+    // deducted from token balance. Order is created with paid:false; admin
+    // marks paid in OrdersPanel which moves it from "AWAITING PAYMENT" → PREPARING.
     setOrdering(true);
     try {
       const orderItems = Object.entries(cart).map(([id, qty]) => {
         const item = items.find(i => i.id === id)!;
-        return { menuItemId: id, name: item.name, quantity: qty, price: item.price };
+        return { menuItemId: id, name: item.name, quantity: qty, price: item.price, priceJOD: item.priceJOD || (item.price / 100) };
       });
+      // Sum JOD using each item's priceJOD field; fallback to coins/100 (100 tokens = 1 JOD).
+      const totalJOD = Object.entries(cart).reduce((s, [id, qty]) => {
+        const item = items.find(i => i.id === id);
+        if (!item) return s;
+        const j = item.priceJOD || (item.price / 100);
+        return s + j * qty;
+      }, 0);
       // Default prep time: 3 min for drinks, 12 min for everything else.
-      // Use the MAX across cart items so the countdown reflects the slowest item.
       const defaultPrepFor = (cat: string) => cat === 'drinks' ? 3 : 12;
       const prepTime = Math.max(
         ...Object.keys(cart).map(id => {
           const item = items.find(i => i.id === id);
           if (!item) return 12;
-          // Use menu item's explicit preparationTime if set, otherwise category default
           return (item.preparationTime && item.preparationTime > 0) ? item.preparationTime : defaultPrepFor(item.category);
         })
       );
       await addDoc(collection(db, 'orders'), {
         playerId: player.uid, playerName: player.username, pcId: 'kiosk',
-        items: orderItems, totalCoins: actualTotal, prepTime, status: 'pending', createdAt: Date.now(), updatedAt: Date.now(),
+        items: orderItems, totalJOD: Math.round(totalJOD * 100) / 100,
+        paid: false, paymentMethod: 'cash',
+        prepTime, status: 'pending', createdAt: Date.now(), updatedAt: Date.now(),
       });
       await updateDoc(doc(db, 'players', player.uid), {
-        coins: increment(-actualTotal), totalCoinsSpent: increment(actualTotal), 'stats.foodOrdered': increment(cartCount),
+        'stats.foodOrdered': increment(cartCount),
       });
       trackDailyTask(player.uid, 'order_food');
-      notifyAdmin('order', 'New Food Order', `${player.username} ordered ${cartCount} item${cartCount > 1 ? 's' : ''} (${actualTotal} coins)`);
+      const totalJODStr = (Math.round(totalJOD * 100) / 100).toFixed(2);
+      notifyAdmin('order', 'New Food Order — UNPAID', `${player.username} ordered ${cartCount} item${cartCount > 1 ? 's' : ''} · collect ${totalJODStr} JOD at counter`);
+      setLastOrderTotalJOD(Math.round(totalJOD * 100) / 100);
       setCart({});
       setOrderSuccess(true);
-      setTimeout(() => setOrderSuccess(false), 3000);
+      setTimeout(() => setOrderSuccess(false), 6000);
     } catch (err) { console.error('Order failed:', err); }
     setOrdering(false);
   };
@@ -408,15 +418,16 @@ export function FoodTab({ player }: Props) {
                   </div>
                 )}
                 <div className="flex justify-between items-center">
-                  <span className="font-body text-[10px] text-gray-400">{ar ? 'الإجمالي' : 'Total'}</span>
-                  <span className="font-ninja text-sm text-yellow-400 flex items-center gap-0.5"><Coins size={11} /> {totalCoins}</span>
+                  <span className="font-body text-[10px] text-gray-400">{ar ? 'الدفع نقداً' : 'Pay at counter'}</span>
+                  <span className="font-ninja text-sm text-orange-400">
+                    {Object.entries(cart).reduce((s, [id, qty]) => { const it = items.find(i => i.id === id); return s + ((it?.priceJOD || (it ? it.price/100 : 0)) * qty); }, 0).toFixed(2)} JOD
+                  </span>
                 </div>
-                {totalCoins > player.coins && <p className="text-red-400 text-[9px] font-body">{ar ? 'عملات غير كافية' : 'Not enough coins'}</p>}
-                <button onClick={placeOrder} disabled={ordering || totalCoins > player.coins}
+                <button onClick={placeOrder} disabled={ordering}
                   className="w-full flex items-center justify-center gap-1.5 py-2 rounded-lg font-ninja text-[10px] transition-all disabled:opacity-40"
                   style={{ background: 'linear-gradient(135deg, #FF6F00, #FF4500)', color: '#fff' }}>
                   {ordering ? <Loader2 size={12} className="animate-spin" /> : <Send size={12} />}
-                  {ordering ? (ar ? 'جاري الطلب...' : 'ORDERING...') : (ar ? 'إرسال الطلب' : 'PLACE ORDER')}
+                  {ordering ? (ar ? 'جاري الطلب...' : 'ORDERING...') : (ar ? 'إرسال الطلب · ادفع نقداً' : 'PLACE ORDER · PAY CASH')}
                 </button>
                 <button onClick={() => setCart({})}
                   className="w-full flex items-center justify-center gap-1 py-1 text-red-400/50 hover:text-red-400 font-body text-[8px]">
@@ -452,14 +463,17 @@ export function FoodTab({ player }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Success */}
+      {/* Success — PAY AT COUNTER reminder */}
       <AnimatePresence>
         {orderSuccess && (
           <motion.div initial={{ opacity: 0, y: 30 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 30 }}
-            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[200] rounded-xl px-6 py-3 flex items-center gap-2"
-            style={{ background: 'rgba(10,12,16,0.95)', border: '1px solid rgba(57,255,20,0.3)' }}>
-            <CheckCircle2 size={18} className="text-[#39FF14]" />
-            <span className="font-ninja text-xs text-[#39FF14]">{ar ? 'تم إرسال الطلب!' : 'ORDER PLACED!'}</span>
+            className="absolute bottom-6 left-1/2 -translate-x-1/2 z-[200] rounded-xl px-6 py-3.5 flex items-center gap-3"
+            style={{ background: 'rgba(15,10,5,0.97)', border: '1px solid rgba(255,140,0,0.45)', boxShadow: '0 0 30px rgba(255,140,0,0.25)' }}>
+            <CheckCircle2 size={22} className="text-[#FF8C00]" />
+            <div className="flex flex-col leading-tight">
+              <span className="font-ninja text-xs text-[#39FF14]">{ar ? 'تم إرسال الطلب' : 'ORDER PLACED'}</span>
+              <span className="font-ninja text-[11px] text-[#FF8C00]">{ar ? `الدفع نقداً عند الكاونتر · ${lastOrderTotalJOD.toFixed(2)} دينار` : `PAY AT COUNTER · ${lastOrderTotalJOD.toFixed(2)} JOD`}</span>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

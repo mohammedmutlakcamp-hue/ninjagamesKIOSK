@@ -107,6 +107,7 @@ export function HubblyTab({ player }: Props) {
     if (!selected || ordering || iceInWater === null) return;
     setOrdering(true);
     try {
+      const totalJOD = Math.round((selected.price / 100) * 100) / 100;
       await addDoc(collection(db, 'shisha-orders'), {
         playerId: player.uid,
         playerName: player.username,
@@ -116,6 +117,9 @@ export function HubblyTab({ player }: Props) {
         flavorName: selected.name,
         price: selected.price,
         shishaPrice: selected.price,
+        totalJOD,
+        paid: false,
+        paymentMethod: 'cash',
         iceInWater,
         cigarette: null,
         prepTime: 10,
@@ -124,8 +128,8 @@ export function HubblyTab({ player }: Props) {
       });
       notifyAdmin(
         'shisha_order',
-        'Shisha Order',
-        `${player.username} ordered ${selected.name}${iceInWater ? ' (with ice)' : ''}`
+        'Shisha Order — UNPAID',
+        `${player.username} ordered ${selected.name}${iceInWater ? ' (with ice)' : ''} · collect ${totalJOD.toFixed(2)} JOD`
       );
       setOrderSent(true);
       setTimeout(() => {
@@ -145,6 +149,7 @@ export function HubblyTab({ player }: Props) {
     if (!tobaccoSelected || ordering) return;
     setOrdering(true);
     try {
+      const totalJOD = Math.round((tobaccoSelected.price / 100) * 100) / 100;
       await addDoc(collection(db, 'shisha-orders'), {
         playerId: player.uid,
         playerName: player.username,
@@ -153,6 +158,9 @@ export function HubblyTab({ player }: Props) {
         flavor: tobaccoSelected.id,
         flavorName: tobaccoSelected.name,
         price: tobaccoSelected.price,
+        totalJOD,
+        paid: false,
+        paymentMethod: 'cash',
         cigarette: { id: tobaccoSelected.id, name: tobaccoSelected.name, price: tobaccoSelected.price },
         cigaretteName: tobaccoSelected.name,
         prepTime: 3,
@@ -161,8 +169,8 @@ export function HubblyTab({ player }: Props) {
       });
       notifyAdmin(
         'tobacco_order',
-        'Tobacco Order',
-        `${player.username} ordered ${tobaccoSelected.name}`
+        'Tobacco Order — UNPAID',
+        `${player.username} ordered ${tobaccoSelected.name} · collect ${totalJOD.toFixed(2)} JOD`
       );
       setOrderSent(true);
       setTimeout(() => {
