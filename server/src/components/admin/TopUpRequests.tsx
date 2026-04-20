@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, updateDoc, deleteDoc, increment } from 'firebase/firestore';
 import { Coins, Check, X, Clock, User, AlertTriangle, Loader2, Package, Gamepad2, Timer } from 'lucide-react';
-import { COIN_PACKAGES } from '@/lib/constants';
 import { blendRate } from '@/lib/pricing';
 
 interface TopUpRequest {
@@ -115,6 +114,26 @@ export function TopUpRequests() {
         status: 'approved',
         approvedAt: Date.now(),
       });
+
+      // Fire-and-forget WhatsApp receipt (skipped silently if integration
+      // disabled or the player has no phone number on their profile).
+      try {
+        const playerSnap = await (await import('firebase/firestore')).getDoc(doc(db, 'players', req.playerId));
+        const playerData = playerSnap.exists() ? (playerSnap.data() as any) : null;
+        const phone = playerData?.phone || playerData?.whatsapp;
+        if (phone) {
+          const msg =
+            `✅ Top-up approved!\n\n` +
+            `+${req.coins.toLocaleString()} tokens added\n` +
+            `Paid: ${priceJOD.toFixed(2)} JOD\n\n` +
+            `Your new balance will refresh on the kiosk. Enjoy! 🎮`;
+          fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: phone, message: msg }),
+          }).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
     } catch (err) {
       console.error('Failed to approve:', err);
       alert('Failed to add coins: ' + (err as any)?.message);
@@ -225,29 +244,6 @@ export function TopUpRequests() {
           </div>
         </div>
       )}
-
-      {/* Packages Overview */}
-      <div className="mb-8">
-        <h3 className="text-sm font-semibold text-[#86868b] mb-3 flex items-center gap-2">
-          <Package size={14} /> Available Packages
-        </h3>
-        <div className="grid grid-cols-3 gap-3">
-          {COIN_PACKAGES.map((pkg) => {
-            const hours = Math.floor(pkg.coins / 150);
-            const mins = Math.round((pkg.coins % 150) / 2.5);
-            return (
-              <div key={pkg.id} className={`bg-white rounded-2xl p-4 border shadow-[0_1px_3px_rgba(0,0,0,0.04)] ${pkg.popular ? 'border-[#0071e3]/30' : 'border-[#e5e5ea]/60'} relative`}>
-                {pkg.popular && (
-                  <span className="absolute -top-2 right-3 px-2 py-0.5 rounded-full bg-[#0071e3]/10 text-[#0071e3] text-[9px] font-semibold border border-[#0071e3]/20">BEST</span>
-                )}
-                <p className="text-xl font-semibold text-[#1d1d1f]">{pkg.coins.toLocaleString()} <span className="text-[#86868b] text-sm">coins</span></p>
-                <p className="text-lg font-semibold text-[#0071e3]">{pkg.price} JOD</p>
-                <p className="text-xs text-[#86868b] mt-1">{hours}h{mins > 0 ? ` ${mins}m` : ''} play time</p>
-              </div>
-            );
-          })}
-        </div>
-      </div>
 
       {/* Pending Requests */}
       {pending.length > 0 && (

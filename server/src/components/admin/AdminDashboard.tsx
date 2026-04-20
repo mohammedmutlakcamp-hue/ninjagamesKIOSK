@@ -46,6 +46,7 @@ import { RemoteInstallPanel } from './RemoteInstallPanel';
 import { GameReportPanel } from './GameReportPanel';
 import { HubblyManagement } from './HubblyManagement';
 import { CameraPanel } from './CameraPanel';
+import { WhatsappSettings } from './WhatsappSettings';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -56,7 +57,7 @@ import {
   ToggleRight, HardDriveDownload, ListChecks, Flame, Video
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -671,6 +672,7 @@ export function AdminDashboard({ admin }: Props) {
         { id: 'tournaments', label: 'Tournaments', icon: <Swords size={18} /> },
         { id: 'vip', label: 'VIP', icon: <Crown size={18} /> },
         { id: 'notifications', label: 'Notifications', icon: <Bell size={18} /> },
+        { id: 'whatsapp', label: 'WhatsApp', icon: <MessageSquare size={18} /> },
         { id: 'announcements', label: 'Announcements', icon: <Megaphone size={18} /> },
       ]
     },
@@ -830,6 +832,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'hubbly' && <OrdersPanel kindFilter="shisha" />}
           {tab === 'hubblymenu' && <HubblyManagement />}
           {tab === 'cameras' && <CameraPanel />}
+          {tab === 'whatsapp' && <WhatsappSettings />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}
