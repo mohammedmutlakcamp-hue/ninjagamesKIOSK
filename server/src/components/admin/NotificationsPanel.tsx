@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, query, orderBy } from 'firebase/firestore';
 import { Bell, Send, Users, User, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 export function NotificationsPanel() {
   const [title, setTitle] = useState('');
@@ -76,6 +77,10 @@ export function NotificationsPanel() {
     <div>
       <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-6 flex items-center gap-3">
         <Bell size={24} className="text-[#0071e3]" /> Push Notifications
+        <HelpTip title={{ en: 'Push Notifications', ar: 'الإشعارات' }}
+          ar={<p>أرسل إشعار Push مباشر لكل اللاعبين أو لاعب محدد (بشرط فتحه للإشعارات من الـPWA). مفيد لإعلانات فورية.</p>}>
+          <p>Send a push notification to all players or a specific one (they must have enabled notifications in the PWA). Use for instant alerts.</p>
+        </HelpTip>
       </h1>
 
       <div className="grid grid-cols-2 gap-6">

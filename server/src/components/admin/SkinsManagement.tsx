@@ -22,7 +22,14 @@ interface CustomSkin {
   price?: number;
   unlockLevel?: number;
   profileImage?: string;
+  welcomeVideo?: string;   // mp4 URL shown in the store preview
   createdAt?: number;
+}
+
+// Per-built-in-skin media overrides. Stored in config/skins.mediaOverrides.
+interface MediaOverride {
+  profileImage?: string;
+  welcomeVideo?: string;
 }
 
 // --- Types ---

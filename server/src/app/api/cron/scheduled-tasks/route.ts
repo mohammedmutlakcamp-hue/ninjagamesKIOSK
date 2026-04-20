@@ -66,19 +66,28 @@ export async function GET(req: NextRequest) {
     if (!tasks.length) return NextResponse.json({ ok: true, ran: 0, note: 'no tasks' });
 
     const now = new Date();
-    const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
     const currentDay = now.getDay();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
     const fired: string[] = [];
     const updated = await Promise.all(tasks.map(async (task) => {
       if (!task.enabled) return task;
-      if (task.time !== currentTime) return task;
       if (!task.days[currentDay]) return task;
+
+      const [sh, sm] = task.time.split(':').map(Number);
+      const schedMinutes = sh * 60 + sm;
+
+      // Drift-tolerant: fire if we're at/past scheduled time and within
+      // 15 minutes after (catches the cron's 5-minute window + buffer).
+      if (currentMinutes < schedMinutes) return task;
+      if (currentMinutes - schedMinutes > 15) return task;
+
+      // Already fired today at/after scheduled time? Skip.
       if (task.lastRun) {
         const lr = new Date(task.lastRun);
-        if (lr.getHours() === now.getHours() && lr.getMinutes() === now.getMinutes() && lr.toDateString() === now.toDateString()) {
-          return task; // same-minute guard — client may have fired it already
-        }
+        const sameDay = lr.toDateString() === now.toDateString();
+        const lrMinutes = lr.getHours() * 60 + lr.getMinutes();
+        if (sameDay && lrMinutes >= schedMinutes) return task;
       }
 
       const log = { timestamp: Date.now(), result: 'success' as 'success' | 'failed' | 'skipped', message: `Server-cron executed ${task.type}` };

@@ -317,7 +317,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     });
     return () => unsub();
   }, []);
-  // Re-compute the active promo every minute (and whenever the list changes)
+  // Re-compute the active promo every 15s (NOT every 60s — the React re-render
+  // loop on each promotions snapshot reset drops the minute-aligned timing).
+  // Defensive: if parsing fails or days/times are missing, treat as inactive.
   useEffect(() => {
     const tick = () => {
       const now = new Date();
@@ -325,15 +327,19 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       const today = now.getDay();
       const live = promotions.find((p) => {
         if (!p.active) return false;
-        if (!p.days?.[today]) return false;
+        if (!Array.isArray(p.days) || !p.days[today]) return false;
+        if (!p.startHour || !p.endHour) return false;
         const [sh, sm] = p.startHour.split(':').map(Number);
         const [eh, em] = p.endHour.split(':').map(Number);
-        return nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
+        if (isNaN(sh) || isNaN(eh)) return false;
+        const startM = sh * 60 + (sm || 0);
+        const endM = eh * 60 + (em || 0);
+        return nowMin >= startM && nowMin < endM;
       });
       setActivePromo(live || null);
     };
     tick();
-    const iv = setInterval(tick, 60 * 1000);
+    const iv = setInterval(tick, 15 * 1000);
     return () => clearInterval(iv);
   }, [promotions]);
 

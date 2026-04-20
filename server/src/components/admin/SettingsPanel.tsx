@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { COIN_PACKAGES } from '@/lib/constants';
 import { Save, CheckCircle2, Settings, Clock, Coins, Sliders, LayoutDashboard, Eye, EyeOff } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 import { onSnapshot } from 'firebase/firestore';
 
 export function SettingsPanel() {
@@ -82,6 +82,10 @@ export function SettingsPanel() {
     <div className="max-w-2xl">
       <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-6 flex items-center gap-3">
         <Settings size={24} className="text-[#0071e3]" /> Settings
+        <HelpTip title={{ en: 'Settings', ar: 'الإعدادات' }}
+          ar={<p>الإعدادات العامة للمحل: الاسم، العملة، ساعات العمل. بالإضافة إلى منزلق Crash house-edge وإظهار/إخفاء تبويبات الكشك.</p>}>
+          <p>General shop settings: name, currency, operating hours. Also houses the Crash house-edge slider and kiosk tab visibility toggles.</p>
+        </HelpTip>
       </h2>
 
       <div className="space-y-6">
@@ -180,23 +184,6 @@ export function SettingsPanel() {
                 onChange={(e) => setSettings({ ...settings, gracePeriodSeconds: parseInt(e.target.value) })}
                 className={inputClass} />
             </div>
-          </div>
-        </div>
-
-        {/* Coin Packages */}
-        <div className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60">
-          <h3 className="text-lg font-semibold text-[#1d1d1f] mb-4 flex items-center gap-2">
-            <Coins size={16} className="text-[#ff9500]" /> Coin Packages
-          </h3>
-          <div className="space-y-2">
-            {COIN_PACKAGES.map(p => (
-              <div key={p.id} className="flex items-center justify-between py-2 border-b border-[#e5e5ea] last:border-0">
-                <span className="text-[#1d1d1f] text-sm flex items-center gap-1.5">
-                  <Coins size={14} className="text-[#ff9500]" /> {p.coins} ({p.label})
-                </span>
-                <span className="text-[#0071e3] font-medium text-sm">{settings.currency} {(p.price * settings.coinRate).toFixed(2)}</span>
-              </div>
-            ))}
           </div>
         </div>
 

@@ -10,6 +10,7 @@ import { VIP_CONFIG } from '@/lib/constants';
 import {
   Crown, Check, X, Clock, Loader2, User, Coins, Calendar, Shield, AlertTriangle
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface VIPRequest {
   id: string;
@@ -112,7 +113,13 @@ export function VIPRequests() {
             <Crown size={20} className="text-[#ff9500]" />
           </div>
           <div>
-            <h2 className="text-xl font-semibold text-[#1d1d1f]">VIP Requests</h2>
+            <h2 className="text-xl font-semibold text-[#1d1d1f] flex items-center gap-2">
+              VIP Requests
+              <HelpTip title={{ en: 'VIP Requests', ar: 'طلبات VIP' }}
+                ar={<p>اللاعبون الذين يريدون الترقية إلى VIP. اعتمد لخصم التوكنز وتفعيل المدة والمميزات.</p>}>
+                <p>Players who want to upgrade to VIP. Approve to deduct the token cost and activate their VIP period + perks.</p>
+              </HelpTip>
+            </h2>
             <p className="text-sm text-[#86868b]">{pendingCount} pending request{pendingCount !== 1 ? 's' : ''}</p>
           </div>
         </div>

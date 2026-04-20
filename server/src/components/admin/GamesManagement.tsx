@@ -10,6 +10,7 @@ import {
   Save, CheckCircle2, X, Filter, StarOff, Monitor, ChevronDown,
   ChevronUp, Loader2
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface GamesConfig {
   disabledGames: string[];
@@ -164,6 +165,10 @@ export function GamesManagement() {
         <div>
           <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
             <Gamepad2 size={24} className="text-[#0071e3]" /> Games Management
+            <HelpTip title={{ en: 'Games Catalog', ar: 'قائمة الألعاب' }}
+              ar={<p>الألعاب التي تظهر للاعبين في الكشك. فعّل/ألغِ، اجعلها مميزة (Featured)، أو علّم ألعاب تحت الصيانة.</p>}>
+              <p>The game catalog players see on the kiosk. Enable/disable individual titles, mark as Featured, or flag for maintenance.</p>
+            </HelpTip>
           </h2>
           <p className="text-[#86868b] text-sm mt-1">
             {GAMES_CATALOG.length} games · {enabledCount} enabled · {featuredCount} featured
