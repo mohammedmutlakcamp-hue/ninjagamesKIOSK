@@ -29,7 +29,6 @@ import { AnnouncementsPanel } from './AnnouncementsPanel';
 import { CoinTransferLog } from './CoinTransferLog';
 import { ShiftManagement } from './ShiftManagement';
 import { DiscountCodes } from './DiscountCodes';
-import { HappyHourPanel } from './HappyHourPanel';
 import { LoyaltyProgram } from './LoyaltyProgram';
 import { RewardCampaigns } from './RewardCampaigns';
 import { InvoiceGenerator } from './InvoiceGenerator';
@@ -559,12 +558,14 @@ export function AdminDashboard({ admin }: Props) {
     setGuestRegTopUp(null);
   };
 
-  // Listen for guest registration requests
+  // Listen for guest registration requests.
+  // Also auto-closes the current popup once the corresponding request leaves
+  // 'pending' state (customer finished registering, or another admin handled it).
   useEffect(() => {
     const seenRegReqIds = new Set<string>();
     const unsub = onSnapshot(collection(db, 'guest-register-requests'), (snap) => {
-      const pending = snap.docs
-        .map(d => ({ id: d.id, ...d.data() } as any))
+      const all = snap.docs.map(d => ({ id: d.id, ...d.data() } as any));
+      const pending = all
         .filter(r => r.status === 'pending')
         .sort((a: any, b: any) => b.timestamp - a.timestamp);
       const newest = pending.find((r: any) => !seenRegReqIds.has(r.id));
@@ -573,6 +574,21 @@ export function AdminDashboard({ admin }: Props) {
         setRegNotification({ id: newest.id, pcName: newest.pcName || 'Unknown PC', timestamp: newest.timestamp });
         playNotifSound();
       }
+      // Auto-dismiss: if the currently-shown request has reached a terminal
+      // state (customer finished registering, or another admin closed it out),
+      // clear the popup so the admin isn't stranded on a stale code screen.
+      // Note: intentionally excludes 'pending' and 'handled' so the popup stays
+      // open while the admin is reading the code to the customer.
+      const TERMINAL = new Set(['approved', 'rejected', 'dismissed', 'completed', 'used']);
+      setRegNotification((cur) => {
+        if (!cur) return cur;
+        const match = all.find(r => r.id === cur.id);
+        if (match && TERMINAL.has(match.status)) {
+          setGeneratedCode(null);
+          return null;
+        }
+        return cur;
+      });
     });
     return () => unsub();
   }, []);
@@ -591,15 +607,23 @@ export function AdminDashboard({ admin }: Props) {
 
   const generateRegistrationCode = async () => {
     setGeneratingCode(true);
-    const code = String(Math.floor(100000 + Math.random() * 900000));
-    await addDoc(collection(db, 'guest-approval-codes'), {
-      code,
-      used: false,
-      createdAt: Date.now(),
-      createdBy: admin?.email || 'admin',
-    });
-    setGeneratedCode(code);
-    setGeneratingCode(false);
+    try {
+      const code = String(Math.floor(100000 + Math.random() * 900000));
+      await addDoc(collection(db, 'guest-approval-codes'), {
+        code,
+        used: false,
+        createdAt: Date.now(),
+        createdBy: admin?.email || 'admin',
+        requestId: regNotification?.id || null,
+      });
+      setGeneratedCode(code);
+    } catch (err) {
+      console.error('[admin] generate reg code failed:', err);
+      alert('Failed to generate code. Check your connection and try again.');
+    } finally {
+      // ALWAYS release the spinner so the button never sticks, even on failure.
+      setGeneratingCode(false);
+    }
   };
 
   const approveRegistration = async (reg: PendingRegistration) => {
@@ -673,7 +697,6 @@ export function AdminDashboard({ admin }: Props) {
       title: 'Marketing',
       items: [
         { id: 'discounts', label: 'Promo Codes', icon: <Ticket size={18} /> },
-        { id: 'happyhour', label: 'Happy Hour', icon: <Sunset size={18} /> },
         { id: 'loyalty', label: 'Loyalty', icon: <Heart size={18} /> },
         { id: 'campaigns', label: 'Campaigns', icon: <Gift size={18} /> },
       ]
@@ -818,7 +841,6 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'transfers' && <CoinTransferLog />}
           {tab === 'shifts' && <ShiftManagement />}
           {tab === 'discounts' && <DiscountCodes />}
-          {tab === 'happyhour' && <HappyHourPanel />}
           {tab === 'loyalty' && <LoyaltyProgram />}
           {tab === 'campaigns' && <RewardCampaigns />}
           {tab === 'invoices' && <InvoiceGenerator />}

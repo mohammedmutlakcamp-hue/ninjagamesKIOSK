@@ -12,16 +12,19 @@ export const RESERVATION_COIN_RATE = COINS_PER_MINUTE;
 export const MIN_DEPOSIT_JOD = 2;
 
 // 7-tier coin packages. Base rate 100 coins per 1 JOD; higher tiers add bonus coins.
-// The Master tier (7000 / 50 JOD / +40%) is the bonus cap — anything bigger granted
-// by an admin is pinned to the same 0.007143 JOD/coin rate via lib/pricing.ts.
+// Baseline rate: 100 tokens per 1 JOD. Bonus scales modestly with package
+// size and caps at +5% on the 50-JOD Master tier — matches the shop's
+// target margin (no over-generous top-ups on any pack).
+// Master tier (5250 / 50 JOD / +5%) is the bonus cap — anything bigger granted
+// by an admin is pinned to the Master JOD/coin rate via lib/pricing.ts.
 export const COIN_PACKAGES: CoinPackage[] = [
   { id: 'pack_starter',  name: 'Starter',  coins: 100,  price: 1,    label: '100 Coins',  bonusPercentage: 0 },
-  { id: 'pack_plus',     name: 'Plus',     coins: 250,  price: 2.25, label: '250 Coins',  bonusPercentage: 11 },
-  { id: 'pack_pro',      name: 'Pro',      coins: 575,  price: 5,    label: '575 Coins',  bonusPercentage: 15, popular: true },
-  { id: 'pack_elite',    name: 'Elite',    coins: 1200, price: 10,   label: '1200 Coins', bonusPercentage: 20 },
-  { id: 'pack_legend',   name: 'Legend',   coins: 2600, price: 20,   label: '2600 Coins', bonusPercentage: 30 },
-  { id: 'pack_ultimate', name: 'Ultimate', coins: 4050, price: 30,   label: '4050 Coins', bonusPercentage: 35 },
-  { id: 'pack_master',   name: 'Master',   coins: 7000, price: 50,   label: '7000 Coins', bonusPercentage: 40 },
+  { id: 'pack_plus',     name: 'Plus',     coins: 230,  price: 2.25, label: '230 Coins',  bonusPercentage: 2 },
+  { id: 'pack_pro',      name: 'Pro',      coins: 515,  price: 5,    label: '515 Coins',  bonusPercentage: 3, popular: true },
+  { id: 'pack_elite',    name: 'Elite',    coins: 1035, price: 10,   label: '1035 Coins', bonusPercentage: 3.5 },
+  { id: 'pack_legend',   name: 'Legend',   coins: 2080, price: 20,   label: '2080 Coins', bonusPercentage: 4 },
+  { id: 'pack_ultimate', name: 'Ultimate', coins: 3135, price: 30,   label: '3135 Coins', bonusPercentage: 4.5 },
+  { id: 'pack_master',   name: 'Master',   coins: 5250, price: 50,   label: '5250 Coins', bonusPercentage: 5 },
 ];
 
 // ==================== TIME PACKAGES ====================
@@ -67,28 +70,28 @@ export const TIER_PERKS: Record<NinjaTier, NinjaTierPerks> = {
     bonusPlaytimeMinutes: 0, tournamentDiscount: 0,
   },
   rare: {
-    chestDiscount: 3, coinBonus: 1, xpBoost: 2, coinTransferFee: 8,
+    chestDiscount: 0, coinBonus: 1, xpBoost: 2, coinTransferFee: 8,
     dailyLoginBonus: 5, freeWeeklyChest: null, nameGlowColor: '#1E88E5', badge: 'RARE',
     exclusiveEmojis: 3, voiceMessages: false, chatEffects: false, maxFriends: 30,
     profileBorder: 'static', customBanner: false, customBio: false, animatedFrame: false,
     bonusPlaytimeMinutes: 0, tournamentDiscount: 0,
   },
   epic: {
-    chestDiscount: 8, coinBonus: 3, xpBoost: 5, coinTransferFee: 5,
+    chestDiscount: 0, coinBonus: 3, xpBoost: 5, coinTransferFee: 5,
     dailyLoginBonus: 15, freeWeeklyChest: 'common', nameGlowColor: '#A855F7', badge: 'EPIC',
     exclusiveEmojis: 8, voiceMessages: false, chatEffects: false, maxFriends: 50,
     profileBorder: 'pulse', customBanner: false, customBio: true, animatedFrame: false,
     bonusPlaytimeMinutes: 2, tournamentDiscount: 10,
   },
   legendary: {
-    chestDiscount: 15, coinBonus: 7, xpBoost: 10, coinTransferFee: 2,
+    chestDiscount: 0, coinBonus: 7, xpBoost: 10, coinTransferFee: 2,
     dailyLoginBonus: 30, freeWeeklyChest: 'uncommon', nameGlowColor: '#FF6F00', badge: 'LEGENDARY',
     exclusiveEmojis: 15, voiceMessages: true, chatEffects: true, maxFriends: 100,
     profileBorder: 'animated', customBanner: true, customBio: true, animatedFrame: false,
     bonusPlaytimeMinutes: 5, tournamentDiscount: 25,
   },
   mythic: {
-    chestDiscount: 25, coinBonus: 12, xpBoost: 15, coinTransferFee: 0,
+    chestDiscount: 0, coinBonus: 12, xpBoost: 15, coinTransferFee: 0,
     dailyLoginBonus: 50, freeWeeklyChest: 'rare', nameGlowColor: '#FFD700', badge: 'MYTHIC',
     exclusiveEmojis: 99, voiceMessages: true, chatEffects: true, maxFriends: 200,
     profileBorder: 'particles', customBanner: true, customBio: true, animatedFrame: true,
@@ -325,7 +328,7 @@ export const VIP_CONFIG = {
   trialDays: 7,
   priceCoins: 5000, // coin price to buy VIP from store
   durationDays: 30, // VIP lasts 30 days when activated
-  cafeDiscountPercent: 15,
+  cafeDiscountPercent: 0,
   dailyTaskBonusCoins: 1, // +1 coin for each daily task
   dailyInviteFreeMinutes: 30, // 30 min free play gift
   dailyInviteBonusCoins: 50, // 50 coins to receiver (transfer-only)

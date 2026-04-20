@@ -5,7 +5,7 @@ import { Lang, t } from '@/lib/translations';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, updateDoc, addDoc, collection, increment, writeBatch, query, where, getDocs } from 'firebase/firestore';
-import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, COIN_PACKAGES, TIME_PACKAGES } from '@/lib/constants';
+import { COINS_PER_MINUTE, LOW_BALANCE_WARNING, GRACE_PERIOD_SECONDS, TIME_PACKAGES } from '@/lib/constants';
 import { launchOnPc } from '@/lib/launch';
 import { installLifecycleListeners, dlog } from '@/lib/debug-logger';
 import { DebugOverlay } from './DebugOverlay';
@@ -94,8 +94,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const [topUpPlayerName, setTopUpPlayerName] = useState(player?.username || '');
   const [editingTopUpName, setEditingTopUpName] = useState(false);
   // Custom token amount (min 1150). Uses the 1150-package discount rate: 115 tokens / JOD.
-  const CUSTOM_TOKEN_MIN = 1150;
-  const CUSTOM_TOKENS_PER_JOD = 115;
+  const CUSTOM_TOKEN_MIN = 100;
+  const CUSTOM_TOKENS_PER_JOD = 100;
   const [topUpCustomTokens, setTopUpCustomTokens] = useState<string>(''); // string to allow empty/invalid input
   const topUpCustomNum = parseInt(topUpCustomTokens, 10);
   const topUpCustomValid = !isNaN(topUpCustomNum) && topUpCustomNum >= CUSTOM_TOKEN_MIN;
@@ -119,6 +119,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const [regError, setRegError] = useState('');
   const [regLoading, setRegLoading] = useState(false);
   const [regSelectedPkg, setRegSelectedPkg] = useState<string | null>(null);
+  const [regCustomTokens, setRegCustomTokens] = useState<string>('');
+  const regCustomNum = parseInt(regCustomTokens, 10);
+  const regCustomValid = !isNaN(regCustomNum) && regCustomNum >= 100;
+  const regCustomPriceJOD = regCustomValid ? Math.round((regCustomNum / 100) * 100) / 100 : 0;
   const [regPendingRequestId, setRegPendingRequestId] = useState<string | null>(null);
   const [sendTarget, setSendTarget] = useState('');
   const [sendAmount, setSendAmount] = useState('');
@@ -274,28 +278,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     const unsubPricing = onSnapshot(doc(db, 'config', 'pricing'), (snap) => {
       if (snap.exists()) setAdminPricing(snap.data());
     });
-    // Happy hour
-    const unsubHappy = onSnapshot(doc(db, 'config', 'happy-hours'), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data();
-        const now = new Date();
-        const currentHour = now.getHours();
-        const currentDay = now.getDay(); // 0=Sun
-        const dayIndex = currentDay === 0 ? 6 : currentDay - 1; // Convert to Mon=0
-        const schedules = data.schedules || [];
-        for (const s of schedules) {
-          if (!s.active) continue;
-          if (!s.days?.[dayIndex]) continue;
-          if (currentHour >= s.startHour && currentHour < s.endHour) {
-            setHappyHourActive(true);
-            setHappyHourDiscount(s.discountPercent || 0);
-            return;
-          }
-        }
-        setHappyHourActive(false);
-        setHappyHourDiscount(0);
-      }
-    });
+    // Happy-hour pricing disabled — flat prices for food/snacks/chests.
+    const unsubHappy = () => {};
     // Game availability
     const unsubGames = onSnapshot(doc(db, 'config', 'games'), (snap) => {
       if (snap.exists()) {
@@ -751,16 +735,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   ] as { id: Tab; label: string; icon: React.ReactNode; color?: string }[])
     .filter(item => visibleTabs[item.id] !== false);
 
-  // Coin packages for TopUp tab — derived from COIN_PACKAGES so they stay in sync
-  const TOPUP_PACKAGES = COIN_PACKAGES.map(p => ({
-    coins: p.coins,
-    price: p.price,
-    hours: `${(p.coins / 100).toFixed(p.coins % 100 === 0 ? 0 : 1)}h worth`,
-    popular: !!p.popular,
-    save: p.bonusPercentage || 0,
-    name: p.name,
-  }));
-
   const ninjaType = player.ninjaType || player.character?.ninjaType || 'neon';
   const isPlayerVIP = !isGuest && player.vip?.active && (player.vip?.expiresAt || 0) > Date.now();
   const showMainSidebar = true;
@@ -1093,7 +1067,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     {hideBalance ? '****' : Math.floor(coins).toLocaleString()}
                   </span>
                 </div>
-                <button onClick={() => { if (isGuest) { setShowBecomeUser(true); setBecomeUserStep('info'); return; } setShowTopUpModal(true); setTopUpSelected(null); setTopUpSent(false); }}
+                <button onClick={() => { if (isGuest) { setShowBecomeUser(true); setBecomeUserStep('info'); return; } setShowTopUpModal(true); setTopUpSelected('custom'); setTopUpSent(false); }}
                   className="h-[32px] w-[72px] mx-1.5 rounded-md flex items-center justify-center gap-1 font-ninja text-[10px] tracking-wider text-black hover:brightness-110 active:scale-95 transition-all flex-shrink-0 relative overflow-hidden"
                   style={{ background: 'linear-gradient(135deg, #eab308, #fbbf24)', boxShadow: '0 0 12px rgba(234,179,8,0.3), inset 0 1px 0 rgba(255,255,255,0.2)' }}>
                   <Plus size={11} strokeWidth={3} /> Tokens
@@ -1599,7 +1573,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
         {/* Always show GamesTab as base layer */}
         <GamesTab player={player} lang={lang}
-          onAddCredit={isGuest ? () => { setShowBecomeUser(true); setBecomeUserStep('info'); } : () => { setShowTopUpModal(true); setTopUpSelected(null); setTopUpSent(false); }}
+          onAddCredit={isGuest ? () => { setShowBecomeUser(true); setBecomeUserStep('info'); } : () => { setShowTopUpModal(true); setTopUpSelected('custom'); setTopUpSent(false); }}
           onSendCoins={isGuest ? () => { setShowBecomeUser(true); setBecomeUserStep('info'); } : (prefillUsername?: string) => { setShowSendCoinsModal(true); setSendError(''); setSendSuccess(''); if (prefillUsername) setSendTarget(prefillUsername); }}
           onLogout={onLogout}
           disabledGames={disabledGames}
@@ -1740,7 +1714,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               </p>
               <button onClick={() => {
                 if (coins > 0) { setShowBuyTimeModal(true); setBuyTimeSelected(null); }
-                else { setShowTopUpModal(true); setTopUpSelected(null); setTopUpSent(false); }
+                else { setShowTopUpModal(true); setTopUpSelected('custom'); setTopUpSent(false); }
               }} className="ninja-btn ninja-btn-green mt-4 px-6">
                 {coins > 0 ? (lang === 'ar' ? 'شراء وقت' : 'BUY TIME') : (lang === 'ar' ? 'شحن' : 'TOP UP')}
               </button>
@@ -1927,6 +1901,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 // Mark code as used
                                 const codeDoc = snap.docs[0];
                                 await updateDoc(doc(db, 'guest-approval-codes', codeDoc.id), { used: true, usedAt: Date.now() });
+                                // Close the admin's registration popup by flipping the originating request.
+                                // requestId is stamped by AdminDashboard.generateRegistrationCode.
+                                const codeData = codeDoc.data() as any;
+                                if (codeData.requestId) {
+                                  try { await updateDoc(doc(db, 'guest-register-requests', codeData.requestId), { status: 'used', usedAt: Date.now() }); } catch { /* non-fatal */ }
+                                }
                                 // Go to registration form
                                 setBecomeUserStep('form');
                                 setAdminCode('');
@@ -1963,6 +1943,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           }
                           const codeDoc = snap.docs[0];
                           await updateDoc(doc(db, 'guest-approval-codes', codeDoc.id), { used: true, usedAt: Date.now() });
+                          const codeData = codeDoc.data() as any;
+                          if (codeData.requestId) {
+                            try { await updateDoc(doc(db, 'guest-register-requests', codeData.requestId), { status: 'used', usedAt: Date.now() }); } catch { /* non-fatal */ }
+                          }
                           setBecomeUserStep('form');
                           setAdminCode('');
                           setAdminCodeLoading(false);
@@ -2093,44 +2077,47 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <h2 className="font-ninja text-2xl tracking-wider mb-1" style={{ background: 'linear-gradient(90deg, #FBBF24, #F59E0B)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>{lang === 'ar' ? 'اختر الباقة' : 'CHOOSE YOUR PACKAGE'}</h2>
                     <p className="font-body text-gray-500 text-xs">{lang === 'ar' ? 'اختر باقة عملات لبدء اللعب' : 'Select a token package to start playing'}</p>
                   </div>
-                  <div className="px-8 pb-4 space-y-2.5">
-                    {COIN_PACKAGES.map((pkg) => {
-                      const sel = regSelectedPkg === pkg.id;
-                      return (
-                        <motion.button key={pkg.id} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}
-                          onClick={() => setRegSelectedPkg(pkg.id)}
-                          className={`w-full rounded-xl p-4 text-left transition-all border-2 ${sel ? 'border-yellow-500/50 bg-yellow-500/[0.08]' : 'border-white/[0.06] bg-white/[0.02] hover:bg-white/[0.04]'}`}>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-3">
-                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${sel ? 'border-yellow-400' : 'border-gray-600'}`}>
-                                {sel && <div className="w-2.5 h-2.5 rounded-full bg-yellow-400" />}
-                              </div>
-                              <div>
-                                <span className="font-ninja text-white">{pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
-                                {(pkg.bonusPercentage || 0) > 0 && (
-                                  <span className="font-ninja text-[10px] ml-2 px-1.5 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}%</span>
-                                )}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-2">
-                              {pkg.popular && <span className="px-2 py-0.5 rounded-full bg-yellow-500/20 text-yellow-400 font-ninja text-[9px]">{lang === 'ar' ? 'الأفضل' : 'BEST'}</span>}
-                              <span className="font-ninja text-lg text-white">{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
-                            </div>
+                  <div className="px-8 pb-4">
+                    <div className="rounded-xl p-5 border-2 border-yellow-500/40 bg-yellow-500/[0.05]">
+                      <label className="block font-ninja text-xs text-gray-400 tracking-wider mb-2">
+                        {lang === 'ar' ? 'كم توكنز تريد؟' : 'HOW MANY TOKENS?'}
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <div className="flex-1 relative">
+                          <input
+                            type="number"
+                            min={100}
+                            step={50}
+                            inputMode="numeric"
+                            value={regCustomTokens}
+                            onChange={(e) => setRegCustomTokens(e.target.value)}
+                            placeholder={lang === 'ar' ? 'أدخل التوكنز' : 'Enter tokens'}
+                            className="w-full bg-white/5 border border-yellow-500/30 rounded-md px-3 py-2.5 font-ninja text-xl text-white outline-none focus:border-yellow-400 placeholder:text-gray-600"
+                          />
+                          <Coins size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-500/60 pointer-events-none" />
+                        </div>
+                        <div className="text-right">
+                          <div className="font-ninja text-2xl text-white leading-none">
+                            {regCustomValid ? regCustomPriceJOD.toFixed(2) : '—'}
                           </div>
-                        </motion.button>
-                      );
-                    })}
+                          <div className="font-body text-[10px] text-gray-500 mt-0.5">JOD</div>
+                        </div>
+                      </div>
+                      <p className="font-body text-[10px] text-gray-500 mt-2">
+                        {lang === 'ar' ? `الحد الأدنى 100 · 100 توكنز = 1 دينار` : `Min 100 · 100 tokens = 1 JOD`}
+                      </p>
+                    </div>
                   </div>
                   <div className="px-8 pb-6">
                     {regError && <p className="text-red-400 font-body text-sm text-center mb-3">{regError}</p>}
                     <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                      disabled={!regSelectedPkg || regLoading}
+                      disabled={!regCustomValid || regLoading}
                       onClick={async () => {
-                        if (!regSelectedPkg) return;
+                        if (!regCustomValid) return;
                         setRegLoading(true);
                         setRegError('');
                         try {
-                          const pkg = COIN_PACKAGES.find(p => p.id === regSelectedPkg);
+                          const pkg = { id: 'custom', coins: regCustomNum, price: regCustomPriceJOD };
                           const ninjaColor = [
                             { id: 'neon', c: '#39FF14' }, { id: 'fire', c: '#FF4500' }, { id: 'ice', c: '#00BFFF' }, { id: 'shadow', c: '#8B00FF' },
                             { id: 'cyber', c: '#9B59B6' }, { id: 'phantom', c: '#708090' }, { id: 'storm', c: '#4169E1' }, { id: 'sakura', c: '#FF69B4' },
@@ -2169,7 +2156,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                         setRegLoading(false);
                       }}
                       className="w-full py-4 rounded-xl font-ninja text-xl tracking-wider text-black flex items-center justify-center gap-2 transition-all disabled:opacity-40"
-                      style={{ background: regSelectedPkg ? 'linear-gradient(135deg, #FBBF24, #F59E0B)' : 'rgba(251,191,36,0.3)' }}
+                      style={{ background: regCustomValid ? 'linear-gradient(135deg, #FBBF24, #F59E0B)' : 'rgba(251,191,36,0.3)' }}
                     >
                       {regLoading ? <Loader2 size={20} className="animate-spin text-black" /> : <Sparkles size={20} />}
                       {lang === 'ar' ? 'طلب الحساب والشحن' : 'REQUEST ACCOUNT & TOP-UP'}
@@ -2308,73 +2295,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     </span>
                   </motion.div>
 
-                  {/* Package cards — stacked vertically like Buy Time */}
-                  <div className="space-y-3 mb-4">
-                    {COIN_PACKAGES.map((pkg, idx) => {
-                      const selected = topUpSelected === pkg.id;
-                      const isBest = pkg.popular;
-                      return (
-                        <motion.button key={pkg.id}
-                          initial={{ opacity: 0, x: -30 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + idx * 0.1, type: 'spring', stiffness: 100 }}
-                          onClick={() => setTopUpSelected(pkg.id)}
-                          className="w-full text-left transition-all relative">
-                          <motion.div
-                            animate={selected ? { boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 20px rgba(234,179,8,0.15)', '0 0 0px rgba(234,179,8,0)'] } : {}}
-                            transition={{ duration: 2, repeat: Infinity }}
-                            className="relative rounded-lg overflow-hidden"
-                            style={{ background: 'rgba(255,255,255,0.03)', border: `1px solid ${selected ? 'rgba(234,179,8,0.4)' : 'rgba(255,255,255,0.08)'}` }}>
-                            {/* BEST badge */}
-                            {isBest && (
-                              <div className="absolute -top-1 -right-1 z-10 px-2.5 py-1 rounded-bl-lg rounded-tr-lg font-ninja text-[9px] tracking-wider pointer-events-none"
-                                style={{ background: 'linear-gradient(135deg, #eab308, #f59e0b)', color: '#000', boxShadow: '0 2px 8px rgba(234,179,8,0.4)' }}>
-                                {lang === 'ar' ? 'الأفضل' : 'BEST'}
-                              </div>
-                            )}
-                            <div className="relative rounded-lg px-5 py-4" style={{ background: 'rgba(255,255,255,0.02)' }}>
-                              {/* HUD corners */}
-                              {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, ci) => (
-                                <motion.div key={ci}
-                                  initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.5 + idx * 0.1 + ci * 0.05 }}
-                                  className={`absolute ${pos} w-4 h-4`}
-                                  style={{
-                                    ...(pos.includes('top') ? { borderTop: `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.25)'}` } : { borderBottom: `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.25)'}` }),
-                                    ...(pos.includes('left') ? { borderLeft: `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.25)'}` } : { borderRight: `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.25)'}` }),
-                                  }} />
-                              ))}
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <motion.div
-                                    animate={selected ? { boxShadow: ['0 0 8px rgba(234,179,8,0.3)', '0 0 16px rgba(234,179,8,0.6)', '0 0 8px rgba(234,179,8,0.3)'] } : {}}
-                                    transition={{ duration: 1.5, repeat: Infinity }}
-                                    className="w-6 h-6 rounded-full flex items-center justify-center"
-                                    style={{ border: `2px solid ${selected ? '#eab308' : 'rgba(150,150,150,0.4)'}` }}>
-                                    <AnimatePresence>
-                                      {selected && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 300 }} className="w-2.5 h-2.5 rounded-full bg-yellow-500" style={{ boxShadow: '0 0 6px rgba(234,179,8,0.8)' }} />}
-                                    </AnimatePresence>
-                                  </motion.div>
-                                  <div className="flex items-baseline gap-3">
-                                    <span className="font-ninja text-2xl text-white">{pkg.coins.toLocaleString()} {lang === 'ar' ? 'توكنز' : 'tokens'}</span>
-                                    {(pkg.bonusPercentage || 0) > 0 && (
-                                      <span className="font-ninja text-[11px] px-2 py-0.5 rounded" style={{ background: 'rgba(57,255,20,0.12)', color: '#39FF14', border: '1px solid rgba(57,255,20,0.3)' }}>+{pkg.bonusPercentage}%</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <span className="font-ninja text-2xl text-white">{pkg.price} <span className="text-gray-500 text-sm">JOD</span></span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        </motion.button>
-                      );
-                    })}
-                  </div>
-
-                  {/* ── CUSTOM AMOUNT card ── */}
+                  {/* ── TOP-UP AMOUNT card ── */}
                   <motion.div
                     initial={{ opacity: 0, x: -30 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 + COIN_PACKAGES.length * 0.1, type: 'spring', stiffness: 100 }}
+                    transition={{ delay: 0.3, type: 'spring', stiffness: 100 }}
                     onClick={() => setTopUpSelected('custom')}
                     className="w-full text-left mb-6 cursor-pointer"
                   >
@@ -2458,9 +2383,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.7 }}
                     style={{ overflow: 'visible', position: 'relative', zIndex: 10 }}>
                     {(() => {
-                      const canSubmit = topUpSelected === 'custom'
-                        ? topUpCustomValid
-                        : !!topUpSelected;
+                      const canSubmit = topUpCustomValid;
                       return (
                         <button
                           disabled={!canSubmit || topUpLoading}
@@ -2468,23 +2391,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                             if (!canSubmit) return;
                             setTopUpLoading(true);
                             try {
-                              if (topUpSelected === 'custom') {
-                                await addDoc(collection(db, 'topup-requests'), {
-                                  playerId: player.uid, playerName: topUpPlayerName || player.username,
-                                  packageId: 'custom', coins: topUpCustomNum, priceJOD: topUpCustomPriceJOD,
-                                  custom: true,
-                                  status: 'pending', createdAt: Date.now(),
-                                });
-                              } else {
-                                const pkg = COIN_PACKAGES.find(p => p.id === topUpSelected);
-                                if (pkg) {
-                                  await addDoc(collection(db, 'topup-requests'), {
-                                    playerId: player.uid, playerName: topUpPlayerName || player.username,
-                                    packageId: pkg.id, coins: pkg.coins, priceJOD: pkg.price,
-                                    status: 'pending', createdAt: Date.now(),
-                                  });
-                                }
-                              }
+                              await addDoc(collection(db, 'topup-requests'), {
+                                playerId: player.uid, playerName: topUpPlayerName || player.username,
+                                packageId: 'custom', coins: topUpCustomNum, priceJOD: topUpCustomPriceJOD,
+                                custom: true,
+                                status: 'pending', createdAt: Date.now(),
+                              });
                             } catch (err) {
                               console.error('TopUp request failed:', err);
                             }
@@ -2615,7 +2527,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="flex items-center gap-2">
                       {/* Switch to Buy Tokens */}
                       <motion.button initial={{ opacity: 0, scale: 0 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.25 }}
-                        onClick={() => { setShowBuyTimeModal(false); setShowTopUpModal(true); setTopUpSelected(null); setTopUpSent(false); }}
+                        onClick={() => { setShowBuyTimeModal(false); setShowTopUpModal(true); setTopUpSelected('custom'); setTopUpSent(false); }}
                         whileHover={{ scale: 1.03 }}
                         whileTap={{ scale: 0.97 }}
                         className="hidden sm:flex items-center gap-1.5 px-3 h-11 rounded-xl font-ninja text-xs tracking-wider transition-all relative overflow-hidden"

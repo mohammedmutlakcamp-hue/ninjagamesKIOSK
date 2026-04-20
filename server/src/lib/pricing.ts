@@ -9,20 +9,20 @@
 // - Only TIME packages are exempt from the multiplier (listed coin cost applies).
 // - Every other coin spend is wrapped in `personalCoinCost()`.
 // - Only JOD top-ups update `effectiveRate` (rewards, chest drops, transfers do not).
-// - Top-up rates deeper than Master (50 JOD → 7000 coins) are capped to Master
-//   so no custom admin grant or stacked pack ever beats the 40% bonus tier.
+// - Top-up rates deeper than Master (50 JOD → 5250 coins = +5%) are capped to
+//   Master so no custom admin grant or stacked pack ever beats the 5% bonus.
 
 import type { Player } from '@/types';
 
 // Base rate: 1 JOD = 100 coins → 0.01 JOD per coin.
 export const BASE_RATE = 0.01;
 
-// Master pack rate (50 JOD for 7000 coins = 0.007142857… JOD/coin).
+// Master pack rate (50 JOD for 5250 coins = 0.009523809… JOD/coin = +5% bonus).
 // No top-up is allowed to push the player's rate below this (= no bigger bonus).
-export const MIN_EFFECTIVE_RATE = 50 / 7000;
+export const MIN_EFFECTIVE_RATE = 50 / 5250;
 
-// Hard floor on player-facing top-ups. Any package or custom admin grant that
-// provides fewer than this many coins is rejected at the UI / approval layer.
+// Hard floor on player-facing top-ups (kept at the old 7000-coin threshold for
+// the custom-amount input; packages below this fall back to fixed tiers).
 export const MIN_TOPUP_COINS = 7000;
 
 /**
