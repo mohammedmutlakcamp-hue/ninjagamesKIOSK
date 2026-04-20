@@ -15,6 +15,7 @@ import {
 import { NinjaInput } from '@/components/kiosk/NinjaInput';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { NINJA_SKINS, RARITY_COLORS, TIER_BORDER_COLORS, COUNTRY_FLAGS, USERNAME_CHANGE_COST, REFERRAL_CONFIG } from '@/lib/constants';
+import { useAllSkins } from '@/lib/skins-all';
 import { trackDailyTask } from '@/lib/daily-tasks';
 
 interface Props {
@@ -85,16 +86,20 @@ export function ProfileTab({ player }: Props) {
   const totalXP = calculateTotalXP(player);
   const levelInfo = getLevelInfo(totalXP);
 
+  // Merged skin list (built-ins + admin-added custom) so equipping a
+  // custom ninja shows the correct name/image/perks instead of a placeholder.
+  const ALL_NINJAS = useAllSkins();
+
   const currentSkin = useMemo(() =>
-    NINJA_SKINS.find(s => s.id === player.ninjaType) || NINJA_SKINS[0],
-    [player.ninjaType]
+    ALL_NINJAS.find(s => s.id === player.ninjaType) || ALL_NINJAS[0] || NINJA_SKINS[0],
+    [player.ninjaType, ALL_NINJAS]
   );
 
-  const ownedNinjaIds: string[] = player.ownedNinjas || NINJA_SKINS.filter(s => s.tier === 'free').map(s => s.id);
+  const ownedNinjaIds: string[] = player.ownedNinjas || ALL_NINJAS.filter(s => (s.tier as string) === 'free' || (s.tier as string) === 'free_starter').map(s => s.id);
 
   const ownedSkins = useMemo(() =>
-    NINJA_SKINS.filter(s => ownedNinjaIds.includes(s.id)),
-    [ownedNinjaIds]
+    ALL_NINJAS.filter(s => ownedNinjaIds.includes(s.id)),
+    [ownedNinjaIds, ALL_NINJAS]
   );
 
   const ninjaColor = currentSkin.color === '#1a1a2e' || currentSkin.color === '#000000'

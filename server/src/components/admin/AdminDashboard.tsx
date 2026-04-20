@@ -53,6 +53,7 @@ import { RealPLDashboard } from './RealPLDashboard';
 import { PCsHub } from './PCsHub';
 import { HubblyHub } from './HubblyHub';
 import { DarkModeProvider, useDarkMode } from './DarkModeProvider';
+import { CommandPalette } from './CommandPalette';
 import { Moon, Sun } from 'lucide-react';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
@@ -784,6 +785,8 @@ function AdminDashboardInner({ admin }: Props) {
 
   return (
     <div className="admin-apple min-h-screen bg-[#f5f5f7] flex">
+      {/* Cmd+K / Ctrl+K command palette — global. */}
+      <CommandPalette onNavigate={(t) => setTab(t as Tab)} />
       {/* Mobile Header Bar */}
       <div className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-between px-4 py-3 bg-white/90 border-b border-[#e5e5ea] md:hidden"
         style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}

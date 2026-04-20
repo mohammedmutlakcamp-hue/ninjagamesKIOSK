@@ -58,7 +58,12 @@ export function FoodTab({ player }: Props) {
 
   useEffect(() => {
     const unsub = onSnapshot(collection(db, 'menu'), (snap) => {
-      setItems(snap.docs.map(d => ({ id: d.id, ...d.data() } as MenuItem)).filter(i => i.available));
+      // Hide items that are either flagged unavailable OR out of stock
+      // (stock = 0 when stock tracking is enabled).
+      setItems(snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as MenuItem))
+        .filter(i => i.available)
+        .filter(i => !(i.trackStock && typeof i.stock === 'number' && i.stock <= 0)));
     });
     return () => unsub();
   }, []);
@@ -152,6 +157,21 @@ export function FoodTab({ player }: Props) {
       await updateDoc(doc(db, 'players', player.uid), {
         'stats.foodOrdered': increment(cartCount),
       });
+      // Deduct stock from any item that opted into inventory tracking.
+      for (const [id, qty] of Object.entries(cart)) {
+        const mi = items.find((i) => i.id === id);
+        if (!mi?.trackStock) continue;
+        try {
+          await updateDoc(doc(db, 'menu', id), { stock: increment(-qty) });
+          // Low-stock alert: if current stock will fall at/below threshold, ping admin.
+          const remaining = (mi.stock ?? 0) - qty;
+          const threshold = mi.lowStockAt ?? 3;
+          if (remaining <= threshold && remaining >= 0) {
+            notifyAdmin('alert', '⚠️ Low stock',
+              `${mi.name} is down to ${remaining} left (threshold ${threshold}). Restock soon.`);
+          }
+        } catch { /* non-fatal */ }
+      }
       trackDailyTask(player.uid, 'order_food');
       const totalJODStr = (Math.round(totalJOD * 100) / 100).toFixed(2);
       // Human-readable item breakdown for the admin WhatsApp / OneSignal message

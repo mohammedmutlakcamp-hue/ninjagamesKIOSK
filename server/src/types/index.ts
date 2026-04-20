@@ -297,6 +297,11 @@ export interface MenuItem {
   description: string;
   available: boolean;
   preparationTime: number; // minutes
+  // Inventory tracking — optional. When `stock` is a number, the kiosk
+  // decrements it on each order and admin sees low-stock alerts.
+  stock?: number;        // current count on hand
+  lowStockAt?: number;   // threshold that triggers yellow warning (default 3)
+  trackStock?: boolean;  // master toggle per item
 }
 
 export type OrderStatus = 'pending' | 'preparing' | 'ready' | 'delivered' | 'cancelled';

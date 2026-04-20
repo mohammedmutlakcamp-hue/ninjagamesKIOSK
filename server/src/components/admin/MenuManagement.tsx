@@ -206,6 +206,38 @@ export function MenuManagement() {
               </div>
             </div>
 
+            {/* Stock tracking row */}
+            <div className="flex items-center gap-2 mt-1 pt-1 border-t border-[#e5e5ea]/60">
+              <label className="flex items-center gap-1 text-[10px] text-[#86868b] flex-shrink-0">
+                <input type="checkbox" defaultChecked={!!item.trackStock}
+                  onChange={(e) => updateDoc(doc(db, 'menu', item.id), { trackStock: e.target.checked })} />
+                Track stock
+              </label>
+              {item.trackStock && (
+                <>
+                  <div className="flex items-center gap-1">
+                    <label className="text-[9px] text-[#86868b]">Qty</label>
+                    <input type="number" defaultValue={item.stock ?? 0} onBlur={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (!isNaN(v)) updateDoc(doc(db, 'menu', item.id), { stock: v });
+                    }}
+                      className={`w-14 bg-[#f5f5f7] border rounded px-1.5 py-0.5 text-xs font-semibold
+                        ${(item.stock ?? 0) <= 0 ? 'border-[#ff3b30] text-[#ff3b30]' :
+                          (item.stock ?? 0) <= (item.lowStockAt ?? 3) ? 'border-[#ff9500] text-[#ff9500]' :
+                          'border-[#d2d2d7] text-[#1d1d1f]'}`} />
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <label className="text-[9px] text-[#86868b]">Alert ≤</label>
+                    <input type="number" defaultValue={item.lowStockAt ?? 3} onBlur={(e) => {
+                      const v = parseInt(e.target.value);
+                      if (!isNaN(v) && v >= 0) updateDoc(doc(db, 'menu', item.id), { lowStockAt: v });
+                    }}
+                      className="w-12 bg-[#f5f5f7] border border-[#d2d2d7] rounded px-1.5 py-0.5 text-xs" />
+                  </div>
+                </>
+              )}
+            </div>
+
             <div className="flex gap-2">
               <button onClick={() => openEdit(item)}
                 className="flex-1 py-1.5 bg-[#f5f5f7] rounded-xl text-[#86868b] text-xs font-medium hover:bg-[#e8e8ed] flex items-center justify-center gap-1 border border-[#d2d2d7]">
