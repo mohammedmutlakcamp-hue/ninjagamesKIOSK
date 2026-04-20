@@ -47,6 +47,7 @@ import { GameReportPanel } from './GameReportPanel';
 import { HubblyManagement } from './HubblyManagement';
 import { CameraPanel } from './CameraPanel';
 import { WhatsappSettings } from './WhatsappSettings';
+import { PromotionsPanel } from './PromotionsPanel';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -57,7 +58,7 @@ import {
   ToggleRight, HardDriveDownload, ListChecks, Flame, Video
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -703,6 +704,7 @@ export function AdminDashboard({ admin }: Props) {
     {
       title: 'Marketing',
       items: [
+        { id: 'promotions', label: 'Promotions & Bundles', icon: <Gift size={18} /> },
         { id: 'discounts', label: 'Promo Codes', icon: <Ticket size={18} /> },
         { id: 'loyalty', label: 'Loyalty', icon: <Heart size={18} /> },
         { id: 'campaigns', label: 'Campaigns', icon: <Gift size={18} /> },
@@ -833,6 +835,7 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'hubblymenu' && <HubblyManagement />}
           {tab === 'cameras' && <CameraPanel />}
           {tab === 'whatsapp' && <WhatsappSettings />}
+          {tab === 'promotions' && <PromotionsPanel />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}

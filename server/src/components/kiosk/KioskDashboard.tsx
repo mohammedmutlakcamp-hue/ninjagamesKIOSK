@@ -289,6 +289,54 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     return () => { unsubPricing(); unsubHappy(); unsubGames(); };
   }, []);
 
+  // ── Promotions (admin-scheduled time-window bundles) ──
+  interface KioskPromotion {
+    id: string;
+    name: string;
+    active: boolean;
+    startHour: string;
+    endHour: string;
+    days: boolean[];
+    bundle: { name: string; qty: number }[];
+    priceJOD: number;
+    priceTokens: number;
+    bannerText: string;
+    bannerStyle: 'promo' | 'info' | 'urgent';
+    ctaLabel: string;
+  }
+  const [promotions, setPromotions] = useState<KioskPromotion[]>([]);
+  const [activePromo, setActivePromo] = useState<KioskPromotion | null>(null);
+  const [promoOrderOpen, setPromoOrderOpen] = useState(false);
+  const [promoOrderMethod, setPromoOrderMethod] = useState<'cash' | 'tokens'>('cash');
+  const [promoOrderBusy, setPromoOrderBusy] = useState(false);
+  const [promoOrderResult, setPromoOrderResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  // Listen for promotions
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'promotions'), (snap) => {
+      setPromotions(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }) as KioskPromotion));
+    });
+    return () => unsub();
+  }, []);
+  // Re-compute the active promo every minute (and whenever the list changes)
+  useEffect(() => {
+    const tick = () => {
+      const now = new Date();
+      const nowMin = now.getHours() * 60 + now.getMinutes();
+      const today = now.getDay();
+      const live = promotions.find((p) => {
+        if (!p.active) return false;
+        if (!p.days?.[today]) return false;
+        const [sh, sm] = p.startHour.split(':').map(Number);
+        const [eh, em] = p.endHour.split(':').map(Number);
+        return nowMin >= sh * 60 + sm && nowMin < eh * 60 + em;
+      });
+      setActivePromo(live || null);
+    };
+    tick();
+    const iv = setInterval(tick, 60 * 1000);
+    return () => clearInterval(iv);
+  }, [promotions]);
+
   // Announcement & maintenance mode listener
   const [announcement, setAnnouncement] = useState<{ active: boolean; title: string; message: string; type: string; duration: number; createdAt: number } | null>(null);
   const [maintenanceMode, setMaintenanceMode] = useState<{ active: boolean; message: string } | null>(null);
@@ -798,6 +846,149 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             className="font-ninja text-xs text-purple-400 hover:text-purple-300 transition-all underline underline-offset-2">
             {lang === 'ar' ? 'كن نينجا' : 'BECOME A USER'}
           </button>
+        </div>
+      )}
+
+      {/* Promotion Banner — admin-scheduled time-window bundle with BUY NOW CTA.
+          Sits above the Announcement banner so a live deal is always the most prominent callout. */}
+      {activePromo && !maintenanceMode?.active && !isGuest && (
+        <div className={`fixed top-0 left-0 right-0 z-[1000] py-3 px-6 flex items-center justify-between gap-3 flex-wrap ${
+          activePromo.bannerStyle === 'urgent' ? 'bg-red-600' : activePromo.bannerStyle === 'info' ? 'bg-blue-600' : 'bg-gradient-to-r from-green-600 via-emerald-500 to-green-600'
+        }`}
+          style={{ boxShadow: '0 4px 24px rgba(0,0,0,0.4)' }}>
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <Gift size={20} className="text-white flex-shrink-0" />
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
+              <span className="font-ninja text-white tracking-wider truncate">
+                {activePromo.bannerText || activePromo.name}
+              </span>
+              <span className="font-body text-white/80 text-sm">
+                · {activePromo.priceJOD.toFixed(2)} JOD / {activePromo.priceTokens} tokens
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={() => { setPromoOrderOpen(true); setPromoOrderResult(null); setPromoOrderMethod('cash'); }}
+            className="flex-shrink-0 px-4 py-1.5 rounded-lg bg-white text-green-700 font-ninja tracking-wider text-sm hover:scale-105 active:scale-95 transition-transform"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+            {activePromo.ctaLabel || (lang === 'ar' ? 'اشتري الآن' : 'BUY NOW')}
+          </button>
+        </div>
+      )}
+
+      {/* Promo Order Popup */}
+      {promoOrderOpen && activePromo && (
+        <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4"
+          style={{ background: 'rgba(0,0,0,0.82)', backdropFilter: 'blur(10px)' }}
+          onClick={() => !promoOrderBusy && setPromoOrderOpen(false)}>
+          <div onClick={(e) => e.stopPropagation()}
+            className="w-[480px] max-w-full rounded-2xl p-6 relative"
+            style={{
+              background: 'linear-gradient(180deg, #0a0a12 0%, #0c1018 60%, #080810 100%)',
+              border: '1px solid rgba(34,197,94,0.4)',
+              boxShadow: '0 0 50px rgba(34,197,94,0.15), 0 20px 60px rgba(0,0,0,0.7)',
+            }}>
+            {/* Close */}
+            <button onClick={() => !promoOrderBusy && setPromoOrderOpen(false)}
+              className="absolute top-3 right-3 w-10 h-10 rounded-xl flex items-center justify-center bg-black/80 border border-white/10 text-gray-200 hover:rotate-90 transition-all z-[100]">
+              <X size={20} strokeWidth={2.4} />
+            </button>
+
+            {/* Header */}
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-11 h-11 rounded-xl flex items-center justify-center"
+                style={{ background: 'rgba(34,197,94,0.15)', border: '1px solid rgba(34,197,94,0.4)' }}>
+                <Gift size={22} className="text-green-400" />
+              </div>
+              <div>
+                <h2 className="font-ninja text-xl text-green-400 tracking-wider">{activePromo.name}</h2>
+                <p className="font-body text-gray-400 text-xs">{activePromo.bannerText}</p>
+              </div>
+            </div>
+
+            {/* Bundle contents */}
+            <div className="bg-white/[0.03] border border-white/[0.08] rounded-xl p-4 mb-4">
+              <div className="font-ninja text-[10px] tracking-widest text-green-400/80 mb-2">INCLUDED</div>
+              <ul className="space-y-1.5">
+                {activePromo.bundle.map((b, i) => (
+                  <li key={i} className="flex items-center gap-2 text-white text-sm">
+                    <Check size={14} className="text-green-400 flex-shrink-0" />
+                    {b.qty > 1 && <span className="text-green-400 font-semibold">{b.qty}×</span>}
+                    <span>{b.name}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Payment method picker */}
+            <div className="grid grid-cols-2 gap-2.5 mb-4">
+              <button onClick={() => setPromoOrderMethod('cash')}
+                className={`rounded-xl px-4 py-3 text-left transition-all ${promoOrderMethod === 'cash' ? 'bg-green-500/15 border border-green-500/50' : 'bg-white/[0.03] border border-white/10'}`}>
+                <div className="font-ninja text-[10px] tracking-widest text-gray-400 mb-0.5">PAY CASH</div>
+                <div className="font-ninja text-lg text-white">{activePromo.priceJOD.toFixed(2)} <span className="text-xs text-gray-400">JOD</span></div>
+              </button>
+              <button onClick={() => setPromoOrderMethod('tokens')} disabled={coins < activePromo.priceTokens}
+                className={`rounded-xl px-4 py-3 text-left transition-all disabled:opacity-40 ${promoOrderMethod === 'tokens' ? 'bg-yellow-500/15 border border-yellow-500/50' : 'bg-white/[0.03] border border-white/10'}`}>
+                <div className="font-ninja text-[10px] tracking-widest text-gray-400 mb-0.5">PAY TOKENS</div>
+                <div className="font-ninja text-lg text-yellow-400">{activePromo.priceTokens.toLocaleString()}</div>
+                {coins < activePromo.priceTokens && <div className="text-[9px] text-red-400 mt-0.5">Not enough tokens</div>}
+              </button>
+            </div>
+
+            {/* Confirm */}
+            <button
+              disabled={promoOrderBusy || (promoOrderMethod === 'tokens' && coins < activePromo.priceTokens)}
+              onClick={async () => {
+                setPromoOrderBusy(true);
+                setPromoOrderResult(null);
+                try {
+                  const nowTs = Date.now();
+                  if (promoOrderMethod === 'tokens') {
+                    // Deduct tokens + save order
+                    await updateDoc(doc(db, 'players', player.uid), { coins: increment(-activePromo.priceTokens), totalCoinsSpent: increment(activePromo.priceTokens) });
+                    await addDoc(collection(db, 'promo-orders'), {
+                      playerId: player.uid, playerName: player.username, promoId: activePromo.id, promoName: activePromo.name,
+                      bundle: activePromo.bundle, method: 'tokens', tokensPaid: activePromo.priceTokens,
+                      status: 'paid', paid: true, paidAt: nowTs, createdAt: nowTs,
+                    });
+                    notifyAdmin('order', 'Promo Order — PAID (tokens)', `${player.username} bought ${activePromo.name} with ${activePromo.priceTokens} tokens`);
+                  } else {
+                    // Cash order — admin must confirm at counter
+                    await addDoc(collection(db, 'promo-orders'), {
+                      playerId: player.uid, playerName: player.username, promoId: activePromo.id, promoName: activePromo.name,
+                      bundle: activePromo.bundle, method: 'cash', priceJOD: activePromo.priceJOD,
+                      paid: false, paymentMethod: 'cash', status: 'pending', createdAt: nowTs,
+                    });
+                    notifyAdmin('order', 'Promo Order — UNPAID', `${player.username} ordered ${activePromo.name} · collect ${activePromo.priceJOD.toFixed(2)} JOD at counter`);
+                  }
+                  setPromoOrderResult({
+                    ok: true,
+                    msg: promoOrderMethod === 'cash'
+                      ? `✅ Ordered! Pay ${activePromo.priceJOD.toFixed(2)} JOD at the counter.`
+                      : `✅ Ordered! ${activePromo.priceTokens} tokens deducted. Pick up at counter.`,
+                  });
+                  setTimeout(() => { setPromoOrderOpen(false); setPromoOrderResult(null); }, 2500);
+                } catch (err: any) {
+                  setPromoOrderResult({ ok: false, msg: err?.message || 'Order failed' });
+                } finally {
+                  setPromoOrderBusy(false);
+                }
+              }}
+              className="w-full py-3 rounded-xl font-ninja tracking-wider text-black bg-gradient-to-r from-green-400 via-emerald-400 to-green-400 hover:brightness-110 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
+              {promoOrderBusy ? <Loader2 size={16} className="animate-spin" /> : <Check size={16} strokeWidth={3} />}
+              {promoOrderMethod === 'cash'
+                ? `ORDER · PAY ${activePromo.priceJOD.toFixed(2)} JOD AT COUNTER`
+                : `CONFIRM · −${activePromo.priceTokens} TOKENS`}
+            </button>
+
+            {promoOrderResult && (
+              <div className={`mt-3 rounded-xl p-3 text-xs leading-relaxed ${
+                promoOrderResult.ok ? 'bg-green-500/15 text-green-300 border border-green-500/30' : 'bg-red-500/15 text-red-300 border border-red-500/30'
+              }`}>
+                {promoOrderResult.msg}
+              </div>
+            )}
+          </div>
         </div>
       )}
 

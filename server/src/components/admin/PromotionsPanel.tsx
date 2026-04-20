@@ -1,0 +1,410 @@
+'use client';
+
+// Promotions admin — time-window bundles shown in the kiosk announcement bar.
+//
+// Shape of a promo:
+//   {
+//     id, name, description,
+//     active,                   // master toggle
+//     startHour: 'HH:MM', endHour: 'HH:MM',   // local time window
+//     days: [Sun, Mon, Tue, Wed, Thu, Fri, Sat],
+//     bundle: [{ name, qty }...],   // what's included in the deal
+//     priceJOD, priceTokens,        // dual payment — either works
+//     bannerText,                   // shows in the kiosk announcement bar
+//     bannerStyle: 'promo' | 'info' | 'urgent',
+//     ctaLabel: 'BUY NOW',          // button text on the banner
+//   }
+//
+// Firestore: collection `promotions/*`.
+// Kiosk reads and renders the currently-active one (if any) in the
+// announcement bar; clicking BUY NOW opens the promo order popup in the
+// kiosk (players pay cash or tokens).
+
+import { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { db } from '@/lib/firebase';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import {
+  Gift, Plus, Trash2, Save, X, CheckCircle2, Loader2, Clock,
+  Coffee, Sandwich, Flame, Pill,
+} from 'lucide-react';
+
+interface BundleItem {
+  name: string;
+  qty: number;
+}
+
+interface Promotion {
+  id: string;
+  name: string;
+  description: string;
+  active: boolean;
+  startHour: string;
+  endHour: string;
+  days: boolean[];
+  bundle: BundleItem[];
+  priceJOD: number;
+  priceTokens: number;
+  bannerText: string;
+  bannerStyle: 'promo' | 'info' | 'urgent';
+  ctaLabel: string;
+  createdAt?: number;
+}
+
+const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const input = 'w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0071e3] text-sm';
+
+function emptyPromo(): Promotion {
+  return {
+    id: '',
+    name: '',
+    description: '',
+    active: true,
+    startHour: '18:00',
+    endHour: '21:00',
+    days: [false, true, true, true, true, true, false], // Mon-Fri by default
+    bundle: [{ name: '', qty: 1 }],
+    priceJOD: 3,
+    priceTokens: 300,
+    bannerText: '',
+    bannerStyle: 'promo',
+    ctaLabel: 'BUY NOW',
+  };
+}
+
+function isActiveNow(p: Promotion): boolean {
+  if (!p.active) return false;
+  const now = new Date();
+  if (!p.days[now.getDay()]) return false;
+  const [sh, sm] = p.startHour.split(':').map(Number);
+  const [eh, em] = p.endHour.split(':').map(Number);
+  const startMin = sh * 60 + sm;
+  const endMin = eh * 60 + em;
+  const nowMin = now.getHours() * 60 + now.getMinutes();
+  return nowMin >= startMin && nowMin < endMin;
+}
+
+export function PromotionsPanel() {
+  const [promos, setPromos] = useState<Promotion[]>([]);
+  const [editing, setEditing] = useState<Promotion | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const unsub = onSnapshot(query(collection(db, 'promotions'), orderBy('createdAt', 'desc')), (snap) => {
+      setPromos(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as Promotion)));
+    });
+    return () => unsub();
+  }, []);
+
+  const save = async () => {
+    if (!editing) return;
+    if (!editing.name.trim()) { alert('Name is required'); return; }
+    setSaving(true);
+    try {
+      const id = editing.id || editing.name.trim().toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36);
+      await setDoc(doc(db, 'promotions', id), {
+        ...editing,
+        bundle: editing.bundle.filter((b) => b.name.trim()),
+        createdAt: editing.createdAt || Date.now(),
+      }, { merge: true });
+      setEditing(null);
+    } catch (err) {
+      console.error('save promo', err);
+      alert('Save failed.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const remove = async (id: string) => {
+    if (!confirm('Delete this promotion permanently?')) return;
+    await deleteDoc(doc(db, 'promotions', id));
+  };
+
+  const toggleActive = async (p: Promotion) => {
+    await setDoc(doc(db, 'promotions', p.id), { active: !p.active }, { merge: true });
+  };
+
+  return (
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6 gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+            style={{ background: 'rgba(255,149,0,0.1)', border: '1px solid rgba(255,149,0,0.25)' }}>
+            <Gift size={22} className="text-[#ff9500]" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Promotions & Bundles</h2>
+            <p className="text-[#86868b] text-sm">
+              Time-window deals shown as kiosk banners with a BUY NOW button.
+              {promos.some(isActiveNow) && <span className="ml-2 text-[#34c759] font-medium">● Live now</span>}
+            </p>
+          </div>
+        </div>
+        <button onClick={() => setEditing(emptyPromo())}
+          className="flex items-center gap-2 px-5 py-2.5 bg-[#ff9500] text-white rounded-xl font-medium text-sm hover:bg-[#ff8800]">
+          <Plus size={16} /> New Promotion
+        </button>
+      </div>
+
+      {/* Empty state */}
+      {promos.length === 0 && (
+        <div className="text-center py-16 bg-[#f5f5f7] rounded-2xl border border-dashed border-[#d2d2d7]">
+          <Gift size={40} className="mx-auto mb-3 text-[#86868b] opacity-40" />
+          <p className="text-[#1d1d1f] font-medium">No promotions yet</p>
+          <p className="text-[#86868b] text-sm mt-1 max-w-md mx-auto">
+            Create your first bundle — e.g. "Cola + Burger + 1h play · 5 JOD · 6-9pm".
+            Kiosks will show it as a banner with a BUY NOW button during the window.
+          </p>
+          <button onClick={() => setEditing(emptyPromo())}
+            className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#ff9500] text-white rounded-xl font-medium text-sm">
+            <Plus size={14} /> Create first promotion
+          </button>
+        </div>
+      )}
+
+      {/* Promo cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {promos.map((p) => {
+          const live = isActiveNow(p);
+          return (
+            <motion.div key={p.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+              className={`rounded-2xl p-5 border ${live ? 'border-[#34c759]/50 bg-[#34c759]/5' : 'border-[#e5e5ea] bg-white'}`}>
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    <h3 className="font-semibold text-[#1d1d1f] truncate">{p.name}</h3>
+                    {live && (
+                      <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-[#34c759]/15 text-[#15803d] px-2 py-0.5 rounded-full">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#34c759] animate-pulse" /> LIVE NOW
+                      </span>
+                    )}
+                    {!p.active && (
+                      <span className="text-[10px] font-bold bg-[#86868b]/15 text-[#86868b] px-2 py-0.5 rounded-full">DISABLED</span>
+                    )}
+                  </div>
+                  <p className="text-[11px] text-[#86868b]">{p.description || '—'}</p>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button onClick={() => toggleActive(p)} title={p.active ? 'Disable' : 'Enable'}
+                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${p.active ? 'bg-[#34c759]/10 text-[#34c759]' : 'bg-[#86868b]/10 text-[#86868b]'}`}>
+                    {p.active ? 'ON' : 'OFF'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Window */}
+              <div className="text-xs text-[#86868b] flex items-center gap-1.5 mb-3">
+                <Clock size={11} />
+                <span>{p.startHour} – {p.endHour}</span>
+                <span>·</span>
+                <span>{p.days.map((d, i) => d ? DAY_LABELS[i] : null).filter(Boolean).join(' ')}</span>
+              </div>
+
+              {/* Bundle */}
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {p.bundle.map((item, i) => (
+                  <span key={i} className="text-[11px] px-2 py-1 rounded-lg bg-[#f5f5f7] border border-[#e5e5ea] text-[#1d1d1f]">
+                    {item.qty > 1 && <span className="text-[#ff9500] font-semibold">{item.qty}× </span>}
+                    {item.name}
+                  </span>
+                ))}
+              </div>
+
+              {/* Prices */}
+              <div className="flex items-center gap-3 mb-3">
+                <div className="flex-1 bg-[#f5f5f7] rounded-xl px-3 py-2 text-center">
+                  <div className="text-[10px] text-[#86868b]">CASH</div>
+                  <div className="font-ninja text-lg text-[#ff9500]">{p.priceJOD.toFixed(2)} JOD</div>
+                </div>
+                <div className="flex-1 bg-[#f5f5f7] rounded-xl px-3 py-2 text-center">
+                  <div className="text-[10px] text-[#86868b]">TOKENS</div>
+                  <div className="font-ninja text-lg text-[#eab308]">{p.priceTokens.toLocaleString()}</div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <button onClick={() => setEditing(p)}
+                  className="flex-1 py-2 bg-[#f5f5f7] hover:bg-[#e5e5ea] rounded-xl text-xs font-medium text-[#1d1d1f]">
+                  Edit
+                </button>
+                <button onClick={() => remove(p.id)}
+                  className="px-4 py-2 bg-[#ff3b30]/10 hover:bg-[#ff3b30]/20 rounded-xl text-xs font-medium text-[#ff3b30]">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+
+      {/* ───────────── EDIT MODAL ───────────── */}
+      <AnimatePresence>
+        {editing && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+            onClick={() => !saving && setEditing(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl w-[720px] max-w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-[#e5e5ea] px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-[#1d1d1f]">{editing.id ? 'Edit Promotion' : 'New Promotion'}</h3>
+                <button onClick={() => setEditing(null)} className="w-9 h-9 rounded-lg hover:bg-[#f5f5f7]"><X size={18} /></button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                {/* Name / description */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Name</label>
+                    <input type="text" value={editing.name}
+                      onChange={(e) => setEditing({ ...editing, name: e.target.value })}
+                      placeholder="Happy Hour Combo" className={input} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Description</label>
+                    <input type="text" value={editing.description}
+                      onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                      placeholder="Internal note for staff" className={input} />
+                  </div>
+                </div>
+
+                {/* Time window */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Start time</label>
+                    <input type="time" value={editing.startHour}
+                      onChange={(e) => setEditing({ ...editing, startHour: e.target.value })} className={input} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">End time</label>
+                    <input type="time" value={editing.endHour}
+                      onChange={(e) => setEditing({ ...editing, endHour: e.target.value })} className={input} />
+                  </div>
+                </div>
+
+                {/* Days */}
+                <div>
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Days of the week</label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {DAY_LABELS.map((label, i) => {
+                      const on = editing.days[i];
+                      return (
+                        <button key={label}
+                          onClick={() => setEditing({ ...editing, days: editing.days.map((d, idx) => idx === i ? !d : d) })}
+                          className={`py-2.5 rounded-xl text-xs font-medium transition-all ${on ? 'bg-[#ff9500] text-white' : 'bg-[#f5f5f7] text-[#86868b] border border-[#e5e5ea]'}`}>
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Bundle items */}
+                <div>
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Bundle Items</label>
+                  <div className="space-y-2">
+                    {editing.bundle.map((item, i) => (
+                      <div key={i} className="flex items-center gap-2">
+                        <input type="number" min={1} value={item.qty}
+                          onChange={(e) => setEditing({
+                            ...editing,
+                            bundle: editing.bundle.map((b, idx) => idx === i ? { ...b, qty: Number(e.target.value) || 1 } : b),
+                          })}
+                          className={`${input} w-16 text-center`} />
+                        <input type="text" value={item.name}
+                          onChange={(e) => setEditing({
+                            ...editing,
+                            bundle: editing.bundle.map((b, idx) => idx === i ? { ...b, name: e.target.value } : b),
+                          })}
+                          placeholder="e.g. Cola, Burger, 1h Play"
+                          className={`${input} flex-1`} />
+                        <button onClick={() => setEditing({
+                          ...editing,
+                          bundle: editing.bundle.filter((_, idx) => idx !== i),
+                        })}
+                          className="w-9 h-9 rounded-lg bg-[#ff3b30]/10 text-[#ff3b30] hover:bg-[#ff3b30]/20 flex items-center justify-center">
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    ))}
+                    <button onClick={() => setEditing({ ...editing, bundle: [...editing.bundle, { name: '', qty: 1 }] })}
+                      className="text-xs text-[#0071e3] hover:underline flex items-center gap-1">
+                      <Plus size={12} /> Add item
+                    </button>
+                  </div>
+                </div>
+
+                {/* Prices */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Price (JOD cash)</label>
+                    <input type="number" step="0.25" min={0} value={editing.priceJOD}
+                      onChange={(e) => setEditing({ ...editing, priceJOD: Number(e.target.value) || 0 })}
+                      className={input} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Price (tokens)</label>
+                    <input type="number" step={10} min={0} value={editing.priceTokens}
+                      onChange={(e) => setEditing({ ...editing, priceTokens: Number(e.target.value) || 0 })}
+                      className={input} />
+                  </div>
+                </div>
+
+                {/* Banner */}
+                <div>
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Banner Text (shown on kiosk)</label>
+                  <input type="text" value={editing.bannerText}
+                    onChange={(e) => setEditing({ ...editing, bannerText: e.target.value })}
+                    placeholder="🔥 Happy Hour — Cola + Burger + 1h for 5 JOD"
+                    className={input} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Banner Style</label>
+                    <select value={editing.bannerStyle}
+                      onChange={(e) => setEditing({ ...editing, bannerStyle: e.target.value as any })}
+                      className={input}>
+                      <option value="promo">Promo (green)</option>
+                      <option value="info">Info (blue)</option>
+                      <option value="urgent">Urgent (red)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Button Label</label>
+                    <input type="text" value={editing.ctaLabel}
+                      onChange={(e) => setEditing({ ...editing, ctaLabel: e.target.value })}
+                      placeholder="BUY NOW" className={input} />
+                  </div>
+                </div>
+
+                <label className="flex items-center gap-2 text-sm text-[#1d1d1f]">
+                  <input type="checkbox" checked={editing.active}
+                    onChange={(e) => setEditing({ ...editing, active: e.target.checked })} />
+                  Active (visible to players during its window)
+                </label>
+
+                {/* Actions */}
+                <div className="flex gap-3 pt-4 border-t border-[#e5e5ea]">
+                  <button onClick={save} disabled={saving}
+                    className="flex-1 py-3 bg-[#ff9500] text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[#ff8800] disabled:opacity-50">
+                    {saving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                    Save
+                  </button>
+                  {editing.id && (
+                    <button onClick={() => { remove(editing.id); setEditing(null); }}
+                      className="px-5 py-3 bg-[#ff3b30]/10 text-[#ff3b30] rounded-xl hover:bg-[#ff3b30]/20">
+                      <Trash2 size={16} />
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
