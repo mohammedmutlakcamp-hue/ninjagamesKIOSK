@@ -8,8 +8,22 @@ import { NINJA_SKINS, TIER_BORDER_COLORS } from '@/lib/constants';
 import {
   Palette, Crown, Search, UserPlus, Shield, X, Coins, Sparkles, Tag,
   Filter, Users, Zap, Gift, Percent, Check, AlertTriangle, Trash2,
-  ChevronDown, ChevronUp, Star, Eye, Save, RotateCcw
+  ChevronDown, ChevronUp, Star, Eye, Save, RotateCcw, Plus, Pencil, Loader2, Upload,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
+
+interface CustomSkin {
+  id: string;
+  name: string;
+  tier: 'free_starter' | 'free_country' | 'rare' | 'epic' | 'legendary' | 'mythic';
+  color: string;
+  description?: string;
+  vibe?: string;
+  price?: number;
+  unlockLevel?: number;
+  profileImage?: string;
+  createdAt?: number;
+}
 
 // --- Types ---
 interface PlayerDoc {
@@ -93,7 +107,12 @@ export function SkinsManagement() {
   const [revokeMsg, setRevokeMsg] = useState('');
 
   // Active section
-  const [activeSection, setActiveSection] = useState<'catalog' | 'grant' | 'revoke' | 'prices'>('catalog');
+  const [activeSection, setActiveSection] = useState<'catalog' | 'custom' | 'grant' | 'revoke' | 'prices'>('catalog');
+
+  // Custom ninjas (admin-added, stored in config/skins.customSkins)
+  const [customSkins, setCustomSkins] = useState<CustomSkin[]>([]);
+  const [editingCustom, setEditingCustom] = useState<CustomSkin | null>(null);
+  const [customSaving, setCustomSaving] = useState(false);
 
   // --- Fetch players (real-time) ---
   useEffect(() => {
@@ -124,17 +143,55 @@ export function SkinsManagement() {
     return () => unsub();
   }, []);
 
-  // --- Fetch price overrides ---
+  // --- Fetch price overrides + custom skins (shared doc) ---
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'skins'), (snap) => {
       if (snap.exists()) {
         const data = snap.data();
         setPriceOverrides(data.priceOverrides || {});
         setEditingPrices(data.priceOverrides || {});
+        setCustomSkins(Array.isArray(data.customSkins) ? data.customSkins : []);
+      } else {
+        setCustomSkins([]);
       }
     });
     return () => unsub();
   }, []);
+
+  const saveCustomSkin = async () => {
+    if (!editingCustom || !editingCustom.name.trim()) return;
+    setCustomSaving(true);
+    try {
+      const id = editingCustom.id || editingCustom.name.trim().toLowerCase().replace(/\s+/g, '-');
+      const cleaned: CustomSkin = {
+        id,
+        name: editingCustom.name.trim(),
+        tier: editingCustom.tier || 'rare',
+        color: editingCustom.color || '#0071e3',
+        description: editingCustom.description?.trim() || '',
+        vibe: editingCustom.vibe?.trim() || '',
+        price: Number(editingCustom.price) || 0,
+        unlockLevel: Number(editingCustom.unlockLevel) || 1,
+        profileImage: editingCustom.profileImage?.trim() || '',
+        createdAt: editingCustom.createdAt || Date.now(),
+      };
+      const others = customSkins.filter(s => s.id !== id);
+      const next = [...others, cleaned];
+      await setDoc(doc(db, 'config', 'skins'), { customSkins: next }, { merge: true });
+      setEditingCustom(null);
+    } catch (err) {
+      console.error('save custom skin', err);
+      alert('Save failed.');
+    } finally {
+      setCustomSaving(false);
+    }
+  };
+
+  const deleteCustomSkin = async (id: string) => {
+    if (!confirm('Delete this custom ninja permanently?')) return;
+    const next = customSkins.filter(s => s.id !== id);
+    await setDoc(doc(db, 'config', 'skins'), { customSkins: next }, { merge: true });
+  };
 
   // --- Grouped & filtered skins ---
   const groupedSkins = useMemo(() => {
@@ -289,6 +346,7 @@ export function SkinsManagement() {
       <div className="flex items-center gap-2 mb-4">
         {([
           { key: 'catalog', label: 'Skin Catalog', icon: Palette },
+          { key: 'custom', label: 'Custom Ninjas', icon: Plus },
           { key: 'grant', label: 'Grant Skin', icon: UserPlus },
           { key: 'revoke', label: 'Revoke Skin', icon: Trash2 },
           { key: 'prices', label: 'Price Overrides', icon: Tag },
@@ -307,6 +365,210 @@ export function SkinsManagement() {
           </button>
         ))}
       </div>
+
+      {/* ===================== CUSTOM NINJAS ===================== */}
+      {activeSection === 'custom' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
+          <div className="bg-white rounded-2xl p-5 border border-[#e5e5ea]/60 flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-[#1d1d1f] flex items-center gap-2">
+                <Plus size={18} className="text-[#A855F7]" /> Custom Ninjas
+                <HelpTip title={{ en: 'Custom Ninjas', ar: 'شخصيات مخصصة' }}
+                  ar={(
+                    <>
+                      <p className="mb-2">أضف شخصيات نينجا جديدة كلياً بالأسماء، الأسعار، الصور، والرُتب التي تريدها. تُحفظ في قاعدة البيانات وتظهر بجانب الشخصيات المدمجة.</p>
+                      <p className="text-[#86868b]"><strong>ملاحظة:</strong> الشخصيات المخصصة تصل إلى ألعاب مثل الصناديق والمتجر حال إعادة نشر الكشك.</p>
+                    </>
+                  )}>
+                  <p className="mb-2">Add entirely new ninja skins with your own names, prices, images, and tiers. Stored in Firestore alongside the built-in ones.</p>
+                  <p className="text-[#86868b]"><strong>Note:</strong> custom ninjas flow into chests and store after the next kiosk deploy.</p>
+                </HelpTip>
+              </h3>
+              <p className="text-xs text-[#86868b] mt-1">{customSkins.length} custom ninja{customSkins.length === 1 ? '' : 's'}</p>
+            </div>
+            <button onClick={() => setEditingCustom({
+              id: '', name: '', tier: 'rare', color: '#0071e3', description: '',
+              vibe: '', price: 5000, unlockLevel: 8, profileImage: '',
+            })}
+              className="flex items-center gap-2 px-4 py-2 bg-[#A855F7] text-white rounded-xl text-sm font-medium hover:bg-[#9333EA]">
+              <Plus size={14} /> New Ninja
+            </button>
+          </div>
+
+          {customSkins.length === 0 && (
+            <div className="text-center py-16 bg-[#f5f5f7] rounded-2xl border border-dashed border-[#d2d2d7]">
+              <Palette size={40} className="mx-auto mb-3 text-[#86868b] opacity-40" />
+              <p className="text-[#1d1d1f] font-medium">No custom ninjas yet</p>
+              <p className="text-[#86868b] text-sm mt-1 max-w-md mx-auto">
+                Click <strong>New Ninja</strong> to add one. You control everything — name, tier, image, price, unlock level, flavor text.
+              </p>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {customSkins.map((s) => {
+              const tc = TIER_CONFIG[s.tier] || TIER_CONFIG.rare;
+              return (
+                <motion.div key={s.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}
+                  className="bg-white rounded-2xl p-4 border relative"
+                  style={{ borderColor: `${tc.color}40`, background: `linear-gradient(135deg, ${tc.color}08, rgba(255,255,255,1))` }}>
+                  <div className="flex items-center gap-3 mb-3">
+                    {s.profileImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={s.profileImage} alt="" className="w-14 h-14 rounded-xl object-cover flex-shrink-0 bg-[#f5f5f7]" />
+                    ) : (
+                      <div className="w-14 h-14 rounded-xl flex-shrink-0 flex items-center justify-center" style={{ background: `${s.color}20` }}>
+                        <Shield size={22} style={{ color: s.color }} />
+                      </div>
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[#1d1d1f] truncate">{s.name}</div>
+                      <div className="text-[10px] font-bold tracking-wider" style={{ color: tc.color }}>{tc.label}</div>
+                    </div>
+                  </div>
+                  {s.description && (
+                    <p className="text-[11px] text-[#86868b] italic line-clamp-2 mb-2">{s.description}</p>
+                  )}
+                  <div className="flex items-center justify-between text-xs mb-3">
+                    <span className="text-[#86868b]">Price</span>
+                    <span className="font-semibold text-[#1d1d1f]">{s.price ? `${s.price} tokens` : 'Free'}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-xs mb-3">
+                    <span className="text-[#86868b]">Unlock Level</span>
+                    <span className="font-semibold text-[#1d1d1f]">Lv. {s.unlockLevel || 1}</span>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => setEditingCustom(s)}
+                      className="flex-1 py-2 bg-[#f5f5f7] hover:bg-[#e5e5ea] rounded-lg text-xs font-medium flex items-center justify-center gap-1">
+                      <Pencil size={11} /> Edit
+                    </button>
+                    <button onClick={() => deleteCustomSkin(s.id)}
+                      className="px-3 py-2 bg-[#ff3b30]/10 hover:bg-[#ff3b30]/20 rounded-lg text-[#ff3b30]">
+                      <Trash2 size={11} />
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </div>
+
+          {/* ── Edit Custom Ninja modal ── */}
+          <AnimatePresence>
+            {editingCustom && (
+              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+                style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+                onClick={() => !customSaving && setEditingCustom(null)}>
+                <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }}
+                  className="bg-white rounded-2xl w-[620px] max-w-full max-h-[90vh] overflow-y-auto"
+                  onClick={(e) => e.stopPropagation()}>
+                  <div className="sticky top-0 bg-white border-b border-[#e5e5ea] px-6 py-4 flex items-center justify-between">
+                    <h3 className="text-xl font-semibold text-[#1d1d1f]">
+                      {editingCustom.id ? 'Edit Custom Ninja' : 'New Custom Ninja'}
+                    </h3>
+                    <button onClick={() => setEditingCustom(null)}
+                      className="w-9 h-9 rounded-lg hover:bg-[#f5f5f7] flex items-center justify-center text-[#86868b]">
+                      <X size={18} />
+                    </button>
+                  </div>
+
+                  <div className="p-6 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Name</label>
+                        <input type="text" value={editingCustom.name}
+                          onChange={(e) => setEditingCustom({ ...editingCustom, name: e.target.value })}
+                          placeholder="e.g. Thunder Ninja"
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Tier</label>
+                        <select value={editingCustom.tier}
+                          onChange={(e) => setEditingCustom({ ...editingCustom, tier: e.target.value as CustomSkin['tier'] })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm">
+                          <option value="free_starter">Free Starter</option>
+                          <option value="free_country">Free Country</option>
+                          <option value="rare">Rare</option>
+                          <option value="epic">Epic</option>
+                          <option value="legendary">Legendary</option>
+                          <option value="mythic">Mythic</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Color theme</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['#0071e3', '#af52de', '#ff9500', '#ff9f0a', '#34c759', '#ff3b30', '#06B6D4', '#FFD700', '#E879F9', '#7C3AED', '#1A0033', '#B3E5FC', '#DC2626', '#10B981'].map((c) => (
+                          <button key={c} type="button"
+                            onClick={() => setEditingCustom({ ...editingCustom, color: c })}
+                            className={`w-8 h-8 rounded-lg border-2 transition-transform ${editingCustom.color === c ? 'scale-110 border-[#1d1d1f]' : 'border-transparent'}`}
+                            style={{ background: c }} />
+                        ))}
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Profile Image URL</label>
+                      <input type="text" value={editingCustom.profileImage || ''}
+                        onChange={(e) => setEditingCustom({ ...editingCustom, profileImage: e.target.value })}
+                        placeholder="/ninjas/profiles/your-ninja.png or full URL"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                      <p className="text-[10px] text-[#86868b] mt-1">Upload to /public/ninjas/profiles/ via file manager, then paste the path here.</p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Price (tokens)</label>
+                        <input type="number" value={editingCustom.price || 0}
+                          onChange={(e) => setEditingCustom({ ...editingCustom, price: Number(e.target.value) })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                        <p className="text-[10px] text-[#86868b] mt-1">= {((editingCustom.price || 0) / 100).toFixed(2)} JOD. Use 0 for free.</p>
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Unlock Level</label>
+                        <input type="number" value={editingCustom.unlockLevel || 1}
+                          onChange={(e) => setEditingCustom({ ...editingCustom, unlockLevel: Number(e.target.value) })}
+                          className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Description</label>
+                      <input type="text" value={editingCustom.description || ''}
+                        onChange={(e) => setEditingCustom({ ...editingCustom, description: e.target.value })}
+                        placeholder="e.g. Born of storms, master of lightning"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Vibe (one word)</label>
+                      <input type="text" value={editingCustom.vibe || ''}
+                        onChange={(e) => setEditingCustom({ ...editingCustom, vibe: e.target.value })}
+                        placeholder="e.g. electric, shadowy, pristine"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                    </div>
+
+                    <div className="flex gap-3 pt-4 border-t border-[#e5e5ea]">
+                      <button onClick={saveCustomSkin} disabled={customSaving || !editingCustom.name.trim()}
+                        className="flex-1 py-3 bg-[#A855F7] text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[#9333EA] disabled:opacity-50">
+                        {customSaving ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        Save Ninja
+                      </button>
+                      {editingCustom.id && (
+                        <button onClick={() => { deleteCustomSkin(editingCustom.id); setEditingCustom(null); }}
+                          className="px-5 py-3 bg-[#ff3b30]/10 text-[#ff3b30] rounded-xl hover:bg-[#ff3b30]/20">
+                          <Trash2 size={16} />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      )}
 
       {/* ===================== SKIN CATALOG ===================== */}
       {activeSection === 'catalog' && (
