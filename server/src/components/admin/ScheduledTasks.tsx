@@ -110,32 +110,49 @@ export function ScheduledTasks() {
     return () => unsub();
   }, []);
 
-  // Client-side execution check every 60 seconds.
+  // Client-side execution check.
   //
-  // NOTE: this only fires while this page is open in a browser. The same
-  // logic runs server-side via /api/cron/scheduled-tasks (Vercel Cron, 1 min)
-  // so tasks fire even when no admin is watching. The two checks share the
-  // `lastRun` field so a task can't fire twice in the same minute.
+  // Fires every 15 seconds (not 60) so the `setInterval` re-mount when
+  // tasks change doesn't create a 60+ second blind spot around the
+  // scheduled minute.
+  //
+  // "Due" logic is drift-tolerant: a task fires if
+  //   - it's enabled
+  //   - today is in its day set
+  //   - now >= scheduled time (today)
+  //   - now - scheduled time <= 10 min (don't fire very old ones)
+  //   - lastRun is either absent, on a different day, OR before today's
+  //     scheduled time (so we re-fire on day rollover, but not twice in
+  //     the same day).
+  //
+  // NOTE: this only fires while this page is open in a browser. For
+  // reliable 24/7 firing, upgrade Vercel to Pro and add the cron back
+  // to vercel.json. Current fallback: keep an admin browser tab open.
   useEffect(() => {
     const checkTasks = async () => {
       const now = new Date();
-      const currentTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
       const currentDay = now.getDay();
+      const currentMinutes = now.getHours() * 60 + now.getMinutes();
 
       let changed = false;
       const updatedTasks = await Promise.all(tasks.map(async (task) => {
         if (!task.enabled) return task;
-        if (task.time !== currentTime) return task;
         if (!task.days[currentDay]) return task;
 
-        // Don't re-execute within same minute
+        const [schedH, schedM] = task.time.split(':').map(Number);
+        const schedMinutes = schedH * 60 + schedM;
+
+        // Not yet scheduled time today
+        if (currentMinutes < schedMinutes) return task;
+        // >10 min past due — don't execute very old missed tasks
+        if (currentMinutes - schedMinutes > 10) return task;
+
+        // Already fired at/after scheduled time today?
         if (task.lastRun) {
-          const lastRunDate = new Date(task.lastRun);
-          if (lastRunDate.getHours() === now.getHours() &&
-              lastRunDate.getMinutes() === now.getMinutes() &&
-              lastRunDate.toDateString() === now.toDateString()) {
-            return task;
-          }
+          const lr = new Date(task.lastRun);
+          const sameDay = lr.toDateString() === now.toDateString();
+          const lrMinutes = lr.getHours() * 60 + lr.getMinutes();
+          if (sameDay && lrMinutes >= schedMinutes) return task;
         }
 
         // Execute task
@@ -203,7 +220,10 @@ export function ScheduledTasks() {
       }
     };
 
-    checkIntervalRef.current = setInterval(checkTasks, 60000);
+    // Fire an immediate check on mount / task-change, plus every 15s.
+    // Faster interval minimizes drift from the React re-render loop.
+    checkTasks();
+    checkIntervalRef.current = setInterval(checkTasks, 15000);
     return () => {
       if (checkIntervalRef.current) clearInterval(checkIntervalRef.current);
     };
@@ -281,16 +301,83 @@ export function ScheduledTasks() {
     await saveTasks(updated);
   };
 
+  // Manually fire a task right now — bypasses time/day checks so the owner
+  // can verify a task actually works without waiting for the schedule.
+  const runTaskNow = async (task: ScheduledTask) => {
+    const log: ExecutionEntry = {
+      timestamp: Date.now(),
+      result: 'success',
+      message: `Manual run · ${TASK_TYPES.find(t => t.value === task.type)?.label}`,
+    };
+    try {
+      switch (task.type) {
+        case 'restart-all':
+        case 'shutdown-all':
+          await setDoc(doc(db, 'config', 'scheduled-command'), {
+            type: task.type, triggeredAt: Date.now(), source: 'manual-run',
+          });
+          break;
+        case 'send-announcement': {
+          const title = (task.announcementTitle || 'Announcement').trim();
+          const message = (task.description || '').trim();
+          if (!message) { log.result = 'skipped'; log.message = 'No announcement message set — edit task first.'; break; }
+          const annType = task.announcementType || 'info';
+          const duration = task.announcementDuration || 60;
+          const nowTs = Date.now();
+          await setDoc(doc(db, 'config', 'announcement'), {
+            active: true, title, message, type: annType, duration,
+            createdAt: nowTs, target: 'all', source: 'manual-run',
+          });
+          await addDoc(collection(db, 'announcements'), {
+            title, message, type: annType, duration,
+            createdAt: nowTs, sentBy: 'manual-run', target: 'all',
+          });
+          log.message = `Announcement sent manually: "${title}"`;
+          break;
+        }
+        case 'run-campaign':
+          await setDoc(doc(db, 'config', 'scheduled-command'), {
+            type: 'run-campaign', description: task.description,
+            triggeredAt: Date.now(), source: 'manual-run',
+          });
+          break;
+      }
+    } catch (err: any) {
+      log.result = 'failed';
+      log.message = `Manual run error: ${err?.message || 'unknown'}`;
+    }
+
+    const updated = tasks.map(t =>
+      t.id === task.id
+        ? { ...t, lastRun: Date.now(), executionLog: [log, ...(t.executionLog || [])].slice(0, 10) }
+        : t
+    );
+    await saveTasks(updated);
+    alert(`Run result: ${log.result}\n${log.message}`);
+  };
+
   const getTaskMeta = (type: ScheduledTask['type']) => TASK_TYPES.find(t => t.value === type)!;
 
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex items-center justify-between mb-3">
         <div>
           <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1 flex items-center gap-3">
             <Timer size={28} className="text-[#0071e3]" />
             Scheduled Tasks
+            <HelpTip title={{ en: 'Scheduled Tasks', ar: 'المهام المجدولة' }}
+              ar={(
+                <>
+                  <p className="mb-2">جدولة مهام متكررة: إعلانات، إعادة تشغيل الكل، إطفاء الكل، حملات.</p>
+                  <p className="mb-1.5"><strong>مهم:</strong> المهام تشتغل من المتصفّح بينما هذه الصفحة مفتوحة. لتشغيل تلقائي 24/7 بدون متصفح، ارفع Vercel إلى خطة Pro.</p>
+                  <p className="text-[#86868b]">استخدم زر "Run Now" لتجربة أي مهمة فوراً.</p>
+                </>
+              )}>
+              <p className="mb-2">Schedule recurring actions: announcements, restart-all, shutdown-all, campaigns.</p>
+              <p className="mb-1.5"><strong>Important:</strong> tasks only fire while this page is open in a browser tab. For 24/7 server-side firing, upgrade Vercel to Pro.</p>
+              <p className="text-[#86868b]">Use the "Run Now" ▶ button on any task to fire it immediately for testing.</p>
+            </HelpTip>
           </h2>
           <p className="text-[#86868b] text-sm">Automate recurring actions across your gaming center</p>
         </div>
@@ -300,6 +387,13 @@ export function ScheduledTasks() {
         >
           <Plus size={16} /> Create Task
         </button>
+      </div>
+      {/* Persistent reminder that this page must stay open for tasks to fire */}
+      <div className="mb-6 flex items-start gap-3 bg-[#fff3cd] border border-[#ffeaa7] rounded-xl px-4 py-3 text-[12px] text-[#8a6d3b]">
+        <AlertCircle size={16} className="flex-shrink-0 mt-0.5" />
+        <div>
+          <strong>Keep this tab open for tasks to fire.</strong> Until Vercel Pro is enabled, the scheduler runs in your browser only. Closing the tab pauses execution; re-opening resumes it. Missed tasks up to 10 minutes late still fire when you reopen.
+        </div>
       </div>
 
       {/* Tasks list */}
@@ -408,6 +502,14 @@ export function ScheduledTasks() {
                       ) : (
                         <ToggleLeft size={22} className="text-[#d2d2d7]" />
                       )}
+                    </button>
+                    {/* Run Now — bypass schedule, fire immediately to test */}
+                    <button
+                      onClick={() => runTaskNow(task)}
+                      className="p-1.5 rounded-lg hover:bg-[#34c759]/10 text-[#34c759] transition-all"
+                      title="Run now (fires immediately, bypass schedule)"
+                    >
+                      <PlayCircle size={18} />
                     </button>
                     {/* Edit */}
                     <button
