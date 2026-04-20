@@ -147,9 +147,35 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
     } catch { /* ignore */ }
   };
 
+  // Fire a customer WhatsApp when the order is marked "ready for pickup".
+  const sendReadyMessage = async (order: UnifiedOrder) => {
+    if (!order.playerId) return;
+    try {
+      const { getDoc, doc: fsDoc } = await import('firebase/firestore');
+      const snap = await getDoc(fsDoc(db, 'players', order.playerId));
+      if (!snap.exists()) return;
+      const data = snap.data() as any;
+      const phone = data.phone || data.whatsapp;
+      if (!phone) return;
+      const items = order.items?.map((i: any) => `${i.quantity}× ${i.name}`).join(', ') || 'your order';
+      const emoji = order.kind === 'shisha' ? '💨' : '🍔';
+      const msg =
+        `${emoji} *Your order is ready!*\n\n` +
+        `${items}\n\n` +
+        `Please come to the counter to pick it up. Thank you! ✨`;
+      fetch('/api/whatsapp/send', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ to: phone, message: msg }),
+      }).catch(() => {});
+    } catch { /* non-fatal */ }
+  };
+
   const updateStatus = async (order: UnifiedOrder, status: OrderStatus) => {
     await updateDoc(doc(db, order.collection, order.id), { status, updatedAt: Date.now() });
     if (newOrderPopup?.id === order.id) setNewOrderPopup(null);
+    // When admin marks an order "ready", send the customer a WhatsApp ping.
+    if (status === 'ready') sendReadyMessage(order);
   };
 
   // Cash-payment cafeteria flow: admin marks paid + advances to preparing in one click.

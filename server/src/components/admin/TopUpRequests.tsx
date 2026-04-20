@@ -115,6 +115,26 @@ export function TopUpRequests() {
         status: 'approved',
         approvedAt: Date.now(),
       });
+
+      // Customer receipt via WhatsApp (fire-and-forget). Skipped silently
+      // if the player has no phone on file or WhatsApp integration is off.
+      try {
+        const playerSnap = await (await import('firebase/firestore')).getDoc(doc(db, 'players', req.playerId));
+        const playerData = playerSnap.exists() ? (playerSnap.data() as any) : null;
+        const phone = playerData?.phone || playerData?.whatsapp;
+        if (phone) {
+          const msg =
+            `✅ *Top-up approved!*\n\n` +
+            `+${req.coins.toLocaleString()} tokens added to your account\n` +
+            `Paid: ${priceJOD.toFixed(2)} JOD\n\n` +
+            `Your new balance is now live on the kiosk. Enjoy! 🎮`;
+          fetch('/api/whatsapp/send', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ to: phone, message: msg }),
+          }).catch(() => {});
+        }
+      } catch { /* non-fatal */ }
     } catch (err) {
       console.error('Failed to approve:', err);
       alert('Failed to add coins: ' + (err as any)?.message);

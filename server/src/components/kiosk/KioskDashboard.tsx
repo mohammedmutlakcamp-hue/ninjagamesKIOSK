@@ -43,7 +43,7 @@ import {
   Gamepad2, Package, UtensilsCrossed, Trophy, User,
   Coins, LogOut, AlertTriangle, Swords, Backpack, ClipboardCheck,
   Users, ChevronLeft, ChevronRight, Send, Timer, Loader2,
-  Monitor, Globe, UserCog, CreditCard, X, Gift, ShoppingBag, Crown, Wrench, Play, Plus, Shield, Eye, EyeOff, Settings, Sparkles, UserPlus, Check, Lock, Flame, Wind, TrendingUp, ArrowRight, Clock
+  Monitor, Globe, UserCog, CreditCard, X, Gift, ShoppingBag, Crown, Wrench, Play, Plus, Shield, Eye, EyeOff, Settings, Sparkles, UserPlus, Check, Lock, Flame, Wind, TrendingUp, ArrowRight, Clock, Star
 } from 'lucide-react';
 
 type Tab = 'games' | 'chests' | 'food' | 'hubbly' | 'tournaments' | 'inventory' | 'profile' | 'leaderboard' | 'dailytasks' | 'friends' | 'software' | 'store' | 'vip';
@@ -815,6 +815,44 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const totalXP = calculateTotalXP(player);
   const levelInfo = getLevelInfo(totalXP);
   const effectiveCostPerHour = Math.round(COINS_PER_MINUTE * 60 * (1 - levelInfo.coinRateBonus / 100));
+
+  // Post-session rating prompt — shows before actual logout. Guest sessions
+  // skip the prompt (no persistent account to tie the rating to).
+  const [showRating, setShowRating] = useState(false);
+  const [ratingStars, setRatingStars] = useState(0);
+  const [ratingHover, setRatingHover] = useState(0);
+  const [ratingComment, setRatingComment] = useState('');
+  const [ratingSending, setRatingSending] = useState(false);
+  const logoutAfterRating = async () => {
+    if (ratingStars > 0) {
+      setRatingSending(true);
+      try {
+        await addDoc(collection(db, 'ratings'), {
+          playerId: player.uid,
+          playerName: player.username,
+          pcName: player.lastPcUsed || player.pcName || null,
+          stars: ratingStars,
+          comment: ratingComment.trim() || null,
+          createdAt: Date.now(),
+        });
+        // Also notify admin via WhatsApp for low ratings (so owner can act quickly)
+        if (ratingStars <= 2) {
+          notifyAdmin('alert', `⚠️ Low rating (${ratingStars}★)`,
+            `${player.username} rated the session ${ratingStars} star${ratingStars === 1 ? '' : 's'}${ratingComment ? `\n"${ratingComment.trim()}"` : ''}`);
+        }
+      } catch (err) { console.error('rating save failed', err); }
+      setRatingSending(false);
+    }
+    setShowRating(false);
+    onLogout();
+  };
+  const interceptedLogout = () => {
+    if (isGuest) { onLogout(); return; }
+    setRatingStars(0);
+    setRatingHover(0);
+    setRatingComment('');
+    setShowRating(true);
+  };
 
   // Guest auto-logout when free play expires
   if (isGuest && player.freePlayUntil && player.freePlayUntil <= Date.now()) {
@@ -1843,7 +1881,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   });
                 }
               } catch { /* logout anyway */ }
-              onLogout();
+              // Show rating prompt before actually logging out (skipped for guests).
+              interceptedLogout();
             }}
             className="w-full flex items-center justify-center gap-2 py-3 rounded-lg font-ninja text-sm tracking-wider transition-all relative overflow-hidden"
             style={{ background: 'rgba(239,68,68,0.08)', border: '2px solid rgba(239,68,68,0.25)', color: '#ef4444' }}>
@@ -1983,6 +2022,91 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             </motion.div>
         )}
       </div>
+
+      {/* Post-session rating prompt — intercepts the Logout button.
+          Optional (player can Skip), but we send a low-rating WhatsApp alert
+          to admin so the owner can follow up on bad sessions quickly. */}
+      <AnimatePresence>
+        {showRating && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[2000] flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
+            <motion.div
+              initial={{ scale: 0.9, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.9, y: 20 }}
+              transition={{ type: 'spring', stiffness: 180 }}
+              className="w-[480px] max-w-full rounded-2xl p-6 relative"
+              style={{
+                background: 'linear-gradient(180deg, #0a0c14 0%, #0a0e1c 60%, #080810 100%)',
+                border: '1px solid rgba(57,255,20,0.35)',
+                boxShadow: '0 0 40px rgba(57,255,20,0.15), 0 20px 60px rgba(0,0,0,0.7)',
+              }}
+              onClick={(e) => e.stopPropagation()}>
+              <div className="text-center mb-5">
+                <div className="font-ninja text-2xl text-ninja-green tracking-wider mb-1">
+                  {lang === 'ar' ? 'قيّم جلستك' : 'RATE YOUR SESSION'}
+                </div>
+                <p className="text-gray-400 text-sm">
+                  {lang === 'ar' ? 'كيف كانت تجربتك اليوم؟' : 'How was your experience today?'}
+                </p>
+              </div>
+
+              {/* 5-star picker */}
+              <div className="flex items-center justify-center gap-2 mb-5">
+                {[1, 2, 3, 4, 5].map((n) => {
+                  const on = (ratingHover || ratingStars) >= n;
+                  return (
+                    <button key={n}
+                      onMouseEnter={() => setRatingHover(n)}
+                      onMouseLeave={() => setRatingHover(0)}
+                      onClick={() => setRatingStars(n)}
+                      className="w-12 h-12 rounded-xl flex items-center justify-center transition-all hover:scale-110 active:scale-95"
+                      style={{
+                        background: on ? 'rgba(255,215,0,0.15)' : 'rgba(255,255,255,0.03)',
+                        border: `1px solid ${on ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.08)'}`,
+                      }}>
+                      <Star size={22}
+                        fill={on ? '#FFD700' : 'none'}
+                        stroke={on ? '#FFD700' : '#86868b'}
+                        style={{ filter: on ? 'drop-shadow(0 0 8px #FFD700)' : 'none' }} />
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Optional comment */}
+              {ratingStars > 0 && (
+                <motion.textarea
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  value={ratingComment}
+                  onChange={(e) => setRatingComment(e.target.value)}
+                  placeholder={lang === 'ar' ? 'أي تعليق إضافي؟ (اختياري)' : 'Any feedback? (optional)'}
+                  rows={3}
+                  className="w-full bg-white/[0.03] border border-white/10 rounded-xl px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-ninja-green/40 mb-4 resize-none" />
+              )}
+
+              {/* Buttons */}
+              <div className="flex gap-3">
+                <button onClick={() => { setShowRating(false); onLogout(); }}
+                  className="flex-1 py-3 rounded-xl bg-white/[0.05] border border-white/10 text-gray-400 font-ninja text-sm tracking-wider hover:bg-white/[0.08]">
+                  {lang === 'ar' ? 'تخطَّ' : 'SKIP'}
+                </button>
+                <button onClick={logoutAfterRating} disabled={ratingSending}
+                  className="flex-1 py-3 rounded-xl font-ninja text-sm tracking-wider text-black disabled:opacity-40"
+                  style={{ background: ratingStars > 0 ? '#39FF14' : 'rgba(57,255,20,0.3)', boxShadow: ratingStars > 0 ? '0 0 16px rgba(57,255,20,0.4)' : 'none' }}>
+                  {ratingSending
+                    ? (lang === 'ar' ? 'جار الإرسال...' : 'SENDING...')
+                    : ratingStars > 0
+                      ? (lang === 'ar' ? 'إرسال و خروج' : 'SUBMIT & LOGOUT')
+                      : (lang === 'ar' ? 'تسجيل الخروج' : 'LOGOUT')}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Tokens-received acknowledgement popup — fires on any positive coin delta */}
       <AnimatePresence>
