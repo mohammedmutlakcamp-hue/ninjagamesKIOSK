@@ -16,6 +16,8 @@ export function TournamentManagement() {
   const [showCreate, setShowCreate] = useState(false);
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  // When non-null, the create modal is in edit mode and saves via updateDoc.
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // Create form state
   const [name, setName] = useState('');
@@ -55,25 +57,63 @@ export function TournamentManagement() {
       coins: Math.floor(maxPlayers * entryFee * p.percentage / 100),
     }));
 
-    await addDoc(collection(db, 'tournaments'), {
-      name, game, description, format,
-      entryFee, maxPlayers, minPlayers,
-      prizePool,
-      prizeDistribution: calculatedPrizes,
-      adminProfit: maxPlayers * entryFee - prizePool,
-      registrationStart: Date.now(),
-      registrationEnd: new Date(startTime).getTime(),
-      startTime: new Date(startTime).getTime(),
-      endTime: null,
-      status: 'registration',
-      participants: [], brackets: [], results: [],
-      rules, termsAndConditions: '',
-      createdBy: 'admin',
-      createdAt: Date.now(), updatedAt: Date.now(),
-    });
+    if (editingId) {
+      // Edit mode — update existing tournament. Leaves participants, brackets,
+      // results, and status intact so an in-progress tournament isn't reset.
+      await updateDoc(doc(db, 'tournaments', editingId), {
+        name, game, description, format,
+        entryFee, maxPlayers, minPlayers,
+        prizePool,
+        prizeDistribution: calculatedPrizes,
+        adminProfit: maxPlayers * entryFee - prizePool,
+        registrationEnd: new Date(startTime).getTime(),
+        startTime: new Date(startTime).getTime(),
+        rules,
+        updatedAt: Date.now(),
+      });
+      setEditingId(null);
+    } else {
+      await addDoc(collection(db, 'tournaments'), {
+        name, game, description, format,
+        entryFee, maxPlayers, minPlayers,
+        prizePool,
+        prizeDistribution: calculatedPrizes,
+        adminProfit: maxPlayers * entryFee - prizePool,
+        registrationStart: Date.now(),
+        registrationEnd: new Date(startTime).getTime(),
+        startTime: new Date(startTime).getTime(),
+        endTime: null,
+        status: 'registration',
+        participants: [], brackets: [], results: [],
+        rules, termsAndConditions: '',
+        createdBy: 'admin',
+        createdAt: Date.now(), updatedAt: Date.now(),
+      });
+    }
 
     setShowCreate(false);
     resetForm();
+  };
+
+  const openEditTournament = (t: Tournament) => {
+    setEditingId(t.id);
+    setName(t.name || '');
+    setGame(t.game || '');
+    setDescription(t.description || '');
+    setFormat(t.format || 'bracket');
+    setEntryFee(t.entryFee || 100);
+    setMaxPlayers(t.maxPlayers || 16);
+    setMinPlayers(t.minPlayers || 4);
+    setStartTime(t.startTime ? new Date(t.startTime).toISOString().slice(0, 16) : '');
+    setRules(t.rules || '');
+    setPrizes((t.prizeDistribution && t.prizeDistribution.length)
+      ? t.prizeDistribution.map(p => ({ position: p.position, percentage: p.percentage, coins: p.coins || 0 }))
+      : [
+          { position: 1, percentage: 50, coins: 0 },
+          { position: 2, percentage: 30, coins: 0 },
+          { position: 3, percentage: 20, coins: 0 },
+        ]);
+    setShowCreate(true);
   };
 
   const resetForm = () => {
@@ -293,7 +333,13 @@ export function TournamentManagement() {
                     )}
 
                     {/* Actions */}
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap">
+                      {/* Edit — available on every tournament regardless of status
+                          so admins can fix typos, adjust prize pool mid-event, etc. */}
+                      <button onClick={() => openEditTournament(t)}
+                        className="px-4 py-2 bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/20 rounded-xl text-sm font-medium flex items-center gap-1 hover:bg-[#0071e3]/15 transition-colors">
+                        <Edit size={14} /> Edit
+                      </button>
                       {t.status === 'registration' && (
                         <>
                           <button onClick={() => generateBrackets(t)}
@@ -360,9 +406,9 @@ export function TournamentManagement() {
             >
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-2xl font-semibold text-[#1d1d1f] flex items-center gap-2">
-                  <Trophy size={24} className="text-[#0071e3]" /> Create Tournament
+                  <Trophy size={24} className="text-[#0071e3]" /> {editingId ? 'Edit Tournament' : 'Create Tournament'}
                 </h3>
-                <button onClick={() => setShowCreate(false)} className="text-[#86868b] hover:text-[#1d1d1f] transition-colors"><X size={20} /></button>
+                <button onClick={() => { setShowCreate(false); setEditingId(null); resetForm(); }} className="text-[#86868b] hover:text-[#1d1d1f] transition-colors"><X size={20} /></button>
               </div>
 
               <div className="space-y-4">
@@ -463,7 +509,7 @@ export function TournamentManagement() {
                 onClick={createTournament}
                 className="w-full mt-6 py-3 bg-[#0071e3] text-white font-medium text-lg rounded-xl flex items-center justify-center gap-2 hover:bg-[#0077ED] transition-colors"
               >
-                <Trophy size={20} /> Create Tournament
+                <Trophy size={20} /> {editingId ? 'Save Changes' : 'Create Tournament'}
               </motion.button>
             </motion.div>
           </motion.div>

@@ -10,7 +10,7 @@ import {
   Send, Search, Coins, AlertTriangle, CheckCircle2, X,
   Loader2, Settings, Lock, Shield,
   Eye, EyeOff, Pencil, Flag, Link2, Share2, Copy,
-  UserPlus, Camera
+  UserPlus, Camera, Crown
 } from 'lucide-react';
 import { NinjaInput } from '@/components/kiosk/NinjaInput';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
@@ -55,6 +55,21 @@ export function ProfileTab({ player }: Props) {
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState(player.bio || '');
   const [bioSaving, setBioSaving] = useState(false);
+  // Phone number editing — lets players update their WhatsApp contact without
+  // having to bug an admin. Basic + loose validation (keep digits, +, spaces).
+  const [editingPhone, setEditingPhone] = useState(false);
+  const [phoneText, setPhoneText] = useState((player as any).phone || '');
+  const [phoneSaving, setPhoneSaving] = useState(false);
+  const savePhone = async () => {
+    const cleaned = phoneText.trim().slice(0, 20);
+    if (!cleaned) return;
+    setPhoneSaving(true);
+    try {
+      await updateDoc(doc(db, 'players', player.uid), { phone: cleaned });
+      setEditingPhone(false);
+    } catch (err) { console.error('save phone failed', err); }
+    setPhoneSaving(false);
+  };
 
   // Social links
   const [editingSocials, setEditingSocials] = useState(false);
@@ -440,26 +455,49 @@ export function ProfileTab({ player }: Props) {
           {/* Avatar + Upload */}
           <div className="flex flex-col items-center flex-shrink-0 gap-2">
             <div className="relative">
-              {/* Octagonal sci-fi frame */}
-              <div className="w-[130px] h-[130px] relative">
-                <motion.div className="absolute inset-0"
-                  style={{
-                    clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-                    background: `linear-gradient(135deg, rgba(150,150,150,0.4), ${ninjaColor}60, rgba(150,150,150,0.4))`,
-                  }}
-                  animate={{ boxShadow: [`0 0 20px ${ninjaColor}30`, `0 0 40px ${ninjaColor}50`, `0 0 20px ${ninjaColor}30`] }}
-                  transition={{ duration: 3, repeat: Infinity }} />
-                <div className="absolute inset-[3px] overflow-hidden"
-                  style={{ clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)', background: '#0a0a0a' }}>
-                  {player.profilePhoto ? (
-                    <img src={player.profilePhoto} alt="avatar" className="w-full h-full object-cover" />
-                  ) : player.ninjaType ? (
-                    <img src={`/img/pfp-${player.ninjaType}.png`} alt="avatar" className="w-full h-full object-contain" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center"><User size={48} style={{ color: ninjaColor }} /></div>
-                  )}
-                </div>
-              </div>
+              {/* Octagonal sci-fi frame — switches to gold + crown when VIP */}
+              {(() => {
+                const isVip = !!(player.vip?.active && (player.vip?.expiresAt || 0) > Date.now());
+                const frameColor = isVip ? '#FFD700' : ninjaColor;
+                return (
+                  <div className="w-[130px] h-[130px] relative">
+                    <motion.div className="absolute inset-0"
+                      style={{
+                        clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
+                        background: isVip
+                          ? 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700)'
+                          : `linear-gradient(135deg, rgba(150,150,150,0.4), ${ninjaColor}60, rgba(150,150,150,0.4))`,
+                      }}
+                      animate={{ boxShadow: [`0 0 20px ${frameColor}40`, `0 0 50px ${frameColor}70`, `0 0 20px ${frameColor}40`] }}
+                      transition={{ duration: 2.4, repeat: Infinity }} />
+                    <div className="absolute inset-[3px] overflow-hidden"
+                      style={{ clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)', background: '#0a0a0a' }}>
+                      {player.profilePhoto ? (
+                        <img src={player.profilePhoto} alt="avatar" className="w-full h-full object-cover" />
+                      ) : player.ninjaType ? (
+                        <img src={`/img/pfp-${player.ninjaType}.png`} alt="avatar" className="w-full h-full object-contain" />
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center"><User size={48} style={{ color: ninjaColor }} /></div>
+                      )}
+                    </div>
+                    {/* Crown badge on top */}
+                    {isVip && (
+                      <motion.div
+                        className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-9 h-9 rounded-full flex items-center justify-center"
+                        style={{
+                          background: 'radial-gradient(circle, #FFD700 0%, #B8860B 70%)',
+                          boxShadow: '0 0 14px rgba(255,215,0,0.7), 0 4px 10px rgba(0,0,0,0.4)',
+                          border: '1.5px solid #FFD700',
+                        }}
+                        animate={{ y: [0, -2, 0] }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                      >
+                        <Crown size={18} className="text-black" strokeWidth={2.5} />
+                      </motion.div>
+                    )}
+                  </div>
+                );
+              })()}
               {/* Level shield badge */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 z-10">
                 <div className="w-10 h-11 flex items-center justify-center"
@@ -888,6 +926,36 @@ export function ProfileTab({ player }: Props) {
                   className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white font-body resize-none focus:outline-none focus:border-ninja-green/40" rows={2} />
               ) : (
                 <p className="font-body text-xs text-gray-500 italic">{player.bio || (ar ? 'لا توجد نبذة' : 'No bio set')}</p>
+              )}
+            </div>
+
+            {/* ── Phone / WhatsApp ── */}
+            <div className="py-3 border-b border-white/5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-body text-xs text-gray-400 flex items-center gap-1.5">
+                  <Pencil size={12} style={{ color: ninjaColor }} /> {ar ? 'رقم الهاتف' : 'Phone / WhatsApp'}
+                </span>
+                {!editingPhone ? (
+                  <button onClick={() => { setEditingPhone(true); setPhoneText((player as any).phone || ''); }} className="font-body text-[10px] text-gray-500 hover:text-white transition-all">{ar ? 'تعديل' : 'Edit'}</button>
+                ) : (
+                  <div className="flex gap-2">
+                    <button onClick={savePhone} disabled={phoneSaving} className="font-body text-[10px] text-ninja-green">{phoneSaving ? '...' : (ar ? 'حفظ' : 'Save')}</button>
+                    <button onClick={() => setEditingPhone(false)} className="font-body text-[10px] text-gray-500">{ar ? 'إلغاء' : 'Cancel'}</button>
+                  </div>
+                )}
+              </div>
+              {editingPhone ? (
+                <input
+                  type="tel"
+                  value={phoneText}
+                  onChange={(e) => setPhoneText(e.target.value.replace(/[^\d+ \-()]/g, ''))}
+                  placeholder="+962 7..."
+                  className="w-full bg-black/40 border border-white/10 rounded-lg p-2 text-xs text-white font-body focus:outline-none focus:border-ninja-green/40"
+                />
+              ) : (
+                <p className="font-body text-xs text-gray-500 italic">
+                  {(player as any).phone || (ar ? 'لم يتم إضافة رقم' : 'No phone set')}
+                </p>
               )}
             </div>
 

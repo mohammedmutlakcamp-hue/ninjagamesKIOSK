@@ -51,6 +51,37 @@ export default function KioskPage() {
     const saved = localStorage.getItem('kiosk-last-user');
     if (saved) setLastUser(saved);
   }, []);
+
+  // Live clock on the login screen — ticks every second.
+  const [loginClock, setLoginClock] = useState<string>(() => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  useEffect(() => {
+    const iv = setInterval(() => {
+      setLoginClock(new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    }, 1000);
+    return () => clearInterval(iv);
+  }, []);
+
+  // Little arcade-style chime on successful login. Muted on failure.
+  const playLoginChime = () => {
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const now = ctx.currentTime;
+      const note = (freq: number, delay: number, duration: number, vol = 0.25) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'triangle'; osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0, now + delay);
+        gain.gain.linearRampToValueAtTime(vol, now + delay + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + delay + duration);
+        osc.start(now + delay);
+        osc.stop(now + delay + duration);
+      };
+      note(660, 0.00, 0.12);
+      note(880, 0.10, 0.16);
+      note(1320, 0.22, 0.28);
+    } catch { /* ignore */ }
+  };
   // Login leaderboard
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [leaderboardTab, setLeaderboardTab] = useState<'playtime' | 'coins_spent' | 'chests_opened'>('playtime');
@@ -506,6 +537,7 @@ export default function KioskPage() {
       const api = (window as any).electronAPI;
       if (api?.sessionLogin) api.sessionLogin();
       if (api?.playerLogin) api.playerLogin({ username: (playerData as any).username, uid: (playerData as any).uid });
+      playLoginChime();
       setScreen('welcome');
     } catch (err) {
       setError(t(lang, 'connection_error'));
@@ -987,10 +1019,24 @@ export default function KioskPage() {
                           style={{ boxShadow: '0 0 6px #39FF14' }}
                         />
                       </div>
+                      {/* Live clock */}
+                      <div className="flex items-center justify-center gap-1.5 mt-2">
+                        <span
+                          className="font-mono text-[13px] tracking-[0.35em] text-ninja-green"
+                          style={{ textShadow: '0 0 10px rgba(57,255,20,0.5)' }}
+                        >
+                          {loginClock}
+                        </span>
+                      </div>
                       {pcNameDisplay && (
                         <div className="flex items-center justify-center gap-1.5 mt-2">
-                          <Monitor size={11} className="text-blue-400" />
-                          <span className="font-mono text-[10px] text-blue-400/80 tracking-wider">{pcNameDisplay}</span>
+                          <Monitor size={13} className="text-blue-400" />
+                          <span
+                            className="font-mono text-[13px] font-semibold text-blue-300 tracking-[0.25em]"
+                            style={{ textShadow: '0 0 8px rgba(96,165,250,0.45)' }}
+                          >
+                            {pcNameDisplay}
+                          </span>
                         </div>
                       )}
                     </div>
@@ -1335,22 +1381,53 @@ export default function KioskPage() {
                   </div>
                 </div>
 
-                {/* Socials — "Check this out" link to in-kiosk info page (QR codes + BACK TO KIOSK button) */}
-                <a
+                {/* Socials — animated "Check this out" link. Pulses + shimmers
+                    so players spot it between matches. */}
+                <motion.a
                   href="/infokiosk"
-                  className="mt-6 group flex items-center gap-3 px-5 py-3 rounded-xl transition-all hover:scale-105"
+                  animate={{
+                    boxShadow: [
+                      '0 0 18px rgba(232,121,249,0.15)',
+                      '0 0 32px rgba(232,121,249,0.45)',
+                      '0 0 18px rgba(232,121,249,0.15)',
+                    ],
+                  }}
+                  transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut' }}
+                  whileHover={{ scale: 1.04 }}
+                  className="mt-6 group flex items-center gap-3 px-5 py-3 rounded-xl relative overflow-hidden"
                   style={{
-                    background: 'linear-gradient(135deg, rgba(232,121,249,0.08), rgba(57,255,20,0.06))',
-                    border: '1px solid rgba(232,121,249,0.3)',
-                    boxShadow: '0 0 18px rgba(232,121,249,0.15)',
+                    background: 'linear-gradient(135deg, rgba(232,121,249,0.12), rgba(57,255,20,0.08))',
+                    border: '1px solid rgba(232,121,249,0.4)',
                   }}
                 >
-                  <Instagram size={18} className="text-pink-400 group-hover:scale-110 transition-transform" style={{ filter: 'drop-shadow(0 0 6px rgba(232,121,249,0.7))' }} />
-                  <span className="font-ninja text-sm tracking-wider text-pink-300" style={{ textShadow: '0 0 8px rgba(232,121,249,0.4)' }}>
+                  {/* Shimmer sweep */}
+                  <motion.div
+                    className="absolute inset-0 pointer-events-none"
+                    initial={{ x: '-100%' }}
+                    animate={{ x: '120%' }}
+                    transition={{ duration: 2.6, repeat: Infinity, ease: 'linear', repeatDelay: 0.8 }}
+                    style={{
+                      background: 'linear-gradient(120deg, transparent 20%, rgba(255,255,255,0.18) 50%, transparent 80%)',
+                      width: '60%',
+                    }}
+                  />
+                  <motion.div
+                    animate={{ rotate: [0, -8, 8, 0] }}
+                    transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <Instagram size={20} className="text-pink-400" style={{ filter: 'drop-shadow(0 0 8px rgba(232,121,249,0.8))' }} />
+                  </motion.div>
+                  <span className="font-ninja text-sm tracking-wider text-pink-300 relative z-[1]" style={{ textShadow: '0 0 10px rgba(232,121,249,0.5)' }}>
                     {lang === 'ar' ? 'تابعنا — شاهد روابطنا' : 'CHECK THIS OUT — FOLLOW US'}
                   </span>
-                  <ArrowRight size={14} className="text-pink-300 group-hover:translate-x-1 transition-transform" />
-                </a>
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ duration: 1.2, repeat: Infinity, ease: 'easeInOut' }}
+                    className="relative z-[1]"
+                  >
+                    <ArrowRight size={16} className="text-pink-300" />
+                  </motion.div>
+                </motion.a>
               </div>
 
             </motion.div>

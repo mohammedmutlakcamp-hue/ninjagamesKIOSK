@@ -100,6 +100,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const topUpCustomNum = parseInt(topUpCustomTokens, 10);
   const topUpCustomValid = !isNaN(topUpCustomNum) && topUpCustomNum >= CUSTOM_TOKEN_MIN;
   const topUpCustomPriceJOD = topUpCustomValid ? Math.round((topUpCustomNum / CUSTOM_TOKENS_PER_JOD) * 100) / 100 : 0;
+  // Live-tracked pending topup so the top-bar chip and popup stay in sync.
+  // Whichever one calls cancel deletes the Firestore doc → the listener clears
+  // both at once, so there's no drift.
+  const [pendingTopup, setPendingTopup] = useState<{ id: string; coins: number; priceJOD: number; createdAt: number } | null>(null);
   // Become a User popup for guests
   const [showBecomeUser, setShowBecomeUser] = useState(false);
   const [becomeUserStep, setBecomeUserStep] = useState<string>('info'); // info | waiting | register | form | ninja | package | pendingApproval
@@ -650,6 +654,49 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   // Minimum tokens needed to buy ANY time package
   const minTimePackageCost = Math.min(...TIME_PACKAGES.map(p => p.coins));
 
+  // Session-end warning chime — fires once when remainingPlaytime crosses 10
+  // and again at 5 minutes. Ref guard so it doesn't re-fire on unrelated
+  // re-renders.
+  const warnedRef = useRef<{ ten: boolean; five: boolean }>({ ten: false, five: false });
+  useEffect(() => {
+    if (isGuest) return;
+    const fpu = player.freePlayUntil;
+    if (fpu && fpu > Date.now()) return; // free play — no warnings
+    const playWarnTone = (urgency: 'soft' | 'urgent') => {
+      try {
+        const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+        const now = ctx.currentTime;
+        const n = (freq: number, delay: number, dur: number, vol = 0.35) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.connect(gain); gain.connect(ctx.destination);
+          osc.type = urgency === 'urgent' ? 'square' : 'sine';
+          osc.frequency.value = freq;
+          gain.gain.setValueAtTime(0, now + delay);
+          gain.gain.linearRampToValueAtTime(vol, now + delay + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + delay + dur);
+          osc.start(now + delay); osc.stop(now + delay + dur);
+        };
+        if (urgency === 'soft') {
+          n(880, 0, 0.2); n(660, 0.22, 0.3);
+        } else {
+          n(1200, 0, 0.18); n(800, 0.2, 0.18);
+          n(1200, 0.4, 0.18); n(800, 0.6, 0.25);
+        }
+      } catch { /* ignore */ }
+    };
+    if (remainingPlaytime > 10) {
+      warnedRef.current.ten = false;
+      warnedRef.current.five = false;
+    } else if (remainingPlaytime <= 10 && remainingPlaytime > 5 && !warnedRef.current.ten) {
+      warnedRef.current.ten = true;
+      playWarnTone('soft');
+    } else if (remainingPlaytime <= 5 && remainingPlaytime > 0 && !warnedRef.current.five) {
+      warnedRef.current.five = true;
+      playWarnTone('urgent');
+    }
+  }, [remainingPlaytime, isGuest, player.freePlayUntil]);
+
   // When playtime runs out — show Buy Time popup (if tokens enough) or Top-Up popup
   useEffect(() => {
     if (isGuest) return;
@@ -713,6 +760,51 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
     }, 1000);
     return () => clearInterval(iv);
   }, [player.freePlayUntil]);
+
+  // Live-track the most-recent pending top-up request for this player.
+  // Any cancel (from top bar pill OR popup) deletes the Firestore doc; the
+  // listener picks up the absence and both UIs go quiet simultaneously.
+  // Also auto-flips topUpSent back off if admin approved/rejected out from
+  // under us.
+  useEffect(() => {
+    if (isGuest) return;
+    const q = query(
+      collection(db, 'topup-requests'),
+      where('playerId', '==', player.uid),
+      where('status', '==', 'pending'),
+    );
+    const unsub = onSnapshot(q, (snap) => {
+      if (snap.empty) {
+        setPendingTopup(null);
+        // Admin resolved — clear the "sent" state so the form resets for the
+        // next request rather than freezing on the ✓ screen forever.
+        setTopUpSent(false);
+        return;
+      }
+      const latest = snap.docs
+        .map(d => ({ id: d.id, ...(d.data() as any) }))
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+      setPendingTopup({
+        id: latest.id,
+        coins: latest.coins || 0,
+        priceJOD: latest.priceJOD || 0,
+        createdAt: latest.createdAt || 0,
+      });
+    });
+    return () => unsub();
+  }, [player.uid, isGuest]);
+
+  // Shared cancel — used by both the floating chip and the popup confirm
+  // screen. Single source of truth: delete the doc and let the listener
+  // propagate.
+  const cancelPendingTopup = async () => {
+    if (!pendingTopup) { setTopUpSent(false); return; }
+    try {
+      const { deleteDoc: delDoc, doc: fsDoc } = await import('firebase/firestore');
+      await delDoc(fsDoc(db, 'topup-requests', pendingTopup.id));
+    } catch (err) { console.error('cancel topup failed', err); }
+    setTopUpSent(false);
+  };
 
   // Listen for guest registration top-up approval/rejection
   useEffect(() => {
@@ -1336,13 +1428,23 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                 <div className="relative cursor-pointer" onClick={() => setActivePopup('profile')}>
                   {/* Octagonal outer frame */}
                   <div className="w-[90px] h-[90px] relative">
-                    {/* Outer octagon border with glow */}
-                    <div className="absolute inset-0 flex items-center justify-center"
+                    {/* Outer octagon border with glow — solid gold gradient for VIP */}
+                    <motion.div className="absolute inset-0 flex items-center justify-center"
                       style={{
                         clipPath: 'polygon(30% 0%, 70% 0%, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0% 70%, 0% 30%)',
-                        background: `linear-gradient(135deg, rgba(150,150,150,0.4), ${isPlayerVIP ? 'rgba(255,215,0,0.3)' : 'rgba(57,255,20,0.3)'}, rgba(150,150,150,0.4))`,
-                        boxShadow: isPlayerVIP ? '0 0 20px rgba(255,215,0,0.3)' : '0 0 20px rgba(57,255,20,0.25)',
-                      }} />
+                        background: isPlayerVIP
+                          ? 'linear-gradient(135deg, #FFD700, #B8860B, #FFD700)'
+                          : `linear-gradient(135deg, rgba(150,150,150,0.4), rgba(57,255,20,0.3), rgba(150,150,150,0.4))`,
+                      }}
+                      animate={isPlayerVIP ? {
+                        boxShadow: [
+                          '0 0 18px rgba(255,215,0,0.5)',
+                          '0 0 42px rgba(255,215,0,0.85)',
+                          '0 0 18px rgba(255,215,0,0.5)',
+                        ],
+                      } : { boxShadow: '0 0 20px rgba(57,255,20,0.25)' }}
+                      transition={{ duration: 2.4, repeat: isPlayerVIP ? Infinity : 0 }}
+                    />
                     {/* Inner octagon with avatar */}
                     <div className="absolute inset-[3px] flex items-center justify-center overflow-hidden"
                       style={{
@@ -1370,6 +1472,21 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       <span className="font-ninja text-[12px] text-black font-bold mt-0.5">{levelInfo.level}</span>
                     </div>
                   </div>
+                  {/* VIP crown badge — sits on top of the octagonal frame */}
+                  {isPlayerVIP && (
+                    <motion.div
+                      className="absolute -top-3 left-1/2 -translate-x-1/2 w-7 h-7 rounded-full flex items-center justify-center z-20"
+                      style={{
+                        background: 'radial-gradient(circle, #FFD700 0%, #B8860B 70%)',
+                        boxShadow: '0 0 10px rgba(255,215,0,0.7), 0 3px 6px rgba(0,0,0,0.4)',
+                        border: '1.5px solid #FFD700',
+                      }}
+                      animate={{ y: [0, -2, 0] }}
+                      transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
+                    >
+                      <Crown size={13} className="text-black" strokeWidth={2.5} />
+                    </motion.div>
+                  )}
                 </div>
 
                 {/* Settings button in chrome/cyan circle */}
@@ -2747,7 +2864,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               </div>
 
               <div className="relative z-10 p-8">
-              {topUpSent ? (
+              {(topUpSent || pendingTopup) ? (
                 <div className="text-center py-8">
                   <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 150 }}>
                     <div className="w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5"
@@ -2757,11 +2874,26 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   </motion.div>
                   <h3 className="font-ninja text-2xl text-yellow-400 mb-2">{t(lang, 'request_sent')}</h3>
                   <p className="font-body text-gray-400 text-sm">{t(lang, 'admin_notified')}</p>
-                  <button onClick={() => setShowTopUpModal(false)}
-                    className="buytime-bubble-btn mt-6 px-10 py-3 rounded-xl font-ninja text-lg border-none cursor-pointer"
-                    style={{ background: 'linear-gradient(135deg, #d4a017, #eab308)', color: '#000' }}>
-                    {t(lang, 'ok')}
-                  </button>
+                  {pendingTopup && (
+                    <p className="font-body text-yellow-300 text-sm mt-3">
+                      {lang === 'ar' ? 'قيد الانتظار: ' : 'Pending: '}
+                      <span className="font-semibold">{pendingTopup.coins.toLocaleString()} tokens · {pendingTopup.priceJOD.toFixed(2)} JOD</span>
+                    </p>
+                  )}
+                  <div className="flex gap-3 mt-6 justify-center">
+                    <button onClick={() => setShowTopUpModal(false)}
+                      className="buytime-bubble-btn px-8 py-3 rounded-xl font-ninja text-lg border-none cursor-pointer"
+                      style={{ background: 'linear-gradient(135deg, #d4a017, #eab308)', color: '#000' }}>
+                      {t(lang, 'ok')}
+                    </button>
+                    {pendingTopup && (
+                      <button onClick={() => { cancelPendingTopup(); }}
+                        className="px-6 py-3 rounded-xl font-ninja text-sm border cursor-pointer"
+                        style={{ background: 'rgba(255,59,48,0.1)', border: '1px solid rgba(255,59,48,0.4)', color: '#ff3b30' }}>
+                        {lang === 'ar' ? 'إلغاء الطلب' : 'CANCEL REQUEST'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ) : (
                 <>
@@ -3549,6 +3681,34 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
       {/* Floating Order Bubble (food + shisha) */}
       {!isGuest && player?.uid && <OrderBubble playerUid={player.uid} />}
+
+      {/* Pending Top-Up chip — shared source of truth with the popup. Click
+          the × to cancel; the underlying Firestore listener syncs both UIs. */}
+      {!isGuest && pendingTopup && (
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          className="fixed top-4 left-1/2 -translate-x-1/2 z-[260] flex items-center gap-2 px-4 py-2 rounded-full font-ninja text-sm tracking-wider shadow-[0_8px_24px_rgba(0,0,0,0.4)]"
+          style={{
+            background: 'linear-gradient(135deg, rgba(234,179,8,0.95), rgba(212,160,23,0.95))',
+            color: '#000',
+            border: '1px solid rgba(234,179,8,0.4)',
+          }}
+        >
+          <Loader2 size={14} className="animate-spin" />
+          {lang === 'ar'
+            ? `بانتظار الموافقة · ${pendingTopup.coins.toLocaleString()} توكن`
+            : `TOP-UP PENDING · ${pendingTopup.coins.toLocaleString()} tokens`}
+          <button
+            onClick={() => cancelPendingTopup()}
+            title={lang === 'ar' ? 'إلغاء الطلب' : 'Cancel request'}
+            className="ml-1 w-6 h-6 rounded-full bg-black/20 hover:bg-black/40 flex items-center justify-center transition-colors"
+          >
+            <X size={14} strokeWidth={3} />
+          </button>
+        </motion.div>
+      )}
 
       {/* Chat Panel — no floating bubble, opens via events */}
       <ChatBubble player={player} hideBubble />
