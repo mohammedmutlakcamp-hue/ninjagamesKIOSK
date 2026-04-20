@@ -28,6 +28,7 @@ import {
   Gift, Plus, Trash2, Save, X, CheckCircle2, Loader2, Clock,
   Coffee, Sandwich, Flame, Pill,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface BundleItem {
   name: string;
@@ -134,7 +135,16 @@ export function PromotionsPanel() {
             <Gift size={22} className="text-[#ff9500]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Promotions & Bundles</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              Promotions & Bundles
+              <HelpTip title="Promotions & Bundles">
+                <p className="mb-2">Time-window deals — like "Happy Hour 6–9pm Mon–Fri: Cola + Burger + 1h play for 5 JOD".</p>
+                <p className="mb-1.5"><strong>How players see it:</strong> during the active window, a green banner appears at the top of every kiosk with a BUY NOW button. Clicking it opens an order popup where they pay either in cash (collect at counter) or tokens (auto-deducted).</p>
+                <p className="mb-1.5"><strong>Cash orders</strong> create a promo-order with paid=false — admin marks paid at the counter just like regular cafe orders.</p>
+                <p className="mb-1.5"><strong>Token orders</strong> are instant: tokens deducted, order marked paid.</p>
+                <p className="text-[#86868b]"><strong>Tip:</strong> make the banner text short and loud (emojis help). "🔥 HAPPY HOUR ·  Cola + Burger + 1h = 5 JOD" is perfect.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">
               Time-window deals shown as kiosk banners with a BUY NOW button.
               {promos.some(isActiveNow) && <span className="ml-2 text-[#34c759] font-medium">● Live now</span>}

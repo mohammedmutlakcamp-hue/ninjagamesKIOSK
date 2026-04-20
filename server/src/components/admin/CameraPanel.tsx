@@ -25,6 +25,7 @@ import {
   Video, Plus, Trash2, Pencil, X, Save, Loader2, AlertTriangle, RefreshCw, Maximize2,
   Wifi, WifiOff, CheckCircle2, HelpCircle, ExternalLink, Shield, Router,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface Camera {
   id: string;
@@ -108,7 +109,15 @@ export function CameraPanel() {
             <Video size={22} className="text-[#ef4444]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Cameras</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              Cameras
+              <HelpTip title="Camera Panel">
+                <p className="mb-2">Watch every Hikvision camera in the shop from one place. Grid of live snapshots refreshing every {REFRESH_INTERVAL / 1000}s; click any tile for a bigger fullscreen view.</p>
+                <p className="mb-1.5"><strong>Each tile shows:</strong> camera name, zone, live-pulse dot, host IP, channel number.</p>
+                <p className="mb-1.5"><strong>Add a camera:</strong> click "Add Camera", enter name + IP + port + channel (101 for main stream) + Hikvision admin user + password. Credentials never leave the server.</p>
+                <p className="text-[#86868b]"><strong>For remote access</strong> (checking cameras from home), click "Setup Guide" for the step-by-step port-forwarding walkthrough.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">
               {cameras.length} Hikvision camera{cameras.length === 1 ? '' : 's'} — live JPEG snapshot grid, refreshes every {REFRESH_INTERVAL / 1000}s
             </p>

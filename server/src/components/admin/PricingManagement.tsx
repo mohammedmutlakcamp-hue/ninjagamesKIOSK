@@ -4,14 +4,13 @@ import { useState, useEffect } from 'react';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, setDoc, collection, getDocs } from 'firebase/firestore';
 import {
-  COIN_PACKAGES,
   TIME_PACKAGES,
   VIP_CONFIG,
   COINS_PER_HOUR,
   JOD_TO_COINS,
   USERNAME_CHANGE_COST,
 } from '@/lib/constants';
-import { CoinPackage, TimePackage } from '@/types';
+import { TimePackage } from '@/types';
 import {
   Coins,
   Clock,
@@ -28,6 +27,7 @@ import {
   Wallet,
 } from 'lucide-react';
 import { motion } from 'framer-motion';
+import { HelpTip } from './HelpTip';
 
 interface VipConfigState {
   trialDays: number;
@@ -48,10 +48,21 @@ interface EconomyStats {
 
 const PRICING_DOC = doc(db, 'config', 'pricing');
 
-function SectionHeader({ icon: Icon, title }: { icon: React.ElementType; title: string }) {
+function SectionHeader({
+  icon: Icon,
+  title,
+  help,
+  helpTitle,
+}: {
+  icon: React.ElementType;
+  title: string;
+  help?: React.ReactNode;
+  helpTitle?: string;
+}) {
   return (
     <h3 className="text-lg font-semibold text-[#1d1d1f] mb-4 flex items-center gap-2">
       <Icon size={18} className="text-[#0071e3]" /> {title}
+      {help && <HelpTip title={helpTitle || title}>{help}</HelpTip>}
     </h3>
   );
 }
@@ -123,13 +134,6 @@ function InputField({
 }
 
 export function PricingManagement() {
-  // --- Coin Packages ---
-  const [coinPackages, setCoinPackages] = useState<CoinPackage[]>(
-    COIN_PACKAGES.map((p) => ({ ...p }))
-  );
-  const [coinSaving, setCoinSaving] = useState(false);
-  const [coinSaved, setCoinSaved] = useState(false);
-
   // --- Time Packages ---
   const [timePackages, setTimePackages] = useState<TimePackage[]>(
     TIME_PACKAGES.map((p) => ({ ...p }))
@@ -175,7 +179,6 @@ export function PricingManagement() {
         const snap = await getDoc(PRICING_DOC);
         if (snap.exists()) {
           const data = snap.data();
-          if (data.coinPackages) setCoinPackages(data.coinPackages);
           if (data.timePackages) setTimePackages(data.timePackages);
           if (typeof data.coinsPerHour === 'number') setCoinsPerHour(data.coinsPerHour);
           if (typeof data.jodToCoins === 'number') setJodToCoins(data.jodToCoins);
@@ -261,16 +264,6 @@ export function PricingManagement() {
   };
 
   // --- Package updaters ---
-  const updateCoinPackage = (index: number, field: keyof CoinPackage, value: string) => {
-    const updated = [...coinPackages];
-    if (field === 'coins' || field === 'price') {
-      (updated[index] as any)[field] = Number(value) || 0;
-    } else {
-      (updated[index] as any)[field] = value;
-    }
-    setCoinPackages(updated);
-  };
-
   const updateTimePackage = (index: number, field: keyof TimePackage, value: string) => {
     const updated = [...timePackages];
     if (field === 'hours' || field === 'coins') {
@@ -300,79 +293,6 @@ export function PricingManagement() {
       </h2>
 
       <div className="space-y-6">
-        {/* ==================== COIN PACKAGES ==================== */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0 }}
-          className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
-        >
-          <div className="flex items-center justify-between mb-4">
-            <SectionHeader icon={Coins} title="Coin Packages" />
-            <div className="flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  if (!confirm('Reset coin packages to factory defaults? Saved changes will be lost.')) return;
-                  const defaults = COIN_PACKAGES.map((p) => ({ ...p }));
-                  setCoinPackages(defaults);
-                  saveField('coinPackages', defaults, setCoinSaving, setCoinSaved);
-                }}
-                className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/25 hover:bg-[#ff3b30]/15 transition-colors"
-              >
-                Reset to defaults
-              </button>
-              <SaveButton
-                onClick={() => saveField('coinPackages', coinPackages, setCoinSaving, setCoinSaved)}
-                saving={coinSaving}
-                saved={coinSaved}
-              />
-            </div>
-          </div>
-          <p className="text-[#86868b] text-xs mb-4">
-            Coins players can purchase with real money (JOD). Defaults: 100→1, 250→2.25, 575→5, 1200→10, 2600→20, 4050→30, 7000→50.
-          </p>
-          <div className="space-y-3">
-            {coinPackages.map((pkg, i) => (
-              <div
-                key={pkg.id}
-                className="grid grid-cols-4 gap-3 items-end bg-[#f5f5f7] rounded-xl p-3 border border-[#e5e5ea]/60"
-              >
-                <InputField
-                  label="Label"
-                  type="text"
-                  value={pkg.label}
-                  onChange={(v) => updateCoinPackage(i, 'label', v)}
-                />
-                <InputField
-                  label="Coins"
-                  value={pkg.coins}
-                  onChange={(v) => updateCoinPackage(i, 'coins', v)}
-                  suffix="coins"
-                />
-                <InputField
-                  label="Price"
-                  value={pkg.price}
-                  onChange={(v) => updateCoinPackage(i, 'price', v)}
-                  suffix="JOD"
-                />
-                <div className="flex items-center gap-2 pb-1">
-                  <span className="text-[#86868b] text-xs">
-                    {pkg.coins > 0 && pkg.price > 0
-                      ? `${Math.round(pkg.coins / pkg.price)} coins/JOD`
-                      : '\u2014'}
-                  </span>
-                  {pkg.popular && (
-                    <span className="text-[10px] bg-[#0071e3]/10 text-[#0071e3] px-2 py-0.5 rounded-full font-medium">
-                      Popular
-                    </span>
-                  )}
-                </div>
-              </div>
-            ))}
-          </div>
-        </motion.div>
-
         {/* ==================== TIME PACKAGES ==================== */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
@@ -381,7 +301,15 @@ export function PricingManagement() {
           className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
         >
           <div className="flex items-center justify-between mb-4">
-            <SectionHeader icon={Clock} title="Time Packages" />
+            <SectionHeader icon={Clock} title="Time Packages"
+              help={(
+                <>
+                  <p className="mb-2">How players convert tokens to play time. Each row: a package name, how many hours it grants, and the token cost.</p>
+                  <p className="mb-2"><strong>How it works:</strong> a player clicks "Buy Time" in the kiosk sidebar → picks a package → tokens are deducted and minutes are added to their session.</p>
+                  <p className="text-[#86868b]"><strong>Tip:</strong> longer packages should be cheaper per hour. That's what pulls customers toward bigger buys. Current Gold tier (7h / 500 tokens ≈ 0.71 JOD/hr) is your best deal — players see a "BEST" badge on it.</p>
+                </>
+              )} />
+
             <SaveButton
               onClick={() => saveField('timePackages', timePackages, setTimeSaving, setTimeSaved)}
               saving={timeSaving}
@@ -435,7 +363,15 @@ export function PricingManagement() {
           className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
         >
           <div className="flex items-center justify-between mb-4">
-            <SectionHeader icon={Settings2} title="Base Rates" />
+            <SectionHeader icon={Settings2} title="Base Rates"
+              help={(
+                <>
+                  <p className="mb-2"><strong>Coins per hour:</strong> how many tokens a player burns per hour just by being logged in (the kiosk deducts 1 min of their `remainingPlaytime` every 60 sec — this field is the display rate used across the app).</p>
+                  <p className="mb-2"><strong>JOD → Coins rate:</strong> how many tokens 1 JOD buys at the base rate (no bonus). All 7 coin packages are priced around this anchor; bigger packs add 2%–5% bonus on top.</p>
+                  <p className="text-[#ff9500]"><strong>Careful:</strong> changing these numbers affects every kiosk immediately. Don't drop prices during peak hours without a reason.</p>
+                </>
+              )} />
+
             <SaveButton
               onClick={() =>
                 saveMultipleFields({ coinsPerHour, jodToCoins }, setRateSaving, setRateSaved)
@@ -477,7 +413,16 @@ export function PricingManagement() {
           className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
         >
           <div className="flex items-center justify-between mb-4">
-            <SectionHeader icon={Crown} title="VIP Configuration" />
+            <SectionHeader icon={Crown} title="VIP Configuration"
+              help={(
+                <>
+                  <p className="mb-2">Settings for your VIP membership — the paid upgrade that gives a player perks like discounted cafe items, daily free tokens, daily task bonus, and invite bonus.</p>
+                  <p className="mb-2"><strong>Price:</strong> how many tokens a player spends to become VIP for the set duration.</p>
+                  <p className="mb-2"><strong>Duration:</strong> how long the VIP perks last (days).</p>
+                  <p><strong>Bonuses:</strong> daily free tokens, cafe discount %, daily task completion bonus, invite bonus — applied automatically while VIP is active.</p>
+                </>
+              )} />
+
             <SaveButton
               onClick={() => saveField('vipConfig', vipConfig, setVipSaving, setVipSaved)}
               saving={vipSaving}
@@ -541,7 +486,14 @@ export function PricingManagement() {
           className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
         >
           <div className="flex items-center justify-between mb-4">
-            <SectionHeader icon={PenLine} title="Username Change Cost" />
+            <SectionHeader icon={PenLine} title="Username Change Cost"
+              help={(
+                <>
+                  <p className="mb-2">Players get the first couple of username changes free. This field sets the token cost for every change AFTER that.</p>
+                  <p className="text-[#86868b]"><strong>Why charge for it:</strong> without a cost, players farm usernames to look like admin or other players. The small fee kills the abuse.</p>
+                </>
+              )} />
+
             <SaveButton
               onClick={() =>
                 saveField('usernameChangeCost', usernameChangeCost, setUsernameSaving, setUsernameSaved)
@@ -570,7 +522,17 @@ export function PricingManagement() {
           transition={{ delay: 0.25 }}
           className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60"
         >
-          <SectionHeader icon={BarChart3} title="Economy Overview" />
+          <SectionHeader icon={BarChart3} title="Economy Overview"
+            help={(
+              <>
+                <p className="mb-2">Live snapshot of your shop's token economy.</p>
+                <p className="mb-1.5"><strong>Total in circulation:</strong> every token currently sitting in a player balance. If this grows uncontrolled, players are accumulating wealth without spending it.</p>
+                <p className="mb-1.5"><strong>Total spent:</strong> lifetime tokens burned on chests, food, time, etc. Grows monotonically.</p>
+                <p className="mb-1.5"><strong>Player count:</strong> registered accounts (excluding guests).</p>
+                <p className="text-[#86868b]">Watch these numbers over time. A healthy economy has spend ≈ purchase rate.</p>
+              </>
+            )} />
+
           <p className="text-[#86868b] text-xs mb-4">
             Live read-only stats from the players collection.
           </p>

@@ -20,6 +20,7 @@ import {
   MessageCircle, Send, Settings, CheckCircle2, AlertTriangle,
   Loader2, Eye, EyeOff, Users, User, Radio,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface WhatsappConfig {
   provider: 'twilio' | 'meta' | '';
@@ -140,7 +141,19 @@ export function WhatsappSettings() {
             <MessageCircle size={22} className="text-[#25D366]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">WhatsApp — Admin Notifications</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              WhatsApp — Admin Notifications
+              <HelpTip title="WhatsApp Admin Notifications">
+                <p className="mb-2">Mirror every kiosk event (food orders, top-up requests, time purchases, hubbly orders, chat, registrations) to your phone via WhatsApp — so you don't need to stare at the admin screen.</p>
+                <p className="mb-1.5"><strong>Two provider options:</strong></p>
+                <ul className="list-disc pl-5 mb-1.5">
+                  <li><strong>Twilio Sandbox</strong> — 5-min free setup, good for testing. Admin phones must send a one-time opt-in code.</li>
+                  <li><strong>Meta Cloud API</strong> — production path. 1000 free conversations/month. No opt-in friction.</li>
+                </ul>
+                <p className="mb-1.5"><strong>Admin phone(s):</strong> the number that receives every event. Comma-separate multiple owners.</p>
+                <p className="text-[#86868b]"><strong>Test it:</strong> click "Send test to admin phone" once configured — a synthetic event fires so you can verify end-to-end.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">
               {cfg.enabled ? (
                 <span className="inline-flex items-center gap-1.5">

@@ -25,6 +25,7 @@ import {
   TrendingUp, Coins, UtensilsCrossed, Flame, Gift, DollarSign,
   ArrowUp, ArrowDown, Settings, Save, Calendar, CheckCircle2, Loader2,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface PLConfig {
   foodCogsPercent: number;      // e.g. 35% — fraction of cafeteria revenue that's raw cost
@@ -203,7 +204,16 @@ export function RealPLDashboard() {
             <TrendingUp size={22} className="text-[#0071e3]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Profit & Loss</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              Profit & Loss
+              <HelpTip title="Real Profit & Loss">
+                <p className="mb-2">Live financial view of the shop for the selected period.</p>
+                <p className="mb-1.5"><strong>Revenue:</strong> tokens sold (JOD paid in top-ups) + cafeteria cash + hubbly cash + promo bundle sales.</p>
+                <p className="mb-1.5"><strong>Costs:</strong> food raw cost (% of cafeteria revenue), hubbly raw cost (% of hubbly revenue), plus a prorated slice of your monthly fixed costs (rent, electricity, etc).</p>
+                <p className="mb-1.5"><strong>Net Profit = Revenue − Costs.</strong> Margin % is net profit as a fraction of revenue.</p>
+                <p className="text-[#86868b]"><strong>Click Configure</strong> to set your COGS % and monthly fixed costs.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">{label} · {totals.daysInPeriod.toFixed(1)}-day window</p>
           </div>
         </div>

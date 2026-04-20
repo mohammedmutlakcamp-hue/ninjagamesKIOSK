@@ -7,6 +7,7 @@ import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy, writeBa
 import {
   Flame, Cigarette, Plus, Trash2, Save, X, CheckCircle2, Loader2, Star, Download,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 // Editable versions live in Firestore. When these collections are empty the
 // HubblyTab falls back to its hardcoded defaults.
@@ -211,7 +212,16 @@ export function HubblyManagement() {
             <Flame size={22} className="text-[#06B6D4]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Hubbly Menu</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              Hubbly Menu
+              <HelpTip title="Hubbly Menu Editor">
+                <p className="mb-2">Controls what players see when they open the Hubbly Bubbly tab on the kiosk — shisha flavors + cigarette brands.</p>
+                <p className="mb-1.5"><strong>Flavors:</strong> the 12-card flavor grid. Toggle availability, edit prices (in tokens), change icons/colors, mark some as POPULAR.</p>
+                <p className="mb-1.5"><strong>Cigarettes:</strong> the tobacco-only flow. Same edits plus an optional badge (CLASSIC / SMOOTH).</p>
+                <p className="mb-1.5"><strong>First visit auto-imports</strong> the 12 default flavors + 3 default cigarettes so there's always something on the menu.</p>
+                <p className="text-[#86868b]"><strong>Hubbly orders are cash-only</strong> — customers pay at the counter. Admin marks paid in the Orders panel.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">
               {activeSection === 'flavors' ? `${flavors.length} shisha flavors` : `${cigarettes.length} cigarette brands`}
             </p>

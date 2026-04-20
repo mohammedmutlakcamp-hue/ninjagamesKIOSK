@@ -25,6 +25,7 @@ import {
   Monitor, User, Zap, ZapOff, Lock, Unlock, LogOut, MessageCircle,
   Plus, Loader2, Clock, Gamepad2, Activity, Wifi, WifiOff, X, Send,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface PC {
   id: string;
@@ -165,7 +166,20 @@ export function LivePCsDashboard() {
             <Monitor size={22} className="text-[#34c759]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Live PCs</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              Live PCs
+              <HelpTip title="Live PCs Dashboard">
+                <p className="mb-2">Real-time view of every PC in the shop. Each tile shows who's playing, how much time they have left, their current game, and their token balance.</p>
+                <p className="mb-1.5"><strong>Dot colors:</strong></p>
+                <ul className="list-disc pl-5 mb-1.5">
+                  <li><span className="text-[#34c759] font-medium">Green</span> — player is logged in and playing.</li>
+                  <li><span className="text-[#ff9500] font-medium">Orange</span> — PC is online but empty.</li>
+                  <li><span className="text-[#86868b] font-medium">Gray</span> — PC is offline (kiosk closed or unreachable).</li>
+                </ul>
+                <p className="mb-1.5"><strong>Hover any tile</strong> for +15m / +30m / +1h quick-add buttons — give a customer more time without walking over.</p>
+                <p><strong>Bottom row actions:</strong> message (shows a popup on their screen), lock/unlock (freezes their session), force-logout, restart.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">Real-time shop floor — updates every second via Firestore</p>
           </div>
         </div>
