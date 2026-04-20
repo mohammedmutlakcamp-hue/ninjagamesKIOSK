@@ -9,6 +9,7 @@ import {
   BarChart3, Clock, TrendingUp, TrendingDown, Gamepad2, Timer,
   ArrowUpDown, ChevronUp, ChevronDown, Flame, Calendar, Activity
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface GameStat {
   gameId: string;
@@ -188,6 +189,10 @@ export function GameAnalytics() {
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1 flex items-center gap-3">
           <BarChart3 size={28} className="text-[#0071e3]" /> Game Analytics
+          <HelpTip title={{ en: 'Game Analytics', ar: 'إحصاءات الألعاب' }}
+            ar={<p>إحصاءات كل لعبة — الأكثر لعباً، الساعات الكلية، ذروة الاستخدام، اللاعبون الفريدون.</p>}>
+            <p>Per-game usage stats — most played, total hours, peak hours, unique player count.</p>
+          </HelpTip>
         </h2>
         <p className="text-[#86868b] text-sm">Track game usage, peak hours, and popularity trends.</p>
       </div>

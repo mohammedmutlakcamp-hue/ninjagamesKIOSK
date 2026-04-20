@@ -11,6 +11,7 @@ import {
   Shield, AlertTriangle, CheckCircle2, Clock, Eye, MessageSquare,
   Ban, X, Filter, ChevronDown, User, Flag, Search, FileWarning
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface PlayerReport {
   id: string;
@@ -162,6 +163,10 @@ export function PlayerReports() {
       <div className="mb-8">
         <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
           <Shield size={24} className="text-[#0071e3]" /> Player Reports
+          <HelpTip title={{ en: 'Player Reports', ar: 'بلاغات اللاعبين' }}
+            ar={<p>بلاغات اللاعب ضد لاعب آخر (غش، تحرش، توكسك). راجع التفاصيل واتخذ إجراء.</p>}>
+            <p>Player-submitted reports about other players (cheating, harassment, toxicity). Review details, take action.</p>
+          </HelpTip>
         </h2>
         <p className="text-[#86868b] text-sm mt-1">Review and manage player reports. Take action on violations.</p>
       </div>

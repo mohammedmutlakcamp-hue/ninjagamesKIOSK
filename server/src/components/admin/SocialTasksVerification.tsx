@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, query, where, doc, updateDoc, getDoc } from 'firebase/firestore';
 import { Instagram, CheckCircle2, Search, Loader2, Coins, User } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 function getTodayKey(): string {
   const d = new Date();
@@ -101,6 +102,10 @@ export function SocialTasksVerification({ admin }: Props) {
           <h1 className="text-3xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
             <Instagram size={28} className="text-pink-500" />
             Social Task Verification
+            <HelpTip title={{ en: 'Social Tasks', ar: 'مهام السوشيال' }}
+              ar={<p>عندما اللاعب يتابعك ويعلّق، يقدّم طلب تأكيد هنا. افحص حسابه، اعتمد → يُمنح مكافأة التوكنز.</p>}>
+              <p>Players submit verification after they follow / like / share on social. You check their account, approve → reward is credited.</p>
+            </HelpTip>
           </h1>
           <p className="text-[#86868b] text-sm mt-1">
             Players earn 25 coins after you manually confirm they watched the story, followed, and liked 3 posts. ({pendingCount} pending today)

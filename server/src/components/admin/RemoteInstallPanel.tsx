@@ -29,6 +29,7 @@ import {
   Download, Monitor, Search, Send, Check, Loader2, Wifi, WifiOff,
   Gamepad2, Plus, X, ExternalLink,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface PCDoc {
   id: string;
@@ -141,7 +142,13 @@ export function RemoteInstallPanel() {
           <Download size={22} className="text-[#0071e3]" />
         </div>
         <div>
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Remote Install Games</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Remote Install Games
+            <HelpTip title={{ en: 'Remote Install', ar: 'تثبيت عن بُعد' }}
+              ar={<p>ادفع أمر تثبيت لعبة (Steam/Epic/Riot/...) لأي جهاز بدون ما تقوم من مكانك. الجهاز يستقبل الأمر كل 8 ثواني.</p>}>
+              <p>Push a game install command (Steam / Epic / Riot / etc.) to any PC without leaving the admin. Each PC polls for commands every 8 seconds.</p>
+            </HelpTip>
+          </h2>
           <p className="text-[#86868b] text-sm">
             Push game installs to one or many PCs without exiting the kiosk.
             {' '}{onlinePcs.length}/{pcs.length} PCs online.

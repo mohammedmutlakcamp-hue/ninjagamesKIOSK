@@ -12,6 +12,7 @@ import {
   ChevronDown, ChevronUp, Search, Users, X, Check
 } from 'lucide-react';
 import { REFERRAL_CONFIG } from '@/lib/constants';
+import { HelpTip } from './HelpTip';
 
 type Tab = 'leaderboard' | 'referrals' | 'comments';
 type LeaderboardType = 'playtime' | 'coins_spent' | 'chests_opened';
@@ -188,6 +189,10 @@ export function LeaderboardManagement() {
       <div className="flex items-center justify-between flex-wrap gap-4">
         <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
           <Trophy size={24} className="text-[#0071e3]" /> Leaderboard & Moderation
+          <HelpTip title={{ en: 'Leaderboard', ar: 'قائمة الأفضل' }}
+            ar={<p>إدارة قائمة أفضل اللاعبين — إعادة تعيين موسمي، حذف إدخالات غير صحيحة، متابعة برنامج الدعوات.</p>}>
+            <p>Manage the player leaderboard — seasonal reset, delete bad entries, monitor the referral program.</p>
+          </HelpTip>
         </h2>
         <div className="flex gap-2">
           {([

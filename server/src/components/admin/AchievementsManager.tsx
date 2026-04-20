@@ -10,6 +10,7 @@ import {
   Trophy, Plus, Edit3, Trash2, Award, Search, X, Save, User,
   Clock, Coins, Package, Users, Swords, Sparkles, Target, Gift, Star, Check
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface Achievement {
   id: string;
@@ -271,6 +272,10 @@ export function AchievementsManager() {
         <div>
           <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
             <Trophy size={24} className="text-[#0071e3]" /> Achievements Manager
+            <HelpTip title={{ en: 'Achievements', ar: 'الإنجازات' }}
+              ar={<p>شارات الإنجازات التي يفتحها اللاعبون. حدد الاسم، الأيقونة، شرط الإلغاء والمكافأة.</p>}>
+              <p>Badges players unlock via in-game milestones. Set name, icon, trigger condition, and reward.</p>
+            </HelpTip>
           </h2>
           <p className="text-[#86868b] text-sm mt-1">Create and manage player achievements and badges.</p>
         </div>

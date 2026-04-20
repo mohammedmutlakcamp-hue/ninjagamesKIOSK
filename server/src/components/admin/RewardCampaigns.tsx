@@ -7,6 +7,7 @@ import {
   collection, getDocs, addDoc, updateDoc, deleteDoc, doc, onSnapshot,
   query, orderBy, Timestamp,
 } from 'firebase/firestore';
+import { HelpTip } from './HelpTip';
 import {
   Megaphone, Plus, Pencil, Trash2, RefreshCw, Coins, Clock, Gift, Package,
   Save, X, Users, TrendingUp, Play, Pause, Zap, Calendar, Star,
@@ -235,7 +236,13 @@ export function RewardCampaigns() {
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Megaphone className="text-[#0071e3]" size={28} />
-          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Reward Campaigns</h2>
+          <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+            Reward Campaigns
+            <HelpTip title={{ en: 'Reward Campaigns', ar: 'حملات المكافآت' }}
+              ar={<p>حملات مكافآت محدودة الوقت (توكنز مضاعفة في عطلة نهاية الأسبوع، دروبات بونس). جدوِل، فعّل، أوقف.</p>}>
+              <p>Time-limited reward boosts (2× token weekend, bonus drops). Schedule, activate, or pause.</p>
+            </HelpTip>
+          </h2>
         </div>
         <motion.button
           whileHover={{ scale: 1.05 }}

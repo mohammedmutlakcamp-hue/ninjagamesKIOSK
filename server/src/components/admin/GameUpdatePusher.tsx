@@ -9,6 +9,7 @@ import {
 import { PC } from '@/types';
 import { pcIsOnline } from '@/lib/pc-status';
 import { Download, HardDrive, Terminal, Send, Monitor, Trash2, Clock, CheckCircle, AlertCircle } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface CommandHistoryEntry {
   id: string;
@@ -155,6 +156,10 @@ export function GameUpdatePusher() {
           <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
             <Monitor className="text-[#0071e3]" size={22} />
             Game Update Pusher
+            <HelpTip title={{ en: 'PC Updates', ar: 'تحديثات الأجهزة' }}
+              ar={<p>أرسل أوامر صيانة / تحديث للأجهزة: تشغيل سكربت، تنفيذ أمر CMD، تحديث لعبة. مفيد عند إطلاق باتش.</p>}>
+              <p>Send maintenance + update commands to PCs: run a script, execute CMD, force a game update. Useful after a patch drop.</p>
+            </HelpTip>
           </h2>
           <p className="text-sm text-[#86868b] mt-1">
             Push updates and maintenance commands to player PCs remotely

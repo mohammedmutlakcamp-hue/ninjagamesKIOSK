@@ -7,6 +7,7 @@ import {
   collection, onSnapshot, query, orderBy, where, deleteDoc, doc, getDocs, limit,
   Timestamp
 } from 'firebase/firestore';
+import { HelpTip } from './HelpTip';
 import {
   MessageSquare, Search, Trash2, Users, Shield, Hash, Lock, BarChart3,
   ChevronLeft, AlertTriangle, X, Loader2, MessagesSquare
@@ -303,6 +304,10 @@ export function ChatModeration() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
           <Shield size={24} className="text-[#0071e3]" /> Chat Moderation
+          <HelpTip title={{ en: 'Chat Moderation', ar: 'مراقبة الشات' }}
+            ar={<p>اعرض شات الكشك بين اللاعبين. احذف رسائل مسيئة، اطلع على الإحصاءات، أو احظر مستخدم.</p>}>
+            <p>View in-kiosk player-to-player chat. Delete abusive messages, see stats, ban a player.</p>
+          </HelpTip>
         </h1>
         <button
           onClick={loadStats}

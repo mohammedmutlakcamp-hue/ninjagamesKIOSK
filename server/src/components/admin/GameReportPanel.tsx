@@ -34,6 +34,7 @@ import {
   ClipboardList, RefreshCw, Monitor, Wifi, WifiOff, ChevronDown, ChevronRight,
   Check, X, Download, Loader2, FolderOpen, Info, Search, Gamepad2, AlertCircle,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface InstalledGame {
   id: string;
@@ -196,7 +197,13 @@ export function GameReportPanel() {
             <ClipboardList size={22} className="text-[#a855f7]" />
           </div>
           <div>
-            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight">Game Report</h2>
+            <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-2">
+              Game Report
+              <HelpTip title={{ en: 'Game Report', ar: 'تقرير الألعاب' }}
+                ar={<p>فحص كل جهاز وتقرير الألعاب المثبّتة فيه مقابل قائمة الكتالوج. اكتشف الألعاب المفقودة واطلب تثبيتها.</p>}>
+                <p>Scan each PC and report which catalog games are installed vs missing. Spot gaps and send install commands.</p>
+              </HelpTip>
+            </h2>
             <p className="text-[#86868b] text-sm">
               See which games are installed (and where) on every PC, and install missing ones with one click.
             </p>

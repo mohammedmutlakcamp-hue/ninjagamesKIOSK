@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, deleteDoc, query, orderBy, limit } from 'firebase/firestore';
 import { Activity, ArrowLeft, Download, Trash2, RefreshCcw, Search, Eye, EyeOff } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 type DebugEntry = {
   ts: number;
@@ -242,6 +243,10 @@ export function DebugLogsPanel() {
         <div>
           <h2 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
             <Activity size={22} className="text-[#0071e3]" /> Debug Logs
+            <HelpTip title={{ en: 'Debug Logs', ar: 'سجلات التصحيح' }}
+              ar={<p>سجلات تشخيص من أجهزة الكشك (تركيز، رؤية، نقرات، فجوات عرض). تتحدّث كل 3 ثواني. مفيدة عند حدوث مشكلة غريبة.</p>}>
+              <p>Diagnostic traces from kiosks — focus/visibility/click/render-gap events pushed every 3s. Use this when a kiosk does something weird.</p>
+            </HelpTip>
           </h2>
           <p className="text-sm text-[#86868b] mt-1">
             {loading ? 'Loading...' : `${docs.length} session${docs.length === 1 ? '' : 's'} captured`} ·

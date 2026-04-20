@@ -11,6 +11,7 @@ import {
   Coins, Clock, Package, Eye, X, Loader2, CheckCircle2, Shuffle,
   Users, CalendarClock,
 } from 'lucide-react';
+import { HelpTip } from './HelpTip';
 
 interface Redemption {
   playerId: string;
@@ -155,6 +156,10 @@ export function DiscountCodes() {
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight flex items-center gap-3">
           <Ticket size={24} className="text-[#0071e3]" /> Discount Codes
+          <HelpTip title={{ en: 'Discount Codes', ar: 'أكواد الخصم' }}
+            ar={<p>أنشئ أكواد ترويجية يدخلها اللاعب على الكشك عند الشحن لبونس توكنز أو خصم. حدد قيمة، حد أقصى للاستخدام، وتاريخ انتهاء.</p>}>
+            <p>Create promo codes players enter at top-up for bonus tokens or a discount. Set value, usage cap, expiry date.</p>
+          </HelpTip>
         </h1>
         <div className="flex gap-3">
           <button onClick={fetchCodes} className="px-4 py-2 border border-[#d2d2d7] rounded-xl text-[#1d1d1f] text-sm font-medium hover:bg-[#f5f5f7] flex items-center gap-2 transition-colors">
