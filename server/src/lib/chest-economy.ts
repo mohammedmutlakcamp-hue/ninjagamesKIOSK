@@ -30,7 +30,7 @@
 // ═══════════════════════════════════════════════════════════════════
 
 import { db } from '@/lib/firebase';
-import { doc, getDoc, runTransaction } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, runTransaction } from 'firebase/firestore';
 import type { Chest, ChestReward } from '@/types';
 import { CHESTS, NINJA_SKINS } from '@/lib/constants';
 
@@ -94,10 +94,20 @@ function effectiveValue(r: ChestReward): number {
   return r.value || 0;
 }
 
+// Admin-controlled per-chest "disabled" sets — populated by loadEconomyOnce
+// from config/chest-content-overrides. Rewards whose id appears here are
+// excluded from both the rotation and jackpot pools for that chest.
+const disabledByChest: Record<string, Set<string>> = {};
+
+function isDisabled(chestId: string, rewardId: string): boolean {
+  return !!disabledByChest[chestId]?.has(rewardId);
+}
+
 // Rotation pool = small/medium rewards only. Skins and immortal/mythical-
 // tier coin packs go through the jackpot gate instead.
 function rotationPool(chest: Chest): ChestReward[] {
   return chest.rewards.filter(r => {
+    if (isDisabled(chest.id, r.id)) return false;
     if (r.type === 'skin') return false;
     if (r.rarity === 'mythical' || r.rarity === 'immortal') return false;
     return true;
@@ -107,6 +117,7 @@ function rotationPool(chest: Chest): ChestReward[] {
 // Heavy hitters available only via the pity gate.
 function jackpotPool(chest: Chest): ChestReward[] {
   return chest.rewards.filter(r => {
+    if (isDisabled(chest.id, r.id)) return false;
     if (r.type === 'skin') return true;
     if (r.rarity === 'mythical' || r.rarity === 'immortal') return true;
     return false;
@@ -221,6 +232,8 @@ export async function pickChestReward(
 // a thin sync shim around pickChestReward — but it's NOT recommended for
 // new code; await pickChestReward instead.
 
+let overridesListenerStarted = false;
+
 export async function loadEconomyOnce(): Promise<void> {
   // Hydrate the local cache for the admin dashboard. Errors are non-fatal.
   await Promise.all(CHESTS.map(async (c) => {
@@ -233,6 +246,24 @@ export async function loadEconomyOnce(): Promise<void> {
       cache[c.tier] = blankLedger();
     }
   }));
+
+  // Subscribe once to the admin-controlled disabled-reward overrides so every
+  // subsequent chest-open picks from a fresh pool without needing a reload.
+  if (!overridesListenerStarted) {
+    overridesListenerStarted = true;
+    try {
+      onSnapshot(doc(db, 'config', 'chest-content-overrides'), (snap) => {
+        // Wipe the local sets — anything not in the new payload becomes enabled again.
+        Object.keys(disabledByChest).forEach((k) => delete disabledByChest[k]);
+        if (!snap.exists()) return;
+        const data = snap.data() as Record<string, { disabledRewardIds?: string[] }>;
+        for (const chestId of Object.keys(data)) {
+          const ids = data[chestId]?.disabledRewardIds || [];
+          disabledByChest[chestId] = new Set(ids);
+        }
+      }, (err) => console.error('[chest-economy] overrides listener', err));
+    } catch { /* non-fatal */ }
+  }
 }
 
 export function recordChestPaid(_amount: number): void {

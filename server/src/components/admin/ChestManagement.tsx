@@ -64,7 +64,11 @@ export function ChestManagement() {
   const [search, setSearch] = useState('');
   const [rarityFilter, setRarityFilter] = useState('all');
   const [sortAsc, setSortAsc] = useState(false);
-  const [activeSection, setActiveSection] = useState<'history' | 'profit' | 'config' | 'promo'>('history');
+  const [activeSection, setActiveSection] = useState<'history' | 'profit' | 'config' | 'droptable' | 'promo'>('history');
+  // Chest content overrides — stored in config/chest-content-overrides
+  // { [chestId]: { disabledRewardIds: string[] } }
+  const [contentOverrides, setContentOverrides] = useState<Record<string, { disabledRewardIds?: string[] }>>({});
+  const [contentSaving, setContentSaving] = useState(false);
 
   // Config state
   const [config, setConfig] = useState<ChestConfig>({
@@ -113,6 +117,42 @@ export function ChestManagement() {
       });
     }
   }, [activeSection]);
+
+  // Load chest content overrides (per-chest disabled reward ids).
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'chest-content-overrides'), (snap) => {
+      if (snap.exists()) setContentOverrides(snap.data() as any || {});
+      else setContentOverrides({});
+    });
+    return () => unsub();
+  }, []);
+
+  const toggleRewardEnabled = async (chestId: string, rewardId: string) => {
+    setContentSaving(true);
+    try {
+      const existing = contentOverrides[chestId]?.disabledRewardIds || [];
+      const isDisabled = existing.includes(rewardId);
+      const next = isDisabled ? existing.filter(x => x !== rewardId) : [...existing, rewardId];
+      const updated = { ...contentOverrides, [chestId]: { disabledRewardIds: next } };
+      await setDoc(doc(db, 'config', 'chest-content-overrides'), updated);
+    } catch (err) {
+      console.error('toggle reward failed', err);
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  const resetChestContent = async (chestId: string) => {
+    if (!confirm('Re-enable every reward in this chest?')) return;
+    setContentSaving(true);
+    try {
+      const updated = { ...contentOverrides };
+      delete updated[chestId];
+      await setDoc(doc(db, 'config', 'chest-content-overrides'), updated);
+    } finally {
+      setContentSaving(false);
+    }
+  };
 
   // Save config
   const saveConfig = async () => {
@@ -282,6 +322,7 @@ export function ChestManagement() {
           { key: 'history', label: 'Drop History', icon: Clock, accent: '#0071e3' },
           { key: 'profit', label: 'Profit & Analytics', icon: BarChart3, accent: '#0071e3' },
           { key: 'config', label: 'Luck Slider & Settings', icon: Sliders, accent: '#ff9500' },
+          { key: 'droptable', label: 'Drop Table (Content)', icon: Package, accent: '#A855F7' },
           { key: 'promo', label: 'Promotions', icon: Send, accent: '#0071e3' },
         ] as const).map(s => (
           <button key={s.key} onClick={() => setActiveSection(s.key)}
@@ -594,6 +635,105 @@ export function ChestManagement() {
             {config.luckMultiplier !== 1 && (
               <p className="text-[10px] text-[#ff9500] mt-2">* Adjusted by {config.luckMultiplier}x luck multiplier (rare+ only)</p>
             )}
+          </div>
+        </motion.div>
+      )}
+
+      {/* ===================== DROP TABLE (CONTENT EDITOR) ===================== */}
+      {activeSection === 'droptable' && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="max-w-5xl">
+          <div className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 mb-4">
+            <h3 className="text-lg font-semibold text-[#1d1d1f] flex items-center gap-2 mb-1">
+              <Package size={18} className="text-[#A855F7]" /> Chest Drop Table — Content Editor
+            </h3>
+            <p className="text-xs text-[#86868b] leading-relaxed">
+              Enable or disable individual rewards per chest. Disabled rewards are excluded from the drop pool
+              immediately — the chest picker skips them when rolling. Use this to temporarily hide expensive
+              skins, hide vouchers during a menu change, or prune the pool to your current inventory.
+              The deterministic budget-based picker keeps house margins stable regardless of which rewards are enabled.
+            </p>
+          </div>
+
+          <div className="space-y-5">
+            {CHESTS.map((chest) => {
+              const override = contentOverrides[chest.id];
+              const disabled = override?.disabledRewardIds || [];
+              const enabledCount = chest.rewards.length - disabled.length;
+              return (
+                <div key={chest.id} className="bg-white rounded-2xl p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60">
+                  <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                        style={{ background: `${chest.color}15`, border: `1px solid ${chest.color}40` }}>
+                        <Package size={18} style={{ color: chest.color }} />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-[#1d1d1f]">{chest.name}</h4>
+                        <p className="text-[11px] text-[#86868b]">
+                          {enabledCount}/{chest.rewards.length} rewards enabled · cost {chest.cost} tokens
+                        </p>
+                      </div>
+                    </div>
+                    {disabled.length > 0 && (
+                      <button onClick={() => resetChestContent(chest.id)} disabled={contentSaving}
+                        className="text-xs px-3 py-1.5 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#1d1d1f] border border-[#d2d2d7] disabled:opacity-50">
+                        Re-enable all
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                    {chest.rewards.map((r) => {
+                      const isDisabled = disabled.includes(r.id);
+                      const rc = RARITY_COLORS[r.rarity] || '#86868b';
+                      return (
+                        <button
+                          key={r.id}
+                          onClick={() => toggleRewardEnabled(chest.id, r.id)}
+                          disabled={contentSaving}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border text-left transition-all ${
+                            isDisabled
+                              ? 'bg-[#fff5f5] border-[#ff3b30]/30 opacity-60'
+                              : 'bg-[#f5f5f7] border-[#e5e5ea] hover:border-[#0071e3]/40'
+                          }`}
+                        >
+                          <div className="w-2 h-8 rounded-full" style={{ background: rc }} />
+                          {r.image ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={r.image} alt="" className="w-8 h-8 rounded-lg object-cover flex-shrink-0 bg-white" />
+                          ) : (
+                            <div className="w-8 h-8 rounded-lg flex-shrink-0" style={{ background: `${rc}20` }} />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <div className={`text-[12px] font-medium truncate ${isDisabled ? 'line-through text-[#86868b]' : 'text-[#1d1d1f]'}`}>
+                              {r.name}
+                            </div>
+                            <div className="text-[10px] text-[#86868b] truncate">
+                              {r.rarity} · {r.type === 'coins' ? `${r.value} tokens` : r.type === 'voucher' ? 'voucher' : r.type}
+                              {r.dropRate ? ` · ${(r.dropRate * 100).toFixed(1)}%` : ''}
+                            </div>
+                          </div>
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${
+                            isDisabled ? 'bg-[#ff3b30]/10 text-[#ff3b30]' : 'bg-[#34c759]/10 text-[#34c759]'
+                          }`}>
+                            {isDisabled ? 'OFF' : 'ON'}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="mt-4 bg-[#f5f5f7] border border-[#e5e5ea] rounded-xl p-4 text-[11px] text-[#86868b] leading-relaxed">
+            <p><strong className="text-[#1d1d1f]">How changes apply:</strong> disabled rewards are filtered out of the
+              chest picker on the very next drop — no redeploy, no player refresh needed. Kiosks pick up the change via
+              Firestore live sync.</p>
+            <p className="mt-2"><strong className="text-[#1d1d1f]">Safety:</strong> you can't disable every reward — the
+              picker always has at least one fallback. If you disable so many that the house can't stay profitable on
+              small-chest opens, the Luck Slider still caps what players win per tier, so house margin holds.</p>
           </div>
         </motion.div>
       )}
