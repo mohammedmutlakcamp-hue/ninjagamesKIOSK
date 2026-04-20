@@ -752,24 +752,33 @@ function AdminDashboardInner({ admin }: Props) {
   ];
 
   // Apple-style modal wrapper
+  // ModalOverlay → toast container. Admin can keep working in the
+  // background; notifications slide in from the right and sit in the
+  // bottom-right corner with no backdrop. Each notification still has
+  // its own inline Approve/Reject buttons inside the card below.
+  //
+  // Notifications animate: slide-in from right, gentle bounce, pulsing
+  // ring on arrival to grab attention without blocking.
   const ModalOverlay = ({ children, onClose }: { children: React.ReactNode; onClose?: () => void }) => (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[999] flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(20px)' }}
-      onClick={onClose}
+      initial={{ opacity: 0, x: 60, scale: 0.95 }}
+      animate={{ opacity: 1, x: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 60, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 280, damping: 24 }}
+      className="fixed bottom-6 right-6 z-[999] max-w-[min(92vw,420px)] pointer-events-auto"
+      onClick={(e) => e.stopPropagation()}
     >
+      {/* Soft attention ring for new arrivals */}
       <motion.div
-        initial={{ scale: 0.95, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        exit={{ scale: 0.95, opacity: 0 }}
-        transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {children}
-      </motion.div>
+        className="absolute -inset-1 rounded-2xl pointer-events-none"
+        initial={{ boxShadow: '0 0 0 0 rgba(52,199,89,0)' }}
+        animate={{ boxShadow: [
+          '0 0 0 0 rgba(52,199,89,0.4)',
+          '0 0 0 12px rgba(52,199,89,0)',
+        ] }}
+        transition={{ duration: 2, repeat: 2, ease: 'easeOut' }}
+      />
+      {children}
     </motion.div>
   );
 
@@ -910,55 +919,58 @@ function AdminDashboardInner({ admin }: Props) {
       <AnimatePresence>
         {activeNotification && (
           <ModalOverlay>
-            <div className="w-[480px] max-w-[92vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
-              <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#34c759]/10 flex items-center justify-center">
-                <UserPlus size={28} className="text-[#34c759]" />
+            <div className="w-full bg-white rounded-2xl p-5 shadow-[0_20px_60px_rgba(0,0,0,0.4)] text-center">
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-10 rounded-xl bg-[#34c759]/10 flex items-center justify-center flex-shrink-0">
+                  <UserPlus size={20} className="text-[#34c759]" />
+                </div>
+                <div className="flex-1 min-w-0 text-left">
+                  <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">New Registration</h1>
+                  <p className="text-[#86868b] text-[11px]">A new player is waiting for approval</p>
+                </div>
               </div>
 
-              <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">New Registration</h1>
-              <p className="text-[#86868b] text-sm mb-6">A new player is waiting for approval</p>
-
-              <div className="bg-[#f5f5f7] rounded-xl p-5 mb-5 text-left space-y-3">
+              <div className="bg-[#f5f5f7] rounded-xl p-3 mb-3 text-left space-y-1.5 text-[12px]">
                 <div className="flex justify-between">
-                  <span className="text-[#86868b] text-sm">Name</span>
-                  <span className="text-[#1d1d1f] font-medium">{activeNotification.firstName} {activeNotification.lastName}</span>
+                  <span className="text-[#86868b]">Name</span>
+                  <span className="text-[#1d1d1f] font-medium truncate ml-2">{activeNotification.firstName} {activeNotification.lastName}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#86868b] text-sm">Username</span>
+                  <span className="text-[#86868b]">Username</span>
                   <span className="text-[#0071e3] font-semibold">{activeNotification.username?.toUpperCase()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#86868b] text-sm">Phone</span>
-                  <span className="text-[#1d1d1f] flex items-center gap-1"><Phone size={12} className="text-[#86868b]" /> {activeNotification.phone}</span>
+                  <span className="text-[#86868b]">Phone</span>
+                  <span className="text-[#1d1d1f] flex items-center gap-1"><Phone size={10} className="text-[#86868b]" /> {activeNotification.phone}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-[#86868b] text-sm">Ninja Type</span>
+                  <span className="text-[#86868b]">Ninja</span>
                   <span className="text-[#1d1d1f] capitalize font-medium">{activeNotification.ninjaType}</span>
                 </div>
               </div>
 
-              {/* Approval Code */}
-              <div className="mb-6">
-                <p className="text-[#86868b] text-xs uppercase tracking-wider mb-2 font-medium">Approval Code</p>
-                <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-xl py-4 px-6">
-                  <p className="text-4xl font-bold text-[#1d1d1f] tracking-[0.3em] font-mono">
+              {/* Approval Code — compact */}
+              <div className="mb-3">
+                <p className="text-[#86868b] text-[9px] uppercase tracking-wider mb-1 font-medium">Approval Code</p>
+                <div className="bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg py-2 px-3">
+                  <p className="text-xl font-bold text-[#1d1d1f] tracking-[0.25em] font-mono">
                     {activeNotification.approvalCode}
                   </p>
                 </div>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 <button
                   onClick={() => rejectRegistration(activeNotification)}
-                  className="flex-1 py-3.5 border border-[#d2d2d7] rounded-xl text-[#ff3b30] font-medium hover:bg-[#fff5f5] transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2 border border-[#d2d2d7] rounded-lg text-[#ff3b30] font-medium text-xs hover:bg-[#fff5f5] transition-all flex items-center justify-center gap-1.5"
                 >
-                  <XIcon size={18} /> Reject
+                  <XIcon size={14} /> Reject
                 </button>
                 <button
                   onClick={() => approveRegistration(activeNotification)}
-                  className="flex-1 py-3.5 bg-[#34c759] text-white rounded-xl font-medium hover:bg-[#2db84e] transition-all flex items-center justify-center gap-2"
+                  className="flex-1 py-2 bg-[#34c759] text-white rounded-lg font-medium text-xs hover:bg-[#2db84e] transition-all flex items-center justify-center gap-1.5"
                 >
-                  <ShieldCheck size={18} /> Approve
+                  <ShieldCheck size={14} /> Approve
                 </button>
               </div>
             </div>
@@ -970,13 +982,13 @@ function AdminDashboardInner({ admin }: Props) {
       <AnimatePresence>
         {guestNotification && !activeNotification && (
           <ModalOverlay>
-            <div className="w-[440px] max-w-[92vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
+            <div className="w-full bg-white rounded-2xl p-5 shadow-[0_20px_60px_rgba(0,0,0,0.4)] text-center">
               <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#af52de]/10 flex items-center justify-center">
                 <Gamepad2 size={28} className="text-[#af52de]" />
               </div>
 
-              <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">Guest Play Request</h1>
-              <p className="text-[#86868b] text-sm mb-5">Someone wants to play as guest</p>
+              <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">Guest Play Request</h1>
+              <p className="text-[#86868b] text-[11px] mb-3">Someone wants to play as guest</p>
 
               <div className="bg-[#f5f5f7] rounded-xl p-4 mb-5 text-left">
                 <div className="flex justify-between">
@@ -1054,12 +1066,12 @@ function AdminDashboardInner({ admin }: Props) {
       <AnimatePresence>
         {regNotification && !activeNotification && !guestNotification && (
           <ModalOverlay>
-            <div className="w-[440px] max-w-[92vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
+            <div className="w-full bg-white rounded-2xl p-5 shadow-[0_20px_60px_rgba(0,0,0,0.4)] text-center">
               <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#34c759]/10 flex items-center justify-center">
                 <UserPlus size={28} className="text-[#34c759]" />
               </div>
 
-              <h1 className="text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">Guest Registration</h1>
+              <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">Guest Registration</h1>
               <p className="text-[#86868b] text-sm mb-4">A guest wants to create an account</p>
 
               <div className="bg-[#f5f5f7] rounded-xl p-4 mb-5 text-left">
@@ -1109,7 +1121,7 @@ function AdminDashboardInner({ admin }: Props) {
             <div className="w-[420px] max-w-[90vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
               <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#fbbf24]/10 flex items-center justify-center text-2xl">🔑</div>
 
-              <h1 className="text-xl md:text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">PIN Reset Request</h1>
+              <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">PIN Reset Request</h1>
               <p className="text-[#86868b] text-sm mb-5">A player forgot their PIN — verify them before resetting</p>
 
               <div className="bg-[#f5f5f7] rounded-xl p-5 mb-5 text-left space-y-3">
@@ -1159,7 +1171,7 @@ function AdminDashboardInner({ admin }: Props) {
           <ModalOverlay>
             <div className="w-[440px] max-w-[90vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
               <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#e879f9]/10 flex items-center justify-center text-2xl">📸</div>
-              <h1 className="text-xl md:text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">Social Task Verification</h1>
+              <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">Social Task Verification</h1>
               <p className="text-[#86868b] text-sm mb-5">A player completed a social task — verify it visually before paying out</p>
               <div className="bg-[#f5f5f7] rounded-xl p-5 mb-4 text-left space-y-3">
                 <div className="flex justify-between">
@@ -1210,7 +1222,7 @@ function AdminDashboardInner({ admin }: Props) {
                 <Coins size={28} className="text-[#ff9500]" />
               </div>
 
-              <h1 className="text-xl md:text-2xl font-semibold text-[#1d1d1f] tracking-tight mb-1">Top-Up Request</h1>
+              <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">Top-Up Request</h1>
               <p className="text-[#86868b] text-sm mb-5">A player wants to add coins</p>
 
               <div className="bg-[#f5f5f7] rounded-xl p-5 mb-5 text-left space-y-3">
@@ -1253,7 +1265,7 @@ function AdminDashboardInner({ admin }: Props) {
       <AnimatePresence>
         {guestRegTopUp && !activeNotification && !guestNotification && !regNotification && !topUpNotification && (
           <ModalOverlay>
-            <div className="w-[440px] max-w-[92vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
+            <div className="w-full bg-white rounded-2xl p-5 shadow-[0_20px_60px_rgba(0,0,0,0.4)] text-center">
               <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#af52de]/10 flex items-center justify-center">
                 <UserPlus size={28} className="text-[#af52de]" />
               </div>
