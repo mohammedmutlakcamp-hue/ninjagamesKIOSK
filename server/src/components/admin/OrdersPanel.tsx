@@ -239,8 +239,15 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
           </div>
           <div className="text-right">
             <p className={`text-sm font-semibold ${config.color}`}>{config.label}</p>
-            {/* Show JOD cash amount + UNPAID badge for cash-payment cafeteria orders. */}
-            {order.totalJOD !== undefined ? (
+            {/* Voucher redemption: green VOUCHER pill, no cash collection. */}
+            {order.paymentMethod === 'voucher' ? (
+              <>
+                <p className="text-sm text-[#A855F7] font-semibold mt-0.5">FREE</p>
+                <span className="inline-block mt-1 px-2 py-0.5 rounded-full bg-[#A855F7]/10 text-[#7C3AED] border border-[#A855F7]/30 text-[10px] font-bold tracking-wider">
+                  🎟️ VOUCHER
+                </span>
+              </>
+            ) : order.totalJOD !== undefined ? (
               <>
                 <p className="text-sm text-[#1d1d1f] font-semibold mt-0.5">{order.totalJOD.toFixed(2)} JOD</p>
                 {!order.paid && (
@@ -484,7 +491,11 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
                       : <span className="text-[#86868b] flex items-center gap-1"><Droplet size={11} /> No ice</span>}
                   </p>
                 )}
-                {newOrderPopup.totalJOD !== undefined ? (
+                {newOrderPopup.paymentMethod === 'voucher' ? (
+                  <p className="text-base mt-2 font-bold flex items-center gap-1.5 text-[#7C3AED]">
+                    🎟️ <span>Voucher — no payment required</span>
+                  </p>
+                ) : newOrderPopup.totalJOD !== undefined ? (
                   <p className="text-base mt-2 font-bold text-[#1d1d1f]">
                     Collect <span className="text-[#ff3b30]">{newOrderPopup.totalJOD.toFixed(2)} JOD</span> at counter
                   </p>

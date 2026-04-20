@@ -365,11 +365,31 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
         await updateDoc(doc(db, 'players', player.uid), { inventory: updatedInventory });
         if (item.type === 'voucher' && !item.name.toLowerCase().includes('tournament')) {
           const { addDoc } = await import('firebase/firestore');
+          // Voucher redemption — NOT a cash order. Stamp paid:true +
+          // paymentMethod:'voucher' so the admin OrdersPanel shows a
+          // green "VOUCHER · FREE" badge and skips the cash-collect
+          // button. totalJOD:0 keeps the P&L dashboard honest.
           await addDoc(collection(db, 'orders'), {
-            playerId: player.uid, playerName: player.username, pcId: 'voucher-redeem',
-            items: [{ menuItemId: item.id, name: `[VOUCHER] ${item.name}`, quantity: 1, price: 0 }],
-            totalCoins: 0, status: 'pending', createdAt: Date.now(), updatedAt: Date.now(),
+            playerId: player.uid,
+            playerName: player.username,
+            pcId: player.lastPcUsed || 'voucher-redeem',
+            pcName: player.lastPcUsed || player.pcName || 'Kiosk',
+            items: [{ menuItemId: item.id, name: `[VOUCHER] ${item.name}`, quantity: 1, price: 0, priceJOD: 0 }],
+            totalCoins: 0,
+            totalJOD: 0,
+            paid: true,
+            paymentMethod: 'voucher',
+            voucherName: item.name,
+            voucherValue: item.value || 0,
+            prepTime: 5,
+            status: 'pending', createdAt: Date.now(), updatedAt: Date.now(),
           });
+          // Ping admin so they know a voucher came in.
+          try {
+            const { notifyAdmin } = await import('@/lib/notify-admin');
+            notifyAdmin('order', '🎟️ Voucher Redeemed',
+              `${player.username} redeemed: ${item.name}. Prepare it — no payment needed.`);
+          } catch { /* non-fatal */ }
         }
       }
     } catch (err) { console.error('Failed to use:', err); }
