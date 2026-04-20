@@ -23,7 +23,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, orderBy, query } from 'firebase/firestore';
 import {
   Video, Plus, Trash2, Pencil, X, Save, Loader2, AlertTriangle, RefreshCw, Maximize2,
-  Wifi, WifiOff, CheckCircle2,
+  Wifi, WifiOff, CheckCircle2, HelpCircle, ExternalLink, Shield, Router,
 } from 'lucide-react';
 
 interface Camera {
@@ -51,6 +51,7 @@ export function CameraPanel() {
   const [fullscreenId, setFullscreenId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [showPasswordField, setShowPasswordField] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
 
   // Listen for camera list
   useEffect(() => {
@@ -113,15 +114,23 @@ export function CameraPanel() {
             </p>
           </div>
         </div>
-        <button
-          onClick={() => setEditing({
-            id: '', name: '', host: '', port: 80, channel: 101,
-            user: 'admin', password: '', https: false, enabled: true, order: cameras.length,
-          })}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#ef4444] text-white rounded-xl font-medium text-sm hover:bg-[#dc2626] transition-colors"
-        >
-          <Plus size={16} /> Add Camera
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowHelp(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#d2d2d7] text-[#1d1d1f] rounded-xl font-medium text-sm hover:bg-[#f5f5f7] transition-colors"
+          >
+            <HelpCircle size={16} /> Setup Guide
+          </button>
+          <button
+            onClick={() => setEditing({
+              id: '', name: '', host: '', port: 80, channel: 101,
+              user: 'admin', password: '', https: false, enabled: true, order: cameras.length,
+            })}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#ef4444] text-white rounded-xl font-medium text-sm hover:bg-[#dc2626] transition-colors"
+          >
+            <Plus size={16} /> Add Camera
+          </button>
+        </div>
       </div>
 
       {/* Empty state */}
@@ -176,6 +185,193 @@ export function CameraPanel() {
                 <LiveSnapshot cameraId={fullscreenCam.id} interval={FULLSCREEN_REFRESH} fill />
               </div>
             </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ───────────── Setup Guide modal (port forwarding tutorial) ───────────── */}
+      <AnimatePresence>
+        {showHelp && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setShowHelp(false)}
+          >
+            <motion.div
+              initial={{ scale: 0.95, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl w-[760px] max-w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Sticky header */}
+              <div className="sticky top-0 bg-white border-b border-[#e5e5ea] px-6 py-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.25)' }}>
+                    <Video size={18} className="text-[#ef4444]" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-[#1d1d1f]">Hikvision Camera Setup Guide</h3>
+                    <p className="text-xs text-[#86868b]">LAN access + remote access via port forwarding</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowHelp(false)}
+                  className="w-9 h-9 rounded-lg hover:bg-[#f5f5f7] flex items-center justify-center">
+                  <X size={18} className="text-[#86868b]" />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-6 text-sm text-[#1d1d1f] leading-relaxed">
+                {/* STEP 0 - prerequisites */}
+                <section>
+                  <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#0071e3] text-white flex items-center justify-center text-xs font-bold">0</span>
+                    What you'll need
+                  </h4>
+                  <ul className="list-disc pl-9 space-y-1 text-[#424245]">
+                    <li>A Hikvision camera (or NVR) already online on your shop's LAN.</li>
+                    <li>The camera's <strong>admin username + password</strong> you set up in the Hik-Connect app or Hikvision web UI.</li>
+                    <li>Access to your router's admin page (usually at <code className="bg-[#f5f5f7] px-1 rounded">192.168.1.1</code> or <code className="bg-[#f5f5f7] px-1 rounded">192.168.0.1</code>).</li>
+                  </ul>
+                </section>
+
+                {/* STEP 1 - find the camera IP */}
+                <section>
+                  <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#0071e3] text-white flex items-center justify-center text-xs font-bold">1</span>
+                    Find your camera's IP
+                  </h4>
+                  <p className="pl-9 text-[#424245] mb-2">Easiest methods, pick one:</p>
+                  <ul className="list-disc pl-9 space-y-1 text-[#424245]">
+                    <li>Download <strong>SADP Tool</strong> from Hikvision.com → run on a LAN PC → it lists every Hik device + its IP.</li>
+                    <li>Or log into your router's admin → <em>Connected Devices / DHCP Client List</em> → look for "Hikvision" or "HIKVISION-xxx".</li>
+                    <li>From the shop PC: open <code className="bg-[#f5f5f7] px-1 rounded">http://192.168.1.64</code> in a browser — many Hik cameras default to <code className="bg-[#f5f5f7] px-1 rounded">.64</code>.</li>
+                  </ul>
+                  <div className="mt-3 ml-9 px-3 py-2 bg-[#f5f5f7] rounded-lg text-[12px]">
+                    <strong className="text-[#1d1d1f]">Example:</strong> your camera is at <code>192.168.1.64</code>, port <code>80</code>, channel <code>101</code>, user <code>admin</code>, password <code>shopcam123</code>.
+                  </div>
+                </section>
+
+                {/* STEP 2 - LAN only */}
+                <section>
+                  <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#34c759] text-white flex items-center justify-center text-xs font-bold">2</span>
+                    LAN-only — simplest setup (recommended for the shop)
+                  </h4>
+                  <p className="pl-9 text-[#424245]">
+                    If the admin panel only needs to be accessed from <strong>inside the shop</strong> (same Wi-Fi as the cameras),
+                    you <strong>don't need port forwarding at all</strong>. Add the camera with its LAN IP (e.g. <code className="bg-[#f5f5f7] px-1 rounded">192.168.1.64</code>) and you're done.
+                  </p>
+                  <div className="mt-2 ml-9 px-3 py-2 bg-[#e8f5e9] border border-[#34c759]/30 rounded-lg text-[12px] text-[#1b5e20]">
+                    ✓ Zero exposure to the public internet. No security risk.
+                  </div>
+                </section>
+
+                {/* STEP 3 - remote via port forwarding */}
+                <section>
+                  <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#ff9500] text-white flex items-center justify-center text-xs font-bold">3</span>
+                    Remote access — port forwarding (only if you want to check cameras from outside the shop)
+                  </h4>
+
+                  <div className="pl-9 space-y-3 text-[#424245]">
+                    <div>
+                      <p className="font-medium text-[#1d1d1f] mb-1 flex items-center gap-1.5"><Router size={14} /> A. On your router</p>
+                      <ol className="list-decimal pl-5 space-y-1">
+                        <li>Open your router admin (usually <code className="bg-[#f5f5f7] px-1 rounded">http://192.168.1.1</code>). Login with the admin password printed on the router.</li>
+                        <li>Find <strong>Port Forwarding</strong> — it sits under one of these menus: <em>Advanced</em>, <em>NAT</em>, <em>Virtual Server</em>, <em>Firewall</em>, or <em>Security</em>.</li>
+                        <li>Create a NEW rule with these values:
+                          <div className="mt-1.5 bg-[#f5f5f7] rounded-lg p-2.5 font-mono text-[11px] leading-relaxed">
+                            Service Name: <span className="text-[#0071e3]">CAMERA-1</span><br />
+                            External / WAN Port: <span className="text-[#ef4444]">8081</span> <span className="text-[#86868b]">(pick any unused port &gt;1024)</span><br />
+                            Internal / LAN IP: <span className="text-[#0071e3]">192.168.1.64</span> <span className="text-[#86868b]">(your camera's IP)</span><br />
+                            Internal / LAN Port: <span className="text-[#0071e3]">80</span> <span className="text-[#86868b]">(the camera's native HTTP port)</span><br />
+                            Protocol: <span className="text-[#0071e3]">TCP</span> (or TCP/UDP)<br />
+                            Enabled: <span className="text-[#34c759]">✓</span>
+                          </div>
+                        </li>
+                        <li>Save / Apply. The router will reboot or re-apply NAT rules (a few seconds).</li>
+                        <li>Do this for EACH camera you want remote: use a different external port per camera (8081, 8082, 8083, …).</li>
+                      </ol>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-[#1d1d1f] mb-1 flex items-center gap-1.5"><Wifi size={14} /> B. Find your public IP</p>
+                      <p>From a PC on the shop Wi-Fi, open <a href="https://whatismyip.com" target="_blank" rel="noreferrer" className="text-[#0071e3] hover:underline inline-flex items-center gap-1">whatismyip.com <ExternalLink size={11} /></a>.
+                        Note the IPv4 address — this is your router's public IP on the internet.</p>
+                      <div className="mt-1 px-3 py-2 bg-[#fff3cd] border border-[#ffeaa7] rounded-lg text-[11px] text-[#8a6d3b]">
+                        If your ISP changes this IP periodically (most do), use a <strong>Dynamic DNS</strong> service so you always have a stable hostname:
+                        <ul className="list-disc pl-4 mt-1">
+                          <li>Hikvision's own free <strong>hik-connect.com</strong> DDNS — enable in the camera web UI under Network → DDNS.</li>
+                          <li>Or free DuckDNS / No-IP — most routers have built-in DDNS support.</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div>
+                      <p className="font-medium text-[#1d1d1f] mb-1 flex items-center gap-1.5"><Video size={14} /> C. Add the camera in this panel</p>
+                      <p>Click <strong>Add Camera</strong> and use:</p>
+                      <div className="mt-1 bg-[#f5f5f7] rounded-lg p-2.5 font-mono text-[11px] leading-relaxed">
+                        Host: <span className="text-[#0071e3]">your-public-ip</span> or <span className="text-[#0071e3]">yourshop.hik-connect.com</span><br />
+                        Port: <span className="text-[#ef4444]">8081</span> <span className="text-[#86868b]">(the external port you picked)</span><br />
+                        Channel: <span className="text-[#0071e3]">101</span> <span className="text-[#86868b]">(main stream)</span><br />
+                        Username / Password: from step 1
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* STEP 4 - security */}
+                <section>
+                  <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#ef4444] text-white flex items-center justify-center text-xs font-bold">4</span>
+                    <Shield size={16} /> Security — read this before port forwarding
+                  </h4>
+                  <p className="pl-9 text-[#424245] mb-2">
+                    Port-forwarding a camera puts it directly on the public internet. Hik cameras have a long
+                    history of exploited default credentials. Harden these:
+                  </p>
+                  <ul className="pl-9 list-disc space-y-1 text-[#424245]">
+                    <li>Change the default <code className="bg-[#f5f5f7] px-1 rounded">admin</code> password to something long and unique. Never reuse the router / Wi-Fi password.</li>
+                    <li>Pick a <strong>random external port</strong> (e.g. 24611, not 80 / 8080). Scanners probe common ports first.</li>
+                    <li>In the camera web UI, go to <em>System → Security</em> and <strong>disable</strong>: Telnet, SSH, ONVIF default user, UPnP.</li>
+                    <li>Turn on the camera's built-in <em>Illegal Login Lock</em> (blocks IP after N wrong passwords).</li>
+                    <li>Keep the camera firmware current — Hikvision ships security patches.</li>
+                    <li>
+                      Ideal alternative: don't port-forward at all. Install a <strong>Tailscale</strong> /
+                      <strong> ZeroTier</strong> / <strong>WireGuard</strong> mesh on the server PC + your phone.
+                      The admin panel reaches the LAN camera over the VPN — encrypted, authenticated, zero public exposure.
+                    </li>
+                  </ul>
+                </section>
+
+                {/* STEP 5 - troubleshoot */}
+                <section>
+                  <h4 className="font-semibold text-base mb-2 flex items-center gap-2">
+                    <span className="w-6 h-6 rounded-full bg-[#86868b] text-white flex items-center justify-center text-xs font-bold">5</span>
+                    Troubleshooting
+                  </h4>
+                  <ul className="pl-9 list-disc space-y-1 text-[#424245]">
+                    <li><strong>"Camera unreachable"</strong> in the grid → verify the IP + port work by opening <code className="bg-[#f5f5f7] px-1 rounded">http://host:port</code> in a browser on the same network as the server. You should see the Hik login page.</li>
+                    <li>Snapshot loads but wrong camera → double-check <code className="bg-[#f5f5f7] px-1 rounded">channel</code>. Main stream is 101 for camera 1, 201 for camera 2 on an NVR, etc.</li>
+                    <li><strong>401 Unauthorized</strong> in the server logs → username or password is wrong. Re-enter in Edit.</li>
+                    <li>Works on LAN, fails over internet → router didn't save the port-forward rule, or your ISP is behind CGNAT (common for mobile-router / 4G / some fiber). Use Tailscale or a VPS reverse-proxy instead.</li>
+                    <li>Blurry / slow → switch the channel to the <strong>sub-stream</strong> (102, 202) — lower resolution, less bandwidth.</li>
+                  </ul>
+                </section>
+
+                <div className="pt-4 border-t border-[#e5e5ea] flex justify-end">
+                  <button onClick={() => setShowHelp(false)}
+                    className="px-5 py-2.5 bg-[#0071e3] text-white rounded-xl font-medium text-sm hover:bg-[#0077ED]">
+                    Got it
+                  </button>
+                </div>
+              </div>
+            </motion.div>
           </motion.div>
         )}
       </AnimatePresence>

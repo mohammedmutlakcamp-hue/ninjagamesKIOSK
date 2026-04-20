@@ -1,11 +1,11 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, onSnapshot, doc, setDoc, deleteDoc, query, orderBy, writeBatch } from 'firebase/firestore';
 import {
-  Flame, Cigarette, Plus, Trash2, Save, X, CheckCircle2, Loader2, Star,
+  Flame, Cigarette, Plus, Trash2, Save, X, CheckCircle2, Loader2, Star, Download,
 } from 'lucide-react';
 
 // Editable versions live in Firestore. When these collections are empty the
@@ -31,6 +31,29 @@ interface CigaretteItem {
   available?: boolean;
 }
 
+// Defaults that mirror the kiosk's hardcoded fallback list — so importing
+// these into Firestore makes the admin's editor match exactly what the
+// kiosk is already displaying to customers.
+const DEFAULT_FLAVORS: Omit<ShishaFlavor, 'id'>[] = [
+  { name: 'Grape',        nameAr: 'عنب',           icon: '🍇', color: '#8B5CF6', price: 250, popular: true,  available: true },
+  { name: 'Mint',         nameAr: 'نعناع',         icon: '🌿', color: '#10B981', price: 250, available: true },
+  { name: 'Double Apple', nameAr: 'تفاحتين',       icon: '🍎', color: '#EF4444', price: 250, popular: true,  available: true },
+  { name: 'Watermelon',   nameAr: 'بطيخ',          icon: '🍉', color: '#F472B6', price: 250, available: true },
+  { name: 'Blueberry',    nameAr: 'توت أزرق',      icon: '🫐', color: '#6366F1', price: 250, available: true },
+  { name: 'Peach',        nameAr: 'خوخ',           icon: '🍑', color: '#FB923C', price: 250, available: true },
+  { name: 'Lemon Mint',   nameAr: 'ليمون نعناع',   icon: '🍋', color: '#FACC15', price: 250, available: true },
+  { name: 'Strawberry',   nameAr: 'فراولة',        icon: '🍓', color: '#F43F5E', price: 250, available: true },
+  { name: 'Mango',        nameAr: 'مانجو',         icon: '🥭', color: '#F59E0B', price: 250, available: true },
+  { name: 'Mixed Fruits', nameAr: 'فواكه مشكلة',   icon: '🍹', color: '#EC4899', price: 300, popular: true,  available: true },
+  { name: 'Rose',         nameAr: 'ورد',           icon: '🌹', color: '#FB7185', price: 275, available: true },
+  { name: 'Gum',          nameAr: 'علكة',          icon: '🫧', color: '#38BDF8', price: 250, available: true },
+];
+const DEFAULT_CIGS: Omit<CigaretteItem, 'id'>[] = [
+  { name: 'Marlboro Red',  nameAr: 'مارلبورو أحمر',  color: '#DC2626', price: 200, badge: 'CLASSIC', available: true },
+  { name: 'Marlboro Gold', nameAr: 'مارلبورو ذهبي',   color: '#D4A017', price: 200, badge: 'SMOOTH',  available: true },
+  { name: 'Winston',       nameAr: 'وينستون',        color: '#3B82F6', price: 180, available: true },
+];
+
 const EMOJI_SWATCHES = ['🍇','🍉','🍎','🍓','🫐','🍋','🥭','🍑','🌿','🌹','🍹','🫧','🍊','🍍','💨','☕','🍫','❄️','🔥'];
 const COLOR_SWATCHES = ['#8B5CF6','#10B981','#EF4444','#F472B6','#6366F1','#FB923C','#FACC15','#F43F5E','#F59E0B','#EC4899','#FB7185','#38BDF8','#DC2626','#D4A017','#3B82F6','#06B6D4','#22C55E','#A855F7','#14B8A6'];
 
@@ -44,12 +67,23 @@ export function HubblyManagement() {
   const [editingCig, setEditingCig] = useState<CigaretteItem | null>(null);
   const [saving, setSaving] = useState(false);
   const [justSavedId, setJustSavedId] = useState<string | null>(null);
+  const [seeding, setSeeding] = useState(false);
+  // Tracks whether we've done the initial snapshot read — prevents the
+  // "Import defaults" button from flashing in before listeners settle.
+  const [loaded, setLoaded] = useState({ flavors: false, cigs: false });
+  // One-shot auto-seed: when the admin visits this panel for the FIRST time
+  // and both collections are empty, pull in the default menu so they don't
+  // stare at a blank editor that disagrees with what players see on the kiosk.
+  const autoSeedAttempted = useRef(false);
 
   // Real-time listeners
   useEffect(() => {
     const unsub = onSnapshot(
       query(collection(db, 'shisha-flavors'), orderBy('name')),
-      (snap) => setFlavors(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ShishaFlavor))),
+      (snap) => {
+        setFlavors(snap.docs.map((d) => ({ id: d.id, ...d.data() } as ShishaFlavor)));
+        setLoaded((s) => ({ ...s, flavors: true }));
+      },
     );
     return () => unsub();
   }, []);
@@ -57,10 +91,54 @@ export function HubblyManagement() {
   useEffect(() => {
     const unsub = onSnapshot(
       query(collection(db, 'cigarettes'), orderBy('name')),
-      (snap) => setCigarettes(snap.docs.map((d) => ({ id: d.id, ...d.data() } as CigaretteItem))),
+      (snap) => {
+        setCigarettes(snap.docs.map((d) => ({ id: d.id, ...d.data() } as CigaretteItem)));
+        setLoaded((s) => ({ ...s, cigs: true }));
+      },
     );
     return () => unsub();
   }, []);
+
+  // Seed Firestore with the 12 default flavors + 3 default cigarettes in one
+  // batch. Idempotent at the id level — calling twice won't create duplicates
+  // because we derive the doc id from the name.
+  const seedDefaults = async (scope: 'flavors' | 'cigs' | 'both' = 'both') => {
+    setSeeding(true);
+    try {
+      const batch = writeBatch(db);
+      if (scope === 'flavors' || scope === 'both') {
+        for (const f of DEFAULT_FLAVORS) {
+          const id = f.name.toLowerCase().replace(/\s+/g, '-');
+          batch.set(doc(db, 'shisha-flavors', id), f, { merge: true });
+        }
+      }
+      if (scope === 'cigs' || scope === 'both') {
+        for (const c of DEFAULT_CIGS) {
+          const id = c.name.toLowerCase().replace(/\s+/g, '-');
+          batch.set(doc(db, 'cigarettes', id), c, { merge: true });
+        }
+      }
+      await batch.commit();
+    } catch (err) {
+      console.error('seed defaults failed', err);
+      alert('Import failed — check your connection.');
+    } finally {
+      setSeeding(false);
+    }
+  };
+
+  // Auto-seed once when both collections are confirmed empty on first load.
+  useEffect(() => {
+    if (autoSeedAttempted.current) return;
+    if (!loaded.flavors || !loaded.cigs) return;
+    if (flavors.length > 0 || cigarettes.length > 0) {
+      autoSeedAttempted.current = true;
+      return;
+    }
+    autoSeedAttempted.current = true;
+    // Fire-and-forget auto import — mirrors what the kiosk already shows.
+    seedDefaults('both');
+  }, [loaded.flavors, loaded.cigs, flavors.length, cigarettes.length]);
 
   // Save flavor
   const saveFlavor = async () => {
@@ -140,18 +218,29 @@ export function HubblyManagement() {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            if (activeSection === 'flavors') {
-              setEditingFlavor({ id: '', name: '', icon: '💨', color: '#8B5CF6', price: 250, popular: false, available: true });
-            } else {
-              setEditingCig({ id: '', name: '', color: '#DC2626', price: 200, badge: '', available: true });
-            }
-          }}
-          className="flex items-center gap-2 px-5 py-2.5 bg-[#06B6D4] text-white rounded-xl font-medium text-sm hover:bg-[#0891b2] transition-colors"
-        >
-          <Plus size={16} /> Add {activeSection === 'flavors' ? 'Flavor' : 'Cigarette'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => seedDefaults(activeSection === 'flavors' ? 'flavors' : 'cigs')}
+            disabled={seeding}
+            title="Import the default menu items that the kiosk ships with"
+            className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#d2d2d7] text-[#1d1d1f] rounded-xl font-medium text-sm hover:bg-[#f5f5f7] transition-colors disabled:opacity-50"
+          >
+            {seeding ? <Loader2 size={16} className="animate-spin" /> : <Download size={16} />}
+            Import Defaults
+          </button>
+          <button
+            onClick={() => {
+              if (activeSection === 'flavors') {
+                setEditingFlavor({ id: '', name: '', icon: '💨', color: '#8B5CF6', price: 250, popular: false, available: true });
+              } else {
+                setEditingCig({ id: '', name: '', color: '#DC2626', price: 200, badge: '', available: true });
+              }
+            }}
+            className="flex items-center gap-2 px-5 py-2.5 bg-[#06B6D4] text-white rounded-xl font-medium text-sm hover:bg-[#0891b2] transition-colors"
+          >
+            <Plus size={16} /> Add {activeSection === 'flavors' ? 'Flavor' : 'Cigarette'}
+          </button>
+        </div>
       </div>
 
       {/* Section tabs */}
@@ -178,10 +267,18 @@ export function HubblyManagement() {
       {activeSection === 'flavors' ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
           {flavors.length === 0 && (
-            <div className="col-span-full text-center py-16 text-[#86868b]">
+            <div className="col-span-full text-center py-12 text-[#86868b] bg-[#f5f5f7] rounded-2xl border border-dashed border-[#d2d2d7]">
               <Flame size={40} className="mx-auto mb-3 opacity-40" />
-              <p className="text-sm">No flavors yet. Click "Add Flavor" to create one.</p>
-              <p className="text-xs mt-1">Until you add some, the kiosk falls back to the default 12 flavors.</p>
+              <p className="text-sm text-[#1d1d1f] font-medium">No flavors in the editor yet</p>
+              <p className="text-xs mt-1 max-w-md mx-auto">
+                The kiosk currently shows the 12 built-in defaults. Import them here so you can
+                edit prices, remove items, mark unavailable, add Arabic names — whatever you need.
+              </p>
+              <button onClick={() => seedDefaults('flavors')} disabled={seeding}
+                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#06B6D4] text-white rounded-xl font-medium text-sm hover:bg-[#0891b2] transition-colors disabled:opacity-50">
+                {seeding ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                Import default flavors
+              </button>
             </div>
           )}
           {flavors.map((f) => (
@@ -225,10 +322,18 @@ export function HubblyManagement() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {cigarettes.length === 0 && (
-            <div className="col-span-full text-center py-16 text-[#86868b]">
+            <div className="col-span-full text-center py-12 text-[#86868b] bg-[#f5f5f7] rounded-2xl border border-dashed border-[#d2d2d7]">
               <Cigarette size={40} className="mx-auto mb-3 opacity-40" />
-              <p className="text-sm">No cigarettes yet. Click "Add Cigarette" to create one.</p>
-              <p className="text-xs mt-1">Until you add some, the kiosk falls back to the defaults (Marlboro Red/Gold, Winston).</p>
+              <p className="text-sm text-[#1d1d1f] font-medium">No cigarettes in the editor yet</p>
+              <p className="text-xs mt-1 max-w-md mx-auto">
+                The kiosk currently shows Marlboro Red, Marlboro Gold, and Winston as built-in defaults.
+                Import them to edit prices or add more brands.
+              </p>
+              <button onClick={() => seedDefaults('cigs')} disabled={seeding}
+                className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-[#06B6D4] text-white rounded-xl font-medium text-sm hover:bg-[#0891b2] transition-colors disabled:opacity-50">
+                {seeding ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
+                Import default cigarettes
+              </button>
             </div>
           )}
           {cigarettes.map((c) => (
