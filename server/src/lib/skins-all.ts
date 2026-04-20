@@ -62,7 +62,19 @@ function startListener() {
     (snap) => {
       const data = snap.exists() ? (snap.data() as any) : {};
       const extras: CustomSkin[] = Array.isArray(data.customSkins) ? data.customSkins : [];
-      cache = [...NINJA_SKINS, ...extras.map(normalizeCustom)];
+      const mediaOverrides: Record<string, { profileImage?: string; welcomeVideo?: string }> = data.mediaOverrides || {};
+      // Apply admin media overrides to built-in skins so the kiosk shows
+      // the replacement image/video everywhere (store preview, chest
+      // reveal, inventory, profile).
+      const builtIns = NINJA_SKINS.map((s) => {
+        const o = mediaOverrides[s.id];
+        if (!o) return s;
+        const merged: any = { ...s };
+        if (o.profileImage) merged.profileImage = o.profileImage;
+        if (o.welcomeVideo) merged.welcomeVideo = o.welcomeVideo;
+        return merged;
+      });
+      cache = [...builtIns, ...extras.map(normalizeCustom)];
       subscribers.forEach((cb) => cb(cache));
     },
     (err) => console.error('[skins-all] listener failed', err),

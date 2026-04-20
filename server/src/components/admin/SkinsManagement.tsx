@@ -150,7 +150,12 @@ export function SkinsManagement() {
     return () => unsub();
   }, []);
 
-  // --- Fetch price overrides + custom skins (shared doc) ---
+  // Media overrides for built-in ninjas (profileImage + welcomeVideo).
+  const [mediaOverrides, setMediaOverrides] = useState<Record<string, MediaOverride>>({});
+  const [editingMediaFor, setEditingMediaFor] = useState<string | null>(null);
+  const [draftMedia, setDraftMedia] = useState<MediaOverride>({});
+
+  // --- Fetch price overrides + custom skins + media overrides (shared doc) ---
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'skins'), (snap) => {
       if (snap.exists()) {
@@ -158,12 +163,36 @@ export function SkinsManagement() {
         setPriceOverrides(data.priceOverrides || {});
         setEditingPrices(data.priceOverrides || {});
         setCustomSkins(Array.isArray(data.customSkins) ? data.customSkins : []);
+        setMediaOverrides(data.mediaOverrides || {});
       } else {
         setCustomSkins([]);
+        setMediaOverrides({});
       }
     });
     return () => unsub();
   }, []);
+
+  const saveMediaOverride = async () => {
+    if (!editingMediaFor) return;
+    const next = { ...mediaOverrides };
+    // If both fields empty, clear the override entry so we don't pollute Firestore
+    if (!draftMedia.profileImage?.trim() && !draftMedia.welcomeVideo?.trim()) {
+      delete next[editingMediaFor];
+    } else {
+      next[editingMediaFor] = {
+        profileImage: draftMedia.profileImage?.trim() || undefined,
+        welcomeVideo: draftMedia.welcomeVideo?.trim() || undefined,
+      };
+    }
+    await setDoc(doc(db, 'config', 'skins'), { mediaOverrides: next }, { merge: true });
+    setEditingMediaFor(null);
+  };
+
+  const clearMediaOverride = async (skinId: string) => {
+    const next = { ...mediaOverrides };
+    delete next[skinId];
+    await setDoc(doc(db, 'config', 'skins'), { mediaOverrides: next }, { merge: true });
+  };
 
   const saveCustomSkin = async () => {
     if (!editingCustom || !editingCustom.name.trim()) return;
@@ -180,6 +209,7 @@ export function SkinsManagement() {
         price: Number(editingCustom.price) || 0,
         unlockLevel: Number(editingCustom.unlockLevel) || 1,
         profileImage: editingCustom.profileImage?.trim() || '',
+        welcomeVideo: editingCustom.welcomeVideo?.trim() || '',
         createdAt: editingCustom.createdAt || Date.now(),
       };
       const others = customSkins.filter(s => s.id !== id);
@@ -522,6 +552,27 @@ export function SkinsManagement() {
                         placeholder="/ninjas/profiles/your-ninja.png or full URL"
                         className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
                       <p className="text-[10px] text-[#86868b] mt-1">Upload to /public/ninjas/profiles/ via file manager, then paste the path here.</p>
+                      {editingCustom.profileImage && (
+                        <div className="mt-2 inline-block rounded-lg overflow-hidden border border-[#e5e5ea]">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img src={editingCustom.profileImage} alt="" className="w-16 h-16 object-cover bg-[#f5f5f7]"
+                            onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }} />
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Welcome Video URL (optional)</label>
+                      <input type="text" value={editingCustom.welcomeVideo || ''}
+                        onChange={(e) => setEditingCustom({ ...editingCustom, welcomeVideo: e.target.value })}
+                        placeholder="/ninjas/videos/your-ninja.mp4 or full URL"
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm" />
+                      <p className="text-[10px] text-[#86868b] mt-1">Shows in the store preview when a player taps the ninja. MP4 recommended, small file size (&lt; 4 MB).</p>
+                      {editingCustom.welcomeVideo && (
+                        <div className="mt-2 inline-block rounded-lg overflow-hidden border border-[#e5e5ea]">
+                          <video src={editingCustom.welcomeVideo} className="w-28 h-16 object-cover bg-black" muted playsInline />
+                        </div>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
@@ -627,18 +678,33 @@ export function SkinsManagement() {
                         transition={{ delay: idx * 0.02 }}
                         className="bg-white rounded-2xl p-3 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 hover:shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition-all group"
                       >
-                        {/* Profile Image */}
-                        <div className="flex justify-center mb-2">
+                        {/* Profile Image — click to edit media override */}
+                        <div className="flex justify-center mb-2 relative group/img">
                           <div
-                            className="w-16 h-16 rounded-full overflow-hidden border-2"
+                            className="w-16 h-16 rounded-full overflow-hidden border-2 cursor-pointer"
                             style={{ borderColor: skin.borderColor || config.color }}
+                            onClick={() => {
+                              setEditingMediaFor(skin.id);
+                              setDraftMedia(mediaOverrides[skin.id] || {});
+                            }}
+                            title="Click to change image / video"
                           >
                             <img
-                              src={skin.profileImage}
+                              src={mediaOverrides[skin.id]?.profileImage || skin.profileImage}
                               alt={skin.name}
                               className="w-full h-full object-cover"
                               draggable={false}
                             />
+                          </div>
+                          {/* Tiny badge when a media override is set */}
+                          {(mediaOverrides[skin.id]?.profileImage || mediaOverrides[skin.id]?.welcomeVideo) && (
+                            <span className="absolute -top-1 -right-1 text-[8px] font-bold px-1.5 py-0.5 rounded-full bg-[#A855F7] text-white">
+                              EDIT
+                            </span>
+                          )}
+                          {/* Hover edit hint */}
+                          <div className="absolute inset-0 rounded-full flex items-center justify-center bg-black/40 opacity-0 group-hover/img:opacity-100 transition-opacity pointer-events-none">
+                            <Pencil size={14} className="text-white" />
                           </div>
                         </div>
 
@@ -1125,6 +1191,84 @@ export function SkinsManagement() {
           )}
         </motion.div>
       )}
+
+      {/* ───── Media Override Modal (built-in ninjas) ───── */}
+      <AnimatePresence>
+        {editingMediaFor && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+            style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+            onClick={() => setEditingMediaFor(null)}>
+            <motion.div initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
+              className="bg-white rounded-2xl w-[560px] max-w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}>
+              <div className="sticky top-0 bg-white border-b border-[#e5e5ea] px-6 py-4 flex items-center justify-between">
+                <h3 className="text-xl font-semibold text-[#1d1d1f]">
+                  Change Image / Video — {NINJA_SKINS.find((s) => s.id === editingMediaFor)?.name || editingMediaFor}
+                </h3>
+                <button onClick={() => setEditingMediaFor(null)}
+                  className="w-9 h-9 rounded-lg hover:bg-[#f5f5f7] flex items-center justify-center text-[#86868b]">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="p-6 space-y-4">
+                <div>
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Profile Image URL</label>
+                  <input type="text" value={draftMedia.profileImage || ''}
+                    onChange={(e) => setDraftMedia({ ...draftMedia, profileImage: e.target.value })}
+                    placeholder={NINJA_SKINS.find((s) => s.id === editingMediaFor)?.profileImage || '/ninjas/profiles/...'}
+                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm font-mono" />
+                  <div className="flex items-center gap-3 mt-2">
+                    <div className="text-[10px] text-[#86868b]">Preview:</div>
+                    {draftMedia.profileImage && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={draftMedia.profileImage} alt="" className="w-20 h-20 rounded-lg object-cover border border-[#e5e5ea] bg-[#f5f5f7]"
+                        onError={(e) => { (e.target as HTMLImageElement).style.opacity = '0.3'; }} />
+                    )}
+                    <div className="text-[10px] text-[#86868b]">Original:</div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={NINJA_SKINS.find((s) => s.id === editingMediaFor)?.profileImage} alt=""
+                      className="w-20 h-20 rounded-lg object-cover border border-[#e5e5ea] opacity-60" />
+                  </div>
+                  <p className="text-[10px] text-[#86868b] mt-2">Leave blank to revert to original. Upload your image to <code className="bg-[#f5f5f7] px-1 rounded">/public/ninjas/profiles/</code> first.</p>
+                </div>
+
+                <div>
+                  <label className="text-xs font-medium text-[#86868b] mb-1.5 block">Welcome Video URL (optional)</label>
+                  <input type="text" value={draftMedia.welcomeVideo || ''}
+                    onChange={(e) => setDraftMedia({ ...draftMedia, welcomeVideo: e.target.value })}
+                    placeholder="/ninjas/videos/... or full URL (MP4)"
+                    className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm font-mono" />
+                  {draftMedia.welcomeVideo && (
+                    <div className="mt-2 inline-block rounded-lg overflow-hidden border border-[#e5e5ea]">
+                      <video src={draftMedia.welcomeVideo} className="w-56 h-32 object-cover bg-black" muted autoPlay playsInline loop />
+                    </div>
+                  )}
+                  <p className="text-[10px] text-[#86868b] mt-2">Shows when a player taps this ninja in the Store preview. MP4 recommended, &lt;4MB.</p>
+                </div>
+
+                <div className="bg-[#f5f5f7] border border-[#e5e5ea] rounded-xl p-3 text-[11px] text-[#86868b] leading-relaxed">
+                  <strong className="text-[#1d1d1f]">Note:</strong> custom media overrides the built-in files. Stored in Firestore under <code className="bg-white px-1 rounded">config/skins.mediaOverrides</code>. Every kiosk picks up the change in ~2 seconds via live sync.
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t border-[#e5e5ea]">
+                  <button onClick={saveMediaOverride}
+                    className="flex-1 py-3 bg-[#0071e3] text-white rounded-xl font-medium flex items-center justify-center gap-2 hover:bg-[#0077ED]">
+                    <Save size={16} /> Save Override
+                  </button>
+                  {mediaOverrides[editingMediaFor] && (
+                    <button onClick={() => { clearMediaOverride(editingMediaFor); setEditingMediaFor(null); }}
+                      className="px-5 py-3 bg-[#ff3b30]/10 text-[#ff3b30] rounded-xl hover:bg-[#ff3b30]/20 flex items-center gap-2">
+                      <RotateCcw size={14} /> Revert
+                    </button>
+                  )}
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

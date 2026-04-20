@@ -1790,8 +1790,19 @@ body.admin-dark .bg-\[\#e8f5e9\] {
   background-color: rgba(52, 199, 89, 0.08) !important;
 }
 body.admin-dark .bg-white\/80,
-body.admin-dark .bg-white\/90 {
-  background-color: rgba(23, 23, 26, 0.9) !important;
+body.admin-dark .bg-white\/90,
+body.admin-dark .bg-white\/95 {
+  background-color: rgba(23, 23, 26, 0.92) !important;
+}
+/* Admin sidebar uses bg-white/95 with backdrop-blur. Force dark even over
+ * inline backdropFilter styles by also dimming the blur underneath. */
+body.admin-dark .bg-white\/95[style*="backdrop"],
+body.admin-dark [class*="bg-white"][style*="backdropFilter"] {
+  background-color: rgba(15, 15, 18, 0.88) !important;
+}
+/* Any residual bg-white shortcut still not caught above (card modifiers, etc). */
+body.admin-dark [class~="bg-white"] {
+  background-color: #17171a !important;
 }
 
 /* ── Text colors ─────────────────────────────────────────────── */
