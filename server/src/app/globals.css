@@ -1731,3 +1731,104 @@ button, a, input, [class*="border"] {
   0%, 100% { box-shadow: 0 0 0 0 rgba(255, 59, 48, 0.3); }
   50% { box-shadow: 0 0 0 4px rgba(255, 59, 48, 0); }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+ * ADMIN DARK MODE
+ * ─────────────────────────────────────────────────────────────
+ * Applied via <body class="admin-dark"> (see DarkModeProvider).
+ * Strategy: override the handful of very-common Tailwind utility
+ * classes used across the admin panels so we don't have to touch
+ * every component file. High-contrast palette — background near
+ * pure black, surfaces slightly raised, text near pure white.
+ * ═══════════════════════════════════════════════════════════════ */
+
+body.admin-dark {
+  background-color: #0a0a0c !important;
+  color: #f2f2f4 !important;
+}
+
+/* Surfaces: the most common admin card/panel pattern = white bg,
+ * gray border, subtle shadow. Flip all of those. */
+body.admin-dark .bg-white,
+body.admin-dark .bg-\[\#ffffff\] {
+  background-color: #17171a !important;
+}
+body.admin-dark .bg-\[\#f5f5f7\] {
+  background-color: #1f1f24 !important;
+}
+body.admin-dark .bg-\[\#e5e5ea\],
+body.admin-dark .bg-\[\#e5e5ea\]\/60,
+body.admin-dark .bg-\[\#d2d2d7\] {
+  background-color: #2a2a30 !important;
+}
+
+/* Text colors */
+body.admin-dark .text-\[\#1d1d1f\] {
+  color: #f2f2f4 !important;
+}
+body.admin-dark .text-\[\#424245\] {
+  color: #d1d1d6 !important;
+}
+body.admin-dark .text-\[\#86868b\],
+body.admin-dark .text-\[\#aeaeb2\] {
+  color: #9a9aa0 !important;
+}
+
+/* Borders */
+body.admin-dark .border-\[\#e5e5ea\],
+body.admin-dark .border-\[\#e5e5ea\]\/60,
+body.admin-dark .border-\[\#d2d2d7\] {
+  border-color: #2e2e35 !important;
+}
+
+/* Inputs + selects + textareas */
+body.admin-dark input,
+body.admin-dark select,
+body.admin-dark textarea {
+  background-color: #1f1f24 !important;
+  color: #f2f2f4 !important;
+  border-color: #2e2e35 !important;
+}
+body.admin-dark input::placeholder,
+body.admin-dark textarea::placeholder {
+  color: #6e6e74 !important;
+}
+
+/* Shadow: real shadows look murky on dark. Replace with a subtle
+ * elevation via border brightness and a thin inset. */
+body.admin-dark .shadow-\[0_1px_3px_rgba\(0\,0\,0\,0\.04\)\],
+body.admin-dark .shadow-\[0_2px_12px_rgba\(0\,0\,0\,0\.04\)\] {
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 10px rgba(0, 0, 0, 0.35) !important;
+}
+
+/* The admin sidebar uses bg-white/80 with backdrop-blur. Match it. */
+body.admin-dark .bg-white\/80 {
+  background-color: rgba(20, 20, 23, 0.85) !important;
+}
+
+/* Hover states — the blue/gray hovers go to a dark-mode equivalent */
+body.admin-dark .hover\:bg-\[\#f5f5f7\]:hover {
+  background-color: #24242a !important;
+}
+body.admin-dark .hover\:bg-white:hover {
+  background-color: #2a2a30 !important;
+}
+
+/* HelpTip popovers stay bright-on-dark so text reads */
+body.admin-dark [class*="rounded-xl"].bg-white > div,
+body.admin-dark .shadow-\[0_12px_40px_rgba\(0\,0\,0\,0\.14\)\] {
+  color: #f2f2f4;
+}
+
+/* Active/tab chips (e.g. Pricing sub-tabs) keep their accent fills */
+/* Nothing to override; they already use explicit bg- colors */
+
+/* Scrollbars in dark mode */
+body.admin-dark ::-webkit-scrollbar-track { background: #0a0a0c; }
+body.admin-dark ::-webkit-scrollbar-thumb { background: #2e2e35; border-radius: 4px; }
+body.admin-dark ::-webkit-scrollbar-thumb:hover { background: #3a3a42; }
+
+/* Light mode: slightly nudged up on contrast from the old defaults */
+body.admin-light {
+  /* no overrides needed — the original palette is already light-mode */
+}

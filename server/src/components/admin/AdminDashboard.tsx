@@ -50,6 +50,10 @@ import { WhatsappSettings } from './WhatsappSettings';
 import { PromotionsPanel } from './PromotionsPanel';
 import { LivePCsDashboard } from './LivePCsDashboard';
 import { RealPLDashboard } from './RealPLDashboard';
+import { PCsHub } from './PCsHub';
+import { HubblyHub } from './HubblyHub';
+import { DarkModeProvider, useDarkMode } from './DarkModeProvider';
+import { Moon, Sun } from 'lucide-react';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
   DollarSign, Settings, LogOut, Activity, ShoppingBag, Coins, UserCheck, Swords,
@@ -60,7 +64,7 @@ import {
   ToggleRight, HardDriveDownload, ListChecks, Flame, Video
 } from 'lucide-react';
 
-type Tab = 'dashboard' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
+type Tab = 'dashboard' | 'pcshub' | 'hubblyhub' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport';
 
 interface Props {
   admin: any;
@@ -194,7 +198,29 @@ interface PendingRegistration {
   createdAt: number;
 }
 
-export function AdminDashboard({ admin }: Props) {
+export function AdminDashboard(props: Props) {
+  return (
+    <DarkModeProvider>
+      <AdminDashboardInner {...props} />
+    </DarkModeProvider>
+  );
+}
+
+// Small sun/moon button used in the sidebar header.
+function DarkModeToggleButton() {
+  const { theme, toggle } = useDarkMode();
+  return (
+    <button onClick={toggle}
+      title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+      className="p-1.5 rounded-lg hover:bg-[var(--ad-hover,rgba(0,0,0,0.05))] transition-all flex items-center justify-center">
+      {theme === 'dark'
+        ? <Sun size={16} className="text-[#fbbf24]" />
+        : <Moon size={16} className="text-[#86868b]" />}
+    </button>
+  );
+}
+
+function AdminDashboardInner({ admin }: Props) {
   const [tab, setTab] = useState<Tab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingRegs, setPendingRegs] = useState<PendingRegistration[]>([]);
@@ -659,19 +685,16 @@ export function AdminDashboard({ admin }: Props) {
     {
       title: 'Operations',
       items: [
-        { id: 'livepcs', label: 'Live PCs', icon: <Activity size={18} /> },
-        { id: 'pcs', label: 'PCs', icon: <Monitor size={18} /> },
-        { id: 'zones', label: 'PC Zones', icon: <MapPin size={18} /> },
+        { id: 'pcshub', label: 'PCs', icon: <Monitor size={18} /> },
+        { id: 'players', label: 'Players', icon: <Users size={18} /> },
         { id: 'reservations', label: 'Reservations', icon: <BookmarkCheck size={18} /> },
         { id: 'swap', label: 'Player Swap', icon: <Repeat size={18} /> },
-        { id: 'players', label: 'Players', icon: <Users size={18} /> },
         { id: 'reports', label: 'Reports', icon: <Flag size={18} /> },
         { id: 'topups', label: 'Top Ups', icon: <Coins size={18} /> },
         { id: 'transfers', label: 'Transfers', icon: <ArrowLeftRight size={18} /> },
         { id: 'menu', label: 'Food Menu', icon: <UtensilsCrossed size={18} /> },
-        { id: 'hubblymenu', label: 'Hubbly Menu', icon: <Flame size={18} /> },
-        { id: 'orders', label: 'Orders', icon: <ClipboardList size={18} /> },
-        { id: 'hubbly', label: 'Hubbly Bubbly', icon: <Flame size={18} /> },
+        { id: 'orders', label: 'Food Orders', icon: <ClipboardList size={18} /> },
+        { id: 'hubblyhub', label: 'Hubbly', icon: <Flame size={18} /> },
         { id: 'cameras', label: 'Cameras', icon: <Video size={18} /> },
         { id: 'tournaments', label: 'Tournaments', icon: <Swords size={18} /> },
         { id: 'vip', label: 'VIP', icon: <Crown size={18} /> },
@@ -684,8 +707,7 @@ export function AdminDashboard({ admin }: Props) {
       title: 'Business',
       items: [
         { id: 'revenue', label: 'Revenue', icon: <DollarSign size={18} /> },
-        { id: 'realpl', label: 'Real P&L', icon: <TrendingUp size={18} /> },
-        { id: 'profit', label: 'Profit & Loss (old)', icon: <TrendingUp size={18} /> },
+        { id: 'realpl', label: 'Profit & Loss', icon: <TrendingUp size={18} /> },
         { id: 'invoices', label: 'Invoices', icon: <Receipt size={18} /> },
         { id: 'shifts', label: 'Shifts', icon: <Clock size={18} /> },
         { id: 'analytics', label: 'Game Stats', icon: <BarChart3 size={18} /> },
@@ -774,15 +796,18 @@ export function AdminDashboard({ admin }: Props) {
         style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}
       >
         {/* Brand header */}
-        <div className="p-5 pb-4 border-b border-[#e5e5ea] flex items-center justify-between">
-          <div>
+        <div className="p-5 pb-4 border-b border-[#e5e5ea] flex items-center justify-between gap-2">
+          <div className="min-w-0">
             <h1 className="text-lg font-semibold text-[#1d1d1f] tracking-tight">Ninja Games</h1>
             <p className="text-[11px] text-[#86868b] mt-0.5">Admin Panel</p>
             <p className="text-[10px] text-[#aeaeb2] mt-0.5 truncate">{admin.email}</p>
           </div>
-          <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-[#f5f5f7] transition-all md:hidden">
-            <XIcon size={18} className="text-[#86868b]" />
-          </button>
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <DarkModeToggleButton />
+            <button onClick={() => setSidebarOpen(false)} className="p-1.5 rounded-lg hover:bg-[#f5f5f7] transition-all md:hidden">
+              <XIcon size={18} className="text-[#86868b]" />
+            </button>
+          </div>
         </div>
 
         {/* Navigation */}
@@ -841,6 +866,8 @@ export function AdminDashboard({ admin }: Props) {
           {tab === 'whatsapp' && <WhatsappSettings />}
           {tab === 'promotions' && <PromotionsPanel />}
           {tab === 'livepcs' && <LivePCsDashboard />}
+          {tab === 'pcshub' && <PCsHub />}
+          {tab === 'hubblyhub' && <HubblyHub />}
           {tab === 'realpl' && <RealPLDashboard />}
           {tab === 'tournaments' && <TournamentManagement />}
           {tab === 'revenue' && <RevenuePanel />}
