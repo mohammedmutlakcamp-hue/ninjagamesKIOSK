@@ -26,6 +26,8 @@ import { VIPTab } from './tabs/VIPTab';
 import { ChatBubble } from './ChatBubble';
 import { OrderBubble } from './OrderBubble';
 import { LotteryPopup } from './LotteryPopup';
+import { BookingPopup } from './BookingPopup';
+import { BookingWatcher } from './BookingWatcher';
 import { SupportBubble } from './SupportBubble';
 import { KioskVoiceCall } from './KioskVoiceCall';
 import { TopUpScreen } from './TopUpScreen';
@@ -102,6 +104,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const topUpCustomValid = !isNaN(topUpCustomNum) && topUpCustomNum >= CUSTOM_TOKEN_MIN;
   const topUpCustomPriceJOD = topUpCustomValid ? Math.round((topUpCustomNum / CUSTOM_TOKENS_PER_JOD) * 100) / 100 : 0;
   const [showLottery, setShowLottery] = useState(false);
+  const [showBooking, setShowBooking] = useState(false);
   // Live-tracked pending topup so the top-bar chip and popup stay in sync.
   // Whichever one calls cancel deletes the Firestore doc → the listener clears
   // both at once, so there's no drift.
@@ -1981,6 +1984,29 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               )}
             </motion.button>
           )}
+
+          {/* Book-a-PC button — hold a free PC for later */}
+          {!isGuest && (
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setShowBooking(true)}
+              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-lg font-ninja text-sm tracking-wider relative overflow-hidden`}
+              style={{
+                background: 'linear-gradient(135deg, rgba(0,200,255,0.10), rgba(0,136,204,0.06))',
+                border: '2px solid rgba(0,200,255,0.30)',
+                boxShadow: '0 0 12px rgba(0,200,255,0.12)',
+                color: '#00c8ff',
+              }}
+            >
+              <span className="relative z-10 text-xl">📅</span>
+              {!sidebarCollapsed && (
+                <span className="relative z-10 flex-1 text-left" style={{ textShadow: '0 0 8px rgba(0,200,255,0.4)' }}>
+                  {lang === 'ar' ? 'احجز جهاز' : 'BOOK A PC'}
+                </span>
+              )}
+            </motion.button>
+          )}
           {/* VIP Button — always glowing gold */}
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(255,215,0,0.35)' }}
@@ -3716,6 +3742,14 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       {showLottery && !isGuest && (
         <LotteryPopup player={player} onClose={() => setShowLottery(false)} />
       )}
+
+      {/* Booking popup */}
+      {showBooking && !isGuest && (
+        <BookingPopup player={player} onClose={() => setShowBooking(false)} />
+      )}
+
+      {/* Booking watcher — applies no-show penalty + plays warnings */}
+      {!isGuest && <BookingWatcher player={player} />}
 
       {/* Pending Top-Up chip — shared source of truth with the popup. Click
           the × to cancel; the underlying Firestore listener syncs both UIs. */}

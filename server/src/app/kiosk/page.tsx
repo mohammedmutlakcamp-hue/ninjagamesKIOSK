@@ -511,6 +511,39 @@ export default function KioskPage() {
         return;
       }
 
+      // Booking penalty gate — player no-showed a prior booking and is in lockout.
+      const penaltyUntil = (playerData as any).penaltyUntil || 0;
+      if (penaltyUntil > Date.now()) {
+        const mins = Math.ceil((penaltyUntil - Date.now()) / 60000);
+        setError(lang === 'ar'
+          ? `عقوبة عدم حضور — انتظر ${mins} دقيقة`
+          : `No-show penalty — wait ${mins} min before logging in`);
+        setLoading(false);
+        return;
+      }
+
+      // Active booking fulfillment: if the player had booked this PC, clear
+      // the booking (marks fulfilled, no penalty). If they logged in on a
+      // DIFFERENT PC while the booking was active, we just fulfill it — no
+      // penalty either, since they showed up to play.
+      const activeBookingId = (playerData as any).activeBookingId;
+      if (activeBookingId) {
+        try {
+          const { getDoc: gd, updateDoc: ud, doc: fsDoc } = await import('firebase/firestore');
+          const bkSnap = await gd(fsDoc(db, 'bookings', activeBookingId));
+          if (bkSnap.exists()) {
+            const bk = bkSnap.data() as any;
+            if (bk.status === 'active' && (bk.expiresAt || 0) > Date.now()) {
+              await ud(fsDoc(db, 'bookings', activeBookingId), {
+                status: 'fulfilled',
+                fulfilledAt: Date.now(),
+              });
+            }
+          }
+          await updateDoc(doc(db, 'players', playerDoc.id), { activeBookingId: null }).catch(() => {});
+        } catch { /* non-fatal */ }
+      }
+
       setPlayer({ ...playerData, coinsAtLogin: (playerData as any).coins, loginTime: Date.now() });
       // Don't block login on lastLogin or PC status update
       updateDoc(doc(db, 'players', playerDoc.id), {
