@@ -437,6 +437,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   // Watch for incoming gifts and token transfers
   const prevCoinsRef = useRef(initialPlayer.coins);
   const prevInventoryLenRef = useRef((initialPlayer.inventory || []).filter((i: any) => !i.used).length);
+  // Global token-received acknowledgement popup (fires on ANY positive coin delta:
+  // admin top-up, friend transfer, chest reward, daily task, tournament prize, etc.)
+  const [tokensReceived, setTokensReceived] = useState<{ amount: number; ts: number } | null>(null);
   const [showLevelUpModal, setShowLevelUpModal] = useState(false);
   const [levelUpNewLevel, setLevelUpNewLevel] = useState(1);
   const prevLevelRef = useRef(getLevelInfo(calculateTotalXP(initialPlayer)).level);
@@ -467,9 +470,25 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       }
     }
 
+    // Detect token gains — any positive delta triggers the received-tokens
+    // acknowledgement popup. Source-agnostic: admin top-up, friend transfer,
+    // chest reward, daily-task claim, tournament prize — anything that grows
+    // the coin field fires this once per change.
+    const delta = Math.floor(currentCoins) - Math.floor(prevCoinsRef.current || 0);
+    if (delta > 0 && prevCoinsRef.current !== undefined) {
+      setTokensReceived({ amount: delta, ts: Date.now() });
+    }
+
     prevCoinsRef.current = currentCoins;
     prevInventoryLenRef.current = currentInvLen;
   }, [player.coins, player.inventory]);
+
+  // Auto-dismiss the tokens-received popup after 4s.
+  useEffect(() => {
+    if (!tokensReceived) return;
+    const t = setTimeout(() => setTokensReceived(null), 4000);
+    return () => clearTimeout(t);
+  }, [tokensReceived]);
 
   // Watch friends for online status changes (notifications)
   useEffect(() => {
@@ -1682,6 +1701,81 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
         )}
       </div>
 
+      {/* Tokens-received acknowledgement popup — fires on any positive coin delta */}
+      <AnimatePresence>
+        {tokensReceived && (
+          <motion.div
+            key={`tokens-received-${tokensReceived.ts}`}
+            initial={{ opacity: 0, y: -40, scale: 0.8 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.9 }}
+            transition={{ type: 'spring', stiffness: 180, damping: 18 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-[250] pointer-events-auto cursor-pointer"
+            onClick={() => setTokensReceived(null)}
+          >
+            <div className="relative rounded-2xl overflow-hidden"
+              style={{
+                background: 'linear-gradient(135deg, rgba(20,15,5,0.97), rgba(30,22,8,0.97))',
+                border: '1px solid rgba(234,179,8,0.5)',
+                boxShadow: '0 0 40px rgba(234,179,8,0.35), 0 20px 50px rgba(0,0,0,0.6)',
+                minWidth: 340,
+              }}>
+              {/* Animated gold shimmer sweep */}
+              <motion.div className="absolute inset-0 pointer-events-none"
+                animate={{ backgroundPosition: ['0% 50%', '200% 50%'] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: 'linear' }}
+                style={{
+                  background: 'linear-gradient(105deg, transparent 30%, rgba(255,215,0,0.1) 45%, rgba(255,215,0,0.18) 50%, rgba(255,215,0,0.1) 55%, transparent 70%)',
+                  backgroundSize: '200% 100%',
+                }} />
+              {/* HUD corners */}
+              <div className="absolute top-0 left-0 w-4 h-4 pointer-events-none" style={{ borderTop: '2px solid #eab308', borderLeft: '2px solid #eab308' }} />
+              <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none" style={{ borderBottom: '2px solid #eab308', borderRight: '2px solid #eab308' }} />
+
+              <div className="relative flex items-center gap-4 px-6 py-4">
+                {/* Spinning coin icon */}
+                <motion.div
+                  animate={{ rotateY: [0, 360], scale: [1, 1.1, 1] }}
+                  transition={{ rotateY: { duration: 1.2, repeat: Infinity, ease: 'linear' }, scale: { duration: 1, repeat: Infinity } }}
+                  className="w-14 h-14 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{
+                    background: 'radial-gradient(circle, rgba(234,179,8,0.3), rgba(234,179,8,0.1))',
+                    border: '2px solid rgba(234,179,8,0.6)',
+                    boxShadow: '0 0 20px rgba(234,179,8,0.5), inset 0 0 10px rgba(255,215,0,0.2)',
+                  }}>
+                  <Coins size={28} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 8px rgba(234,179,8,0.8))' }} />
+                </motion.div>
+
+                <div className="flex-1 leading-tight">
+                  <div className="font-ninja text-[11px] tracking-[0.3em] text-yellow-400/80">
+                    {lang === 'ar' ? 'تم استلام توكنز' : 'TOKENS RECEIVED'}
+                  </div>
+                  <div className="font-ninja text-3xl tabular-nums mt-0.5"
+                    style={{ color: '#fbbf24', textShadow: '0 0 18px rgba(234,179,8,0.55), 0 0 40px rgba(234,179,8,0.25)' }}>
+                    +{tokensReceived.amount.toLocaleString()}
+                  </div>
+                </div>
+
+                <button
+                  onClick={(e) => { e.stopPropagation(); setTokensReceived(null); }}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-white/10 transition-colors flex-shrink-0"
+                  style={{ border: '1px solid rgba(234,179,8,0.25)' }}>
+                  <X size={16} className="text-yellow-500/70" />
+                </button>
+              </div>
+
+              {/* Bottom progress bar (4s auto-dismiss) */}
+              <motion.div
+                initial={{ width: '100%' }}
+                animate={{ width: '0%' }}
+                transition={{ duration: 4, ease: 'linear' }}
+                className="absolute bottom-0 left-0 h-[2px]"
+                style={{ background: 'linear-gradient(90deg, #fbbf24, #eab308)', boxShadow: '0 0 6px rgba(234,179,8,0.6)' }} />
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Low balance overlay */}
       <AnimatePresence>
         {lowBalanceWarning && remainingPlaytime <= 5 && !isGuest && !(player.freePlayUntil && player.freePlayUntil > Date.now()) && (
@@ -2295,30 +2389,28 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     </span>
                   </motion.div>
 
-                  {/* ── Staggered Package cards (JOD → TOKENS swap — mirrors Buy Time design) ── */}
-                  <div className="space-y-3 mb-6 max-h-[55vh] overflow-y-auto pr-1 scrollbar-thin">
+                  {/* ── Package cards (compact, one row per tier, no scroll) ── */}
+                  <div className="space-y-1.5 mb-5">
                     {COIN_PACKAGES.map((pkg, idx) => {
                       const selected = topUpSelected === pkg.id;
                       const isPopular = !!pkg.popular;
                       return (
                         <motion.button key={pkg.id}
-                          initial={{ opacity: 0, x: -30 }}
+                          initial={{ opacity: 0, x: -24 }}
                           animate={{ opacity: 1, x: 0 }}
-                          transition={{ delay: 0.3 + idx * 0.08, type: 'spring', stiffness: 100 }}
+                          transition={{ delay: 0.22 + idx * 0.05, type: 'spring', stiffness: 120 }}
                           onClick={() => { setTopUpSelected(pkg.id); setTopUpCustomTokens(''); }}
                           className="w-full text-left transition-all relative group">
-                          {/* Card with animated HUD corner frame */}
                           <motion.div
-                            animate={selected ? { boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 22px rgba(234,179,8,0.18)', '0 0 0px rgba(234,179,8,0)'] } : {}}
+                            animate={selected ? { boxShadow: ['0 0 0px rgba(234,179,8,0)', '0 0 18px rgba(234,179,8,0.18)', '0 0 0px rgba(234,179,8,0)'] } : {}}
                             transition={{ duration: 2, repeat: Infinity }}
                             className="relative rounded-lg overflow-hidden"
                             style={{
                               background: 'rgba(255,255,255,0.03)',
                               border: isPopular ? 'none' : `1px solid ${selected ? 'rgba(234,179,8,0.45)' : 'rgba(255,255,255,0.08)'}`,
                             }}>
-                            {/* Rainbow/gold gradient border for POPULAR */}
                             {isPopular && (
-                              <motion.div className="absolute -inset-[2px] rounded-lg"
+                              <motion.div className="absolute -inset-[1.5px] rounded-lg"
                                 animate={{ backgroundPosition: ['0% 50%', '100% 50%', '0% 50%'] }}
                                 transition={{ duration: 4, repeat: Infinity, ease: 'linear' }}
                                 style={{
@@ -2326,12 +2418,12 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                   backgroundSize: '300% 300%',
                                 }} />
                             )}
-                            <div className="relative rounded-lg px-5 py-4" style={{
+                            <div className="relative rounded-lg px-4 py-2.5" style={{
                               background: isPopular
                                 ? 'linear-gradient(135deg, #140f04, #1a1405, #140e04)'
                                 : 'rgba(255,255,255,0.02)',
                             }}>
-                              {/* Animated HUD corner accents */}
+                              {/* HUD corner accents */}
                               {[
                                 { pos: 'top-0 left-0', border: 'borderTop,borderLeft' },
                                 { pos: 'top-0 right-0', border: 'borderTop,borderRight' },
@@ -2341,72 +2433,57 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                                 const borders: Record<string, string> = {};
                                 corner.border.split(',').forEach(b => { borders[b] = `2px solid ${selected ? '#eab308' : 'rgba(234,179,8,0.3)'}`; });
                                 return (
-                                  <motion.div key={ci}
-                                    initial={{ opacity: 0, scale: 0 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ delay: 0.5 + idx * 0.08 + ci * 0.05 }}
-                                    className={`absolute ${corner.pos} w-4 h-4`}
-                                    style={borders} />
+                                  <div key={ci} className={`absolute ${corner.pos} w-3 h-3 pointer-events-none`} style={borders} />
                                 );
                               })}
 
-                              <div className="flex items-center justify-between gap-4">
-                                {/* Animated Radio button */}
+                              <div className="flex items-center gap-3">
+                                {/* Radio */}
                                 <motion.div
-                                  animate={selected ? { boxShadow: ['0 0 8px rgba(234,179,8,0.3)', '0 0 16px rgba(234,179,8,0.6)', '0 0 8px rgba(234,179,8,0.3)'] } : {}}
+                                  animate={selected ? { boxShadow: ['0 0 6px rgba(234,179,8,0.3)', '0 0 12px rgba(234,179,8,0.55)', '0 0 6px rgba(234,179,8,0.3)'] } : {}}
                                   transition={{ duration: 1.5, repeat: Infinity }}
-                                  className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
+                                  className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0"
                                   style={{ border: `2px solid ${selected ? '#eab308' : 'rgba(150,150,150,0.4)'}` }}>
                                   <AnimatePresence>
                                     {selected && (
                                       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} transition={{ type: 'spring', stiffness: 300 }}
-                                        className="w-2.5 h-2.5 rounded-full bg-yellow-400" style={{ boxShadow: '0 0 6px rgba(234,179,8,0.8)' }} />
+                                        className="w-2 h-2 rounded-full bg-yellow-400" style={{ boxShadow: '0 0 5px rgba(234,179,8,0.8)' }} />
                                     )}
                                   </AnimatePresence>
                                 </motion.div>
 
-                                {/* ═══ SWAP DISPLAY: JOD → tokens ═══ */}
-                                <div className="flex-1 flex items-center justify-center gap-3 relative overflow-hidden">
-                                  {/* JOD side */}
+                                {/* Swap: JOD → tokens */}
+                                <div className="flex-1 flex items-center justify-center gap-2 relative overflow-hidden">
+                                  {/* JOD side — inline "20 JOD" */}
                                   <motion.div
-                                    animate={selected ? { x: [-4, 4, -4], scale: [1, 1.04, 1] } : {}}
+                                    animate={selected ? { x: [-3, 3, -3], scale: [1, 1.03, 1] } : {}}
                                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                                    className="flex items-center gap-2 flex-1 justify-end"
+                                    className="flex items-baseline gap-1.5 flex-1 justify-end tabular-nums"
                                   >
-                                    <div className="text-right">
-                                      <span className="font-ninja text-3xl text-white tabular-nums"
-                                        style={{ textShadow: selected ? '0 0 20px rgba(255,255,255,0.35), 0 0 40px rgba(255,255,255,0.15)' : '0 0 8px rgba(255,255,255,0.15)' }}>
-                                        {pkg.price}
-                                      </span>
-                                      <p className="font-ninja text-[10px] tracking-[0.3em] text-white/60 leading-none mt-0.5">{lang === 'ar' ? 'دينار' : 'JOD'}</p>
-                                    </div>
-                                    <div className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                                      style={{
-                                        background: selected ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
-                                        border: `1px solid ${selected ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.12)'}`,
-                                        boxShadow: selected ? '0 0 12px rgba(255,255,255,0.15)' : 'none',
-                                      }}>
-                                      <CreditCard size={18} className="text-white/80" />
-                                    </div>
+                                    <span className="font-ninja text-2xl text-white"
+                                      style={{ textShadow: selected ? '0 0 18px rgba(255,255,255,0.3)' : '0 0 6px rgba(255,255,255,0.12)' }}>
+                                      {pkg.price}
+                                    </span>
+                                    <span className="font-ninja text-[12px] tracking-[0.2em] text-white/70">JOD</span>
                                   </motion.div>
 
-                                  {/* Swap arrow with flying coin particles */}
-                                  <div className="relative w-14 h-10 flex items-center justify-center flex-shrink-0">
+                                  {/* Swap arrow + gold particles */}
+                                  <div className="relative w-11 h-7 flex items-center justify-center flex-shrink-0">
                                     <motion.div
                                       animate={selected ? { x: [-2, 2, -2], opacity: [0.6, 1, 0.6] } : {}}
                                       transition={{ duration: 1.2, repeat: Infinity }}
                                       className="flex items-center"
                                     >
-                                      <div className="w-4 h-[2px] rounded-full" style={{ background: selected ? '#eab308' : 'rgba(234,179,8,0.3)', boxShadow: selected ? '0 0 8px rgba(234,179,8,0.6)' : 'none' }} />
-                                      <ArrowRight size={20} style={{ color: selected ? '#eab308' : 'rgba(234,179,8,0.4)', filter: selected ? 'drop-shadow(0 0 6px rgba(234,179,8,0.7))' : 'none' }} />
+                                      <div className="w-3 h-[2px] rounded-full" style={{ background: selected ? '#eab308' : 'rgba(234,179,8,0.3)', boxShadow: selected ? '0 0 6px rgba(234,179,8,0.55)' : 'none' }} />
+                                      <ArrowRight size={16} style={{ color: selected ? '#eab308' : 'rgba(234,179,8,0.4)', filter: selected ? 'drop-shadow(0 0 5px rgba(234,179,8,0.7))' : 'none' }} />
                                     </motion.div>
                                     {selected && (
                                       <>
                                         {[0, 1, 2].map(i => (
                                           <motion.div key={i}
-                                            className="absolute w-1.5 h-1.5 rounded-full"
-                                            style={{ background: '#FFD700', boxShadow: '0 0 6px #FFD700' }}
-                                            animate={{ x: [-20, 20], opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
+                                            className="absolute w-1 h-1 rounded-full"
+                                            style={{ background: '#FFD700', boxShadow: '0 0 5px #FFD700' }}
+                                            animate={{ x: [-16, 16], opacity: [0, 1, 0], scale: [0.5, 1, 0.5] }}
                                             transition={{ duration: 1, repeat: Infinity, delay: i * 0.3, ease: 'linear' }}
                                           />
                                         ))}
@@ -2416,36 +2493,38 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
                                   {/* Tokens side */}
                                   <motion.div
-                                    animate={selected ? { x: [4, -4, 4], scale: [1, 1.04, 1] } : {}}
+                                    animate={selected ? { x: [3, -3, 3], scale: [1, 1.03, 1] } : {}}
                                     transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
-                                    className="flex items-center gap-2 flex-1"
+                                    className="flex items-center gap-1.5 flex-1"
                                   >
-                                    <Coins size={28} className="text-yellow-400 flex-shrink-0"
-                                      style={{ filter: selected ? 'drop-shadow(0 0 10px rgba(234,179,8,0.6))' : 'none' }} />
-                                    <div className="text-left">
-                                      <span className="font-ninja text-3xl text-yellow-400 tabular-nums"
-                                        style={{ textShadow: selected ? '0 0 20px rgba(234,179,8,0.55), 0 0 40px rgba(234,179,8,0.25)' : '0 0 8px rgba(234,179,8,0.25)' }}>
-                                        +{pkg.coins.toLocaleString()}
-                                      </span>
-                                      <p className="font-ninja text-[10px] tracking-[0.3em] text-yellow-500/70 leading-none mt-0.5">
-                                        {(pkg.name || pkg.label || 'TOKENS').toUpperCase()}
+                                    <Coins size={20} className="text-yellow-400 flex-shrink-0"
+                                      style={{ filter: selected ? 'drop-shadow(0 0 8px rgba(234,179,8,0.55))' : 'none' }} />
+                                    <div className="text-left leading-tight">
+                                      <div className="flex items-baseline gap-1">
+                                        <span className="font-ninja text-2xl text-yellow-400 tabular-nums"
+                                          style={{ textShadow: selected ? '0 0 16px rgba(234,179,8,0.5)' : '0 0 6px rgba(234,179,8,0.2)' }}>
+                                          +{pkg.coins.toLocaleString()}
+                                        </span>
                                         {pkg.bonusPercentage !== undefined && pkg.bonusPercentage > 0 && (
-                                          <span className="ml-1.5 text-green-400">+{pkg.bonusPercentage}%</span>
+                                          <span className="font-ninja text-[10px] tracking-wider text-green-400">+{pkg.bonusPercentage}%</span>
                                         )}
-                                      </p>
+                                      </div>
+                                      <div className="font-ninja text-[9px] tracking-[0.25em] text-yellow-500/60 leading-none">
+                                        {(pkg.name || 'TOKENS').toUpperCase()}
+                                      </div>
                                     </div>
                                   </motion.div>
                                 </div>
                               </div>
 
-                              {/* POPULAR floating badge */}
+                              {/* POPULAR pill */}
                               {isPopular && (
                                 <motion.div
-                                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 10px rgba(234,179,8,0.25)', '0 0 20px rgba(234,179,8,0.5)', '0 0 10px rgba(234,179,8,0.25)'] }}
+                                  animate={{ scale: [1, 1.05, 1], boxShadow: ['0 0 8px rgba(234,179,8,0.25)', '0 0 16px rgba(234,179,8,0.45)', '0 0 8px rgba(234,179,8,0.25)'] }}
                                   transition={{ duration: 2, repeat: Infinity }}
-                                  className="absolute -top-2 right-4 px-2.5 py-0.5 rounded-md font-ninja text-[10px] tracking-[0.2em] flex items-center gap-1 z-10"
+                                  className="absolute -top-1.5 right-3 px-2 py-[1px] rounded font-ninja text-[9px] tracking-[0.2em] z-10"
                                   style={{ background: 'linear-gradient(135deg, #fbbf24, #eab308)', color: '#000' }}>
-                                  ⭐ {lang === 'ar' ? 'الأكثر شعبية' : 'POPULAR'}
+                                  ⭐ POPULAR
                                 </motion.div>
                               )}
                             </div>
