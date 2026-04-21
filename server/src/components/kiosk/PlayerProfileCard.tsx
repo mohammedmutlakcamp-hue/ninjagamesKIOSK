@@ -180,7 +180,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
     if (sendLoading) return;
     if (!sendPinVerified) {
       if (!sendPin || sendPin.length < 1) { setSendResult(ar ? 'أدخل رمز PIN' : 'Enter your PIN'); return; }
-      if (sendPin !== currentPlayer.pin) { setSendResult(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
+      if (sendPin !== String(currentPlayer.pin)) { setSendResult(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
       setSendPinVerified(true);
       setSendResult(null);
       return;

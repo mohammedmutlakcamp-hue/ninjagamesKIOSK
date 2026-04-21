@@ -921,7 +921,7 @@ export function TournamentTab({ player }: Props) {
                 onChange={(e) => { setGatePin(e.target.value.slice(0, 400)); setGatePinError(''); }}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && gatePin.length >= 1) {
-                    if (gatePin === player.pin) {
+                    if (gatePin === String(player.pin)) {
                       const t = pinGateTournament;
                       setPinGateTournament(null);
                       setGatePin('');
@@ -954,7 +954,7 @@ export function TournamentTab({ player }: Props) {
                 <button
                   disabled={joining || gatePin.length < 1}
                   onClick={() => {
-                    if (gatePin !== player.pin) {
+                    if (gatePin !== String(player.pin)) {
                       setGatePinError(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN');
                       setGatePin('');
                       return;
