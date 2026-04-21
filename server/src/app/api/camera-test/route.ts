@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
       if (chList.ok && chList.body) {
         const cxml = Buffer.from(chList.body).toString('utf-8');
         // Count <StreamingChannel> entries whose id ends in 01 (main streams)
-        const mainIds = [...cxml.matchAll(/<id>(\d+)<\/id>/g)].map((m) => m[1]);
+        const mainIds = Array.from(cxml.matchAll(/<id>(\d+)<\/id>/g)).map((m) => m[1]);
         channelCount = mainIds.filter((id) => id.endsWith('01') && id !== '101' ? true : id === '101').length;
         if (!channelCount) channelCount = mainIds.length > 0 ? Math.max(...mainIds.map(Number).filter((n) => n % 100 === 1).map((n) => Math.floor(n / 100))) : undefined;
       }
