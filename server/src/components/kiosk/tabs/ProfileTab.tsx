@@ -141,8 +141,8 @@ export function ProfileTab({ player }: Props) {
       setPinError(ar ? 'الرقم السري الحالي غير صحيح' : 'Current PIN is incorrect');
       return;
     }
-    if (!newPin || newPin.length < 6) {
-      setPinError(ar ? 'يجب أن يكون الرقم السري الجديد 6 أرقام على الأقل' : 'New PIN must be at least 6 digits');
+    if (!newPin || newPin.length < 1 || newPin.length > 400) {
+      setPinError(ar ? 'الرمز الجديد يجب أن يكون من 1 إلى 400 حرف' : 'New PIN must be 1-400 characters');
       return;
     }
     setPinSaving(true);
@@ -766,7 +766,7 @@ export function ProfileTab({ player }: Props) {
                       value={usernamePin}
                       onChange={(e) => { setUsernamePin(e.target.value); setUsernameError(''); }}
                       placeholder={ar ? 'أدخل الرقم السري للتأكيد' : 'Enter PIN to confirm'}
-                      maxLength={6}
+                      maxLength={400}
                     />
                     {usernameError && (
                       <p className="text-red-400 font-body text-xs flex items-center gap-1">
@@ -831,7 +831,7 @@ export function ProfileTab({ player }: Props) {
                       value={oldPin}
                       onChange={(e) => { setOldPin(e.target.value); setPinError(''); }}
                       placeholder={ar ? 'الرقم السري الحالي' : 'Current PIN'}
-                      maxLength={6}
+                      maxLength={400}
                     />
                     <NinjaInput
                       type="password"
@@ -839,7 +839,7 @@ export function ProfileTab({ player }: Props) {
                       value={newPin}
                       onChange={(e) => { setNewPin(e.target.value); setPinError(''); }}
                       placeholder={ar ? 'الرقم السري الجديد' : 'New PIN'}
-                      maxLength={6}
+                      maxLength={400}
                     />
                     {pinError && (
                       <p className="text-red-400 font-body text-xs flex items-center gap-1">

@@ -1191,7 +1191,7 @@ function AdminDashboardInner({ admin }: Props) {
               <div className="bg-[#fff8e1] border border-[#fbbf24]/30 rounded-xl p-3 mb-5 text-left">
                 <p className="text-[#86868b] text-xs leading-relaxed">
                   Resetting will set a temporary password <span className="font-mono font-bold text-[#1d1d1f]">000000</span>.
-                  Tell the player to type their username and <span className="font-mono font-bold">000000</span> — the kiosk will then ask them to pick a new 6-digit PIN.
+                  Tell the player to type their username and <span className="font-mono font-bold">000000</span> — the kiosk will then let them pick a new PIN (any length, 1-400 characters).
                 </p>
               </div>
 

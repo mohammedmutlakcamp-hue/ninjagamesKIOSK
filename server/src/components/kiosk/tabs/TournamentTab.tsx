@@ -916,12 +916,11 @@ export function TournamentTab({ player }: Props) {
 
               <input
                 type="password"
-                inputMode="numeric"
                 autoFocus
                 value={gatePin}
-                onChange={(e) => { setGatePin(e.target.value.replace(/\D/g, '').slice(0, 6)); setGatePinError(''); }}
+                onChange={(e) => { setGatePin(e.target.value.slice(0, 400)); setGatePinError(''); }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter' && gatePin.length === 6) {
+                  if (e.key === 'Enter' && gatePin.length >= 1) {
                     if (gatePin === player.pin) {
                       const t = pinGateTournament;
                       setPinGateTournament(null);
@@ -933,9 +932,9 @@ export function TournamentTab({ player }: Props) {
                     }
                   }
                 }}
-                placeholder="••••••"
-                maxLength={6}
-                className="w-full bg-black/50 border border-orange-500/30 rounded-lg px-4 py-4 text-center font-mono text-3xl tracking-[0.7em] text-white focus:outline-none focus:border-orange-400 mb-3"
+                placeholder={ar ? 'رمز PIN' : 'PIN'}
+                maxLength={400}
+                className="w-full bg-black/50 border border-orange-500/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.3em] text-white focus:outline-none focus:border-orange-400 mb-3"
                 style={{ direction: 'ltr' }}
               />
 
@@ -953,7 +952,7 @@ export function TournamentTab({ player }: Props) {
                   {ar ? 'إلغاء' : 'CANCEL'}
                 </button>
                 <button
-                  disabled={joining || gatePin.length !== 6}
+                  disabled={joining || gatePin.length < 1}
                   onClick={() => {
                     if (gatePin !== player.pin) {
                       setGatePinError(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN');

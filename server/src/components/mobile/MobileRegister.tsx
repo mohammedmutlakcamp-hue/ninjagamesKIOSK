@@ -91,8 +91,8 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
       setError(t(lang, 'fill_all') || 'Please fill all fields');
       return;
     }
-    if (pin.length !== 6) {
-      setError(t(lang, 'pin_must_be_4') || 'PIN must be 6 digits');
+    if (pin.length < 1 || pin.length > 400) {
+      setError(lang === 'ar' ? 'الرمز يجب أن يكون من 1 إلى 400 حرف' : 'PIN must be 1-400 characters');
       return;
     }
     if (pin !== confirmPin) {
@@ -252,12 +252,11 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
                   </label>
                   <input
                     type="password"
-                    inputMode="numeric"
                     value={pin}
-                    onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white font-body text-base tracking-[0.4em] text-center focus:border-[#39FF14]/50 outline-none transition-all"
-                    placeholder="******"
-                    maxLength={6}
+                    onChange={(e) => setPin(e.target.value.slice(0, 400))}
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white font-body text-base tracking-[0.2em] text-center focus:border-[#39FF14]/50 outline-none transition-all"
+                    placeholder={lang === 'ar' ? 'رمز PIN' : 'PIN'}
+                    maxLength={400}
                   />
                 </div>
                 <div>
@@ -267,12 +266,11 @@ export function MobileRegister({ lang, onBack, onRegistered }: Props) {
                   </label>
                   <input
                     type="password"
-                    inputMode="numeric"
                     value={confirmPin}
-                    onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white font-body text-base tracking-[0.4em] text-center focus:border-[#39FF14]/50 outline-none transition-all"
-                    placeholder="******"
-                    maxLength={6}
+                    onChange={(e) => setConfirmPin(e.target.value.slice(0, 400))}
+                    className="w-full bg-black/60 border border-white/10 rounded-xl px-4 py-3 text-white font-body text-base tracking-[0.2em] text-center focus:border-[#39FF14]/50 outline-none transition-all"
+                    placeholder={lang === 'ar' ? 'تأكيد' : 'Confirm'}
+                    maxLength={400}
                   />
                 </div>
               </div>

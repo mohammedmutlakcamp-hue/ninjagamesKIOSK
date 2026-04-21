@@ -140,10 +140,10 @@ export function ChestsTab({ player }: Props) {
         }
         await updateDoc(doc(db, 'players', player.uid), update);
       } else {
-        // Vouchers and other items — mark non-tradeable so they can't be re-sold for tokens.
-        const nonSellable = won.type === 'voucher';
+        // Vouchers + free-play items: tradeable so players can gift / redeem them.
+        // Selling for tokens is blocked separately by the type guard in the Sell modal.
         await updateDoc(doc(db, 'players', player.uid), {
-          inventory: arrayUnion({ id: `${won.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: won.type, name: won.name, rarity: won.rarity, value: won.value || 0, obtainedAt: Date.now(), used: false, tradeable: !nonSellable }),
+          inventory: arrayUnion({ id: `${won.id}_${Date.now()}_${Math.random().toString(36).slice(2,6)}`, type: won.type, name: won.name, rarity: won.rarity, value: won.value || 0, obtainedAt: Date.now(), used: false, tradeable: true }),
         });
       }
       await addDoc(collection(db, 'chest-drops'), {

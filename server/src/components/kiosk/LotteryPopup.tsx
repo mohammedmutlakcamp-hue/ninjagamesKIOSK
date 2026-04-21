@@ -6,6 +6,7 @@ import { doc, updateDoc, increment, arrayUnion, addDoc, collection } from 'fireb
 import { db } from '@/lib/firebase';
 import { Ticket, Coins, Clock, Gift, Sparkles, X, Trophy, Loader2 } from 'lucide-react';
 import { loadLotteryConfig, pickLotteryReward, LotteryConfig, LotteryReward } from '@/lib/lottery';
+import { ChestSlider, SliderItem } from './ChestSlider';
 
 interface Props {
   player: any;
@@ -19,16 +20,15 @@ export function LotteryPopup({ player, onClose }: Props) {
   const [phase, setPhase] = useState<Phase>('idle');
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState<LotteryReward | null>(null);
+  const [sliderItems, setSliderItems] = useState<SliderItem[]>([]);
+  const [winIndex, setWinIndex] = useState(33);
   const [error, setError] = useState<string | null>(null);
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
-  const spinTimer = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     loadLotteryConfig().then(setConfig);
   }, []);
-
-  useEffect(() => () => { if (spinTimer.current) clearTimeout(spinTimer.current); }, []);
 
   const totalWeight = config ? config.rewards.reduce((s, r) => s + Math.max(0, r.probability || 0), 0) : 0;
 
@@ -70,6 +70,36 @@ export function LotteryPopup({ player, onClose }: Props) {
     }
   };
 
+  const rewardToSliderItem = (r: LotteryReward): SliderItem => ({
+    id: r.id,
+    name: r.name,
+    rarity: r.rarity || 'common',
+    color: r.color || rarityColor(r.rarity),
+    icon:
+      r.rarity === 'jackpot' ? <Trophy size={56} /> :
+      r.type === 'coins' ? <Coins size={56} /> :
+      r.type === 'time_minutes' ? <Clock size={56} /> :
+      r.type === 'voucher' ? <Gift size={56} /> :
+      <Sparkles size={56} />,
+  });
+
+  const buildSliderItems = (winner: LotteryReward): { items: SliderItem[]; index: number } => {
+    const pool = config?.rewards || [];
+    const TILES = 45;
+    const WIN_AT = 33;
+    const items: SliderItem[] = [];
+    for (let i = 0; i < TILES; i++) {
+      if (i === WIN_AT) {
+        items.push(rewardToSliderItem(winner));
+      } else {
+        // Weighted-random padding so the strip looks honest.
+        const pad = pickLotteryReward(pool) || winner;
+        items.push(rewardToSliderItem(pad));
+      }
+    }
+    return { items, index: WIN_AT };
+  };
+
   const spin = async () => {
     if (!config || spinning || phase !== 'idle') return;
     if ((player.coins || 0) < config.entryCost) {
@@ -78,7 +108,6 @@ export function LotteryPopup({ player, onClose }: Props) {
     }
     setError(null);
     setSpinning(true);
-    setPhase('spinning');
 
     // Deduct entry cost up front
     try {
@@ -90,18 +119,25 @@ export function LotteryPopup({ player, onClose }: Props) {
       console.error('lottery entry cost deduct failed', err);
       setError(ar ? 'فشل الخصم.' : 'Deduction failed.');
       setSpinning(false);
-      setPhase('idle');
       return;
     }
 
-    // Spin animation: ~3 seconds, then pick + reveal
     const picked = pickLotteryReward(config.rewards);
-    spinTimer.current = setTimeout(async () => {
-      setResult(picked);
-      if (picked) await applyReward(picked);
-      setPhase('reveal');
+    if (!picked) {
       setSpinning(false);
-    }, 3200);
+      return;
+    }
+    const { items, index } = buildSliderItems(picked);
+    setResult(picked);
+    setSliderItems(items);
+    setWinIndex(index);
+    setPhase('spinning');
+  };
+
+  const handleSliderComplete = async () => {
+    if (result) await applyReward(result);
+    setPhase('reveal');
+    setSpinning(false);
   };
 
   const close = () => {
@@ -154,7 +190,7 @@ export function LotteryPopup({ player, onClose }: Props) {
       <motion.div
         initial={{ scale: 0.85, y: 40 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.85 }}
         transition={{ type: 'spring', stiffness: 120, damping: 14 }}
-        className="relative w-[560px] max-w-[95vw] rounded-2xl overflow-hidden"
+        className={`relative ${phase === 'spinning' ? 'w-[900px]' : 'w-[560px]'} max-w-[95vw] rounded-2xl overflow-hidden transition-[width] duration-300`}
         style={{
           background: 'linear-gradient(180deg, #0c0810 0%, #0a0a18 30%, #0c0810 100%)',
           border: '2px solid rgba(234,179,8,0.4)',
@@ -242,25 +278,18 @@ export function LotteryPopup({ player, onClose }: Props) {
             </>
           )}
 
-          {/* SPINNING */}
-          {phase === 'spinning' && (
-            <div className="py-12 text-center">
-              <motion.div
-                animate={{ scale: [1, 1.1, 1], rotate: [0, 10, -10, 0] }}
-                transition={{ duration: 1.2, repeat: Infinity }}
-                className="text-6xl mb-4"
-              >
-                🎰
-              </motion.div>
-              <p className="font-ninja text-lg text-yellow-400 tracking-widest mb-2">{ar ? 'يتم اللف...' : 'SPINNING...'}</p>
-              <div className="flex justify-center gap-2 mt-4">
-                {[0, 1, 2].map(i => (
-                  <motion.span key={i}
-                    className="w-2.5 h-2.5 rounded-full bg-yellow-400"
-                    animate={{ opacity: [0.2, 1, 0.2], y: [0, -6, 0] }}
-                    transition={{ duration: 1, repeat: Infinity, delay: i * 0.2 }} />
-                ))}
-              </div>
+          {/* SPINNING — CS:GO-style roulette */}
+          {phase === 'spinning' && sliderItems.length > 0 && (
+            <div className="py-6">
+              <ChestSlider
+                items={sliderItems}
+                winIndex={winIndex}
+                accentColor="#FFD700"
+                title={ar ? 'يتم اللف' : 'LOTTERY SPIN'}
+                onComplete={handleSliderComplete}
+                rarityColor={rarityColor}
+                duration={6000}
+              />
             </div>
           )}
 

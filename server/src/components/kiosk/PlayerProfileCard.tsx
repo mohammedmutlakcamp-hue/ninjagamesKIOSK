@@ -179,7 +179,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
   const handleSendCoins = async () => {
     if (sendLoading) return;
     if (!sendPinVerified) {
-      if (!sendPin || sendPin.length !== 6) { setSendResult(ar ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'); return; }
+      if (!sendPin || sendPin.length < 1) { setSendResult(ar ? 'أدخل رمز PIN' : 'Enter your PIN'); return; }
       if (sendPin !== currentPlayer.pin) { setSendResult(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
       setSendPinVerified(true);
       setSendResult(null);
@@ -664,12 +664,13 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
 
                 {!sendPinVerified ? (
                   <>
-                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">{ar ? 'تحقق من رمز PIN المكون من 6 أرقام' : 'VERIFY YOUR 6-DIGIT PIN'}</p>
-                    <input type="password" inputMode="numeric" value={sendPin}
-                      onChange={(e) => setSendPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="••••••"
+                    <p className="font-body text-[11px] text-gray-500 mb-2 tracking-wider">{ar ? 'تحقق من رمز PIN' : 'VERIFY YOUR PIN'}</p>
+                    <input type="password" value={sendPin}
+                      onChange={(e) => setSendPin(e.target.value.slice(0, 400))}
+                      placeholder={ar ? 'رمز PIN' : 'PIN'}
+                      maxLength={400}
                       onKeyDown={(e) => e.key === 'Enter' && handleSendCoins()}
-                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-3 text-center font-ninja text-lg tracking-[0.5em] text-white focus:outline-none focus:border-yellow-400/50" />
+                      className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-3 text-center font-ninja text-lg tracking-[0.2em] text-white focus:outline-none focus:border-yellow-400/50" />
                   </>
                 ) : (
                   <>
