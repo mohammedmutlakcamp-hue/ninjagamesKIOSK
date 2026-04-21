@@ -756,3 +756,207 @@ function LiveSnapshot({
     </>
   );
 }
+
+// ──────────────────────────────────────────────────────────────────────────
+// DVR Quick-Add: create N cameras at once for a multi-channel NVR/DVR.
+// Uses /api/camera-test to auto-detect channel count before bulk-adding.
+// ──────────────────────────────────────────────────────────────────────────
+
+interface DvrQuickAddPayload {
+  baseName: string;
+  host: string;
+  port: number;
+  user: string;
+  password: string;
+  channelCount: number;
+  https: boolean;
+}
+
+function DvrQuickAdd({
+  onCancel,
+  onAdd,
+}: {
+  onCancel: () => void;
+  onAdd: (payload: DvrQuickAddPayload) => void | Promise<void>;
+}) {
+  const [baseName, setBaseName] = useState('');
+  const [host, setHost] = useState('');
+  const [port, setPort] = useState(80);
+  const [user, setUser] = useState('admin');
+  const [password, setPassword] = useState('');
+  const [https, setHttps] = useState(false);
+  const [channelCount, setChannelCount] = useState(4);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  const canSubmit = baseName.trim().length > 0
+    && host.trim().length > 0
+    && password.length > 0
+    && channelCount > 0
+    && !submitting;
+
+  const runTest = async () => {
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/camera-test', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ host, port, user, password, channel: 101, https }),
+      });
+      const data: TestResult = await res.json();
+      setTestResult(data);
+      if (data.ok && data.channelCount && data.channelCount > 0) {
+        setChannelCount(data.channelCount);
+      }
+    } catch (err: any) {
+      setTestResult({ ok: false, reason: err?.message || 'Network error' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  const submit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    try {
+      await onAdd({ baseName: baseName.trim(), host: host.trim(), port, user: user.trim() || 'admin', password, channelCount, https });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[999] flex items-center justify-center p-4"
+      style={{ background: 'rgba(0,0,0,0.45)', backdropFilter: 'blur(8px)' }}
+      onClick={onCancel}
+    >
+      <motion.div
+        initial={{ scale: 0.95, y: 20 }}
+        animate={{ scale: 1, y: 0 }}
+        exit={{ scale: 0.95, y: 20 }}
+        className="bg-white rounded-2xl w-[540px] max-w-full max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div className="sticky top-0 bg-white border-b border-[#e5e5ea] px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center"
+              style={{ background: 'rgba(0,113,227,0.1)', border: '1px solid rgba(0,113,227,0.25)' }}>
+              <ServerCog size={18} className="text-[#0071e3]" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-[#1d1d1f]">Add DVR — all channels</h3>
+              <p className="text-xs text-[#86868b]">Bulk-creates one camera per channel (101, 201, 301, …)</p>
+            </div>
+          </div>
+          <button onClick={onCancel} className="w-8 h-8 rounded-lg hover:bg-[#f5f5f7] flex items-center justify-center text-[#86868b]">
+            <X size={18} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          <div>
+            <label className="block text-xs font-medium text-[#86868b] mb-1">Base name</label>
+            <input type="text" className={inputClass} placeholder="e.g. Front Room"
+              value={baseName} onChange={(e) => setBaseName(e.target.value)} />
+            <p className="text-[11px] text-[#86868b] mt-1">Each channel becomes &ldquo;{baseName || 'Base name'} · CH1&rdquo;, &ldquo;…&nbsp;CH2&rdquo;, …</p>
+          </div>
+
+          <div className="grid grid-cols-[1fr_110px] gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[#86868b] mb-1">IP / host</label>
+              <input type="text" className={inputClass} placeholder="192.168.1.64"
+                value={host} onChange={(e) => setHost(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#86868b] mb-1">Port</label>
+              <input type="number" className={inputClass} value={port}
+                onChange={(e) => setPort(Number(e.target.value) || 0)} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-[#86868b] mb-1">Username</label>
+              <input type="text" className={inputClass} value={user} onChange={(e) => setUser(e.target.value)} />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-[#86868b] mb-1">Password</label>
+              <input type="password" className={inputClass} value={password} onChange={(e) => setPassword(e.target.value)} />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 text-sm text-[#1d1d1f] cursor-pointer">
+              <input type="checkbox" checked={https} onChange={(e) => setHttps(e.target.checked)} />
+              HTTPS
+            </label>
+            <div className="flex items-center gap-2 ml-auto">
+              <label className="text-xs font-medium text-[#86868b]">Channels</label>
+              <input type="number" min={1} max={64} className={`${inputClass} w-20`}
+                value={channelCount} onChange={(e) => setChannelCount(Math.max(1, Number(e.target.value) || 1))} />
+            </div>
+          </div>
+
+          <div className="pt-2">
+            <button
+              onClick={runTest}
+              disabled={!host || !password || testing}
+              className="flex items-center gap-2 px-4 py-2 bg-white border border-[#d2d2d7] text-[#1d1d1f] rounded-lg font-medium text-sm hover:bg-[#f5f5f7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {testing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+              {testing ? 'Testing…' : 'Test & auto-detect channels'}
+            </button>
+            {testResult && (
+              <div className={`mt-3 p-3 rounded-lg text-sm flex items-start gap-2 ${
+                testResult.ok ? 'bg-[#34c759]/10 text-[#1d1d1f] border border-[#34c759]/30' : 'bg-[#ff3b30]/10 text-[#1d1d1f] border border-[#ff3b30]/30'
+              }`}>
+                {testResult.ok
+                  ? <CheckCircle2 size={16} className="text-[#34c759] flex-shrink-0 mt-0.5" />
+                  : <AlertTriangle size={16} className="text-[#ff3b30] flex-shrink-0 mt-0.5" />}
+                <div className="flex-1">
+                  {testResult.ok ? (
+                    <>
+                      <p className="font-medium">Connected{testResult.device?.model ? ` — ${testResult.device.model}` : ''}</p>
+                      {testResult.channelCount
+                        ? <p className="text-xs text-[#86868b] mt-0.5">Detected {testResult.channelCount} channel{testResult.channelCount === 1 ? '' : 's'}</p>
+                        : <p className="text-xs text-[#86868b] mt-0.5">Couldn&apos;t auto-detect — set manually above.</p>}
+                    </>
+                  ) : (
+                    <>
+                      <p className="font-medium">{testResult.reason || 'Connection failed'}</p>
+                      {testResult.hint && <p className="text-xs text-[#86868b] mt-0.5">{testResult.hint}</p>}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="sticky bottom-0 bg-white border-t border-[#e5e5ea] px-6 py-4 flex items-center justify-end gap-2">
+          <button onClick={onCancel}
+            className="px-4 py-2 bg-white border border-[#d2d2d7] text-[#1d1d1f] rounded-lg font-medium text-sm hover:bg-[#f5f5f7] transition-colors">
+            Cancel
+          </button>
+          <button
+            onClick={submit}
+            disabled={!canSubmit}
+            className="flex items-center gap-2 px-5 py-2 bg-[#0071e3] text-white rounded-lg font-medium text-sm hover:bg-[#0063cc] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          >
+            {submitting ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+            Add {channelCount} camera{channelCount === 1 ? '' : 's'}
+          </button>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
