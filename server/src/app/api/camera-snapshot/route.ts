@@ -2,8 +2,9 @@
 //
 // Browsers won't send `username:password@` basic auth for <img src>, and
 // Hikvision cameras on a private LAN will also fail CORS. This route fetches
-// the camera's JPEG snapshot server-side (with basic auth) and returns it as
-// an <img>-friendly stream.
+// the camera's JPEG snapshot server-side (with Basic or Digest auth — newer
+// Hik firmwares default to Digest) and streams it back as <img>-friendly
+// bytes.
 //
 // Auth: the camera's username/password live ONLY in Firestore `cameras/{id}`.
 // The admin panel queries this route with `?id={cameraId}` and the server
@@ -16,6 +17,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { initializeApp, getApps } from 'firebase/app';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { hikFetch } from '@/lib/hik-fetch';
 
 export const dynamic = 'force-dynamic';
 export const runtime = 'nodejs';
@@ -58,29 +60,22 @@ export async function GET(req: NextRequest) {
     if (!snap.exists()) return new NextResponse('camera not found', { status: 404 });
     const cam = snap.data() as any;
 
-    const protocol = cam.https ? 'https' : 'http';
-    const port = cam.port || (cam.https ? 443 : 80);
     const channel = cam.channel || 101;
-    const url = `${protocol}://${cam.host}:${port}/ISAPI/Streaming/channels/${channel}/picture`;
+    const result = await hikFetch({
+      host: cam.host,
+      port: cam.port || (cam.https ? 443 : 80),
+      https: !!cam.https,
+      user: cam.user || 'admin',
+      password: cam.password || '',
+      pathWithQuery: `/ISAPI/Streaming/channels/${channel}/picture`,
+    });
 
-    const credentials = Buffer
-      .from(`${cam.user || 'admin'}:${cam.password || ''}`)
-      .toString('base64');
-
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 8000);
-
-    const res = await fetch(url, {
-      headers: { Authorization: `Basic ${credentials}` },
-      signal: controller.signal,
-    }).finally(() => clearTimeout(timeout));
-
-    if (!res.ok) {
-      return new NextResponse(`camera returned ${res.status}`, { status: 502 });
+    if (!result.ok || !result.body) {
+      return new NextResponse(`camera: ${result.reason}`, { status: result.status || 502 });
     }
-    const ab = await res.arrayBuffer();
-    const buf = Buffer.from(ab);
-    const contentType = res.headers.get('content-type') || 'image/jpeg';
+
+    const buf = Buffer.from(result.body);
+    const contentType = result.contentType || 'image/jpeg';
     snapshotCache.set(id, { ts: now, buf, contentType });
 
     return new NextResponse(new Uint8Array(buf), {

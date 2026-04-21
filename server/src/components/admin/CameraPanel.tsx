@@ -23,7 +23,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, doc, setDoc, deleteDoc, orderBy, query } from 'firebase/firestore';
 import {
   Video, Plus, Trash2, Pencil, X, Save, Loader2, AlertTriangle, RefreshCw, Maximize2,
-  Wifi, WifiOff, CheckCircle2, HelpCircle, ExternalLink, Shield, Router,
+  Wifi, WifiOff, CheckCircle2, HelpCircle, ExternalLink, Shield, Router, Zap, ServerCog,
 } from 'lucide-react';
 import { HelpTip } from './HelpTip';
 
@@ -46,6 +46,16 @@ const FULLSCREEN_REFRESH = 1000;
 
 const inputClass = 'w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-[#1d1d1f] placeholder:text-[#86868b] outline-none focus:border-[#0071e3] transition-colors text-sm';
 
+interface TestResult {
+  ok: boolean;
+  reason?: string;
+  stage?: string;
+  status?: number;
+  hint?: string;
+  device?: { model?: string; firmwareVersion?: string; serialNumber?: string; deviceName?: string };
+  channelCount?: number;
+}
+
 export function CameraPanel() {
   const [cameras, setCameras] = useState<Camera[]>([]);
   const [editing, setEditing] = useState<Camera | null>(null);
@@ -53,6 +63,9 @@ export function CameraPanel() {
   const [saving, setSaving] = useState(false);
   const [showPasswordField, setShowPasswordField] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<TestResult | null>(null);
+  const [showDvrAdd, setShowDvrAdd] = useState(false);
 
   // Listen for camera list
   useEffect(() => {
@@ -99,6 +112,55 @@ export function CameraPanel() {
     await deleteDoc(doc(db, 'cameras', id));
   };
 
+  // Test connection — doesn't save, just verifies host/port/auth/channel
+  // against the live device. Reads the Hikvision ISAPI /deviceInfo + snapshot.
+  const testConnection = async () => {
+    if (!editing || !editing.host.trim()) return;
+    setTesting(true);
+    setTestResult(null);
+    try {
+      const res = await fetch('/api/camera-test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          host: editing.host.trim(),
+          port: Number(editing.port) || (editing.https ? 443 : 80),
+          channel: Number(editing.channel) || 101,
+          user: editing.user.trim() || 'admin',
+          password: editing.password,
+          https: !!editing.https,
+        }),
+      });
+      const json = await res.json().catch(() => ({ ok: false, reason: 'Invalid response' }));
+      setTestResult(json);
+    } catch (err: any) {
+      setTestResult({ ok: false, reason: err?.message || 'Request failed' });
+    } finally {
+      setTesting(false);
+    }
+  };
+
+  // Bulk-create one camera per DVR channel (4 for a 4-ch DVR, 8 for 8-ch, etc.)
+  const addDvrChannels = async (opts: {
+    baseName: string; host: string; port: number; user: string; password: string;
+    channelCount: number; https: boolean;
+  }) => {
+    const { baseName, host, port, user, password, channelCount, https } = opts;
+    const startOrder = cameras.length;
+    const tasks: Promise<any>[] = [];
+    for (let i = 1; i <= channelCount; i++) {
+      const channel = i * 100 + 1; // 101, 201, 301, 401, ...
+      const name = `${baseName} · CH${i}`;
+      const id = name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      tasks.push(setDoc(doc(db, 'cameras', id), {
+        name, host: host.trim(), port: Number(port) || 80, channel,
+        user: user.trim() || 'admin', password, https,
+        enabled: true, order: startOrder + i - 1,
+      }, { merge: true }));
+    }
+    await Promise.all(tasks);
+  };
+
   return (
     <div className="p-6 relative">
       {/* Header */}
@@ -137,6 +199,12 @@ export function CameraPanel() {
             className="flex items-center gap-2 px-4 py-2.5 bg-white border border-[#d2d2d7] text-[#1d1d1f] rounded-xl font-medium text-sm hover:bg-[#f5f5f7] transition-colors"
           >
             <HelpCircle size={16} /> Setup Guide
+          </button>
+          <button
+            onClick={() => setShowDvrAdd(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#0071e3]/10 text-[#0071e3] border border-[#0071e3]/30 rounded-xl font-medium text-sm hover:bg-[#0071e3]/15 transition-colors"
+          >
+            <ServerCog size={16} /> Add DVR (all channels)
           </button>
           <button
             onClick={() => setEditing({
@@ -206,7 +274,20 @@ export function CameraPanel() {
         )}
       </AnimatePresence>
 
-      {/* ───────────── Setup Guide modal (port forwarding tutorial) ───────────── */}
+      {/* ───────────── DVR Quick-Add modal ───────────── */}
+      <AnimatePresence>
+        {showDvrAdd && (
+          <DvrQuickAdd
+            onCancel={() => setShowDvrAdd(false)}
+            onAdd={async (payload) => {
+              await addDvrChannels(payload);
+              setShowDvrAdd(false);
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* ───────────── Setup Guide modal (ONLINE access tutorial) ───────────── */}
       <AnimatePresence>
         {showHelp && (
           <motion.div
@@ -485,12 +566,57 @@ export function CameraPanel() {
                   Enabled (show on grid)
                 </label>
 
+                {/* Test Connection — verifies the live camera before save */}
+                <div className="space-y-2">
+                  <button type="button" onClick={testConnection}
+                    disabled={testing || !editing.host.trim()}
+                    className="w-full py-2.5 rounded-xl border border-[#0071e3]/30 bg-[#0071e3]/5 text-[#0071e3] text-sm font-semibold flex items-center justify-center gap-2 hover:bg-[#0071e3]/10 disabled:opacity-50">
+                    {testing ? <Loader2 size={14} className="animate-spin" /> : <Zap size={14} />}
+                    {testing ? 'Testing…' : 'Test Connection'}
+                  </button>
+
+                  {testResult && testResult.ok && (
+                    <div className="bg-[#e8f5e9] border border-[#34c759]/30 rounded-xl p-3 text-[12px] text-[#1b5e20] space-y-1">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <CheckCircle2 size={14} /> Connected successfully.
+                      </div>
+                      {testResult.device && (
+                        <div className="pl-6 text-[11px] text-[#1b5e20]/85 space-y-0.5">
+                          {testResult.device.model && <div><strong>Model:</strong> {testResult.device.model}</div>}
+                          {testResult.device.firmwareVersion && <div><strong>Firmware:</strong> {testResult.device.firmwareVersion}</div>}
+                          {testResult.device.deviceName && <div><strong>Device:</strong> {testResult.device.deviceName}</div>}
+                          {testResult.channelCount && testResult.channelCount > 1 && (
+                            <div className="mt-1 text-[#0071e3]">
+                              <strong>Detected {testResult.channelCount}-channel DVR/NVR</strong> — consider using "Add DVR (all channels)" to register every camera in one shot.
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {testResult && !testResult.ok && (
+                    <div className="bg-[#fdecea] border border-[#ef4444]/30 rounded-xl p-3 text-[12px] text-[#8B0000] space-y-1">
+                      <div className="flex items-center gap-2 font-semibold">
+                        <AlertTriangle size={14} /> Connection failed: {testResult.reason}
+                      </div>
+                      {testResult.hint && (
+                        <p className="pl-6 text-[11px] text-[#8B0000]/85">💡 {testResult.hint}</p>
+                      )}
+                      {testResult.status && (
+                        <p className="pl-6 text-[10px] text-[#8B0000]/60 font-mono">HTTP {testResult.status} · stage: {testResult.stage || 'n/a'}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="bg-[#fff3cd] border border-[#ffeaa7] rounded-xl p-3 text-[11px] text-[#8a6d3b] flex items-start gap-2">
                   <AlertTriangle size={14} className="flex-shrink-0 mt-0.5" />
                   <p>
-                    The snapshot proxy runs server-side at <code className="bg-white px-1 rounded">/api/camera-snapshot</code>.
-                    Cameras must be reachable from the server (LAN-side for the kiosk server, or
-                    public IP / port-forward for Vercel). Credentials never leave the server.
+                    The snapshot proxy runs server-side at <code className="bg-white px-1 rounded">/api/camera-snapshot</code> and
+                    auto-negotiates Basic or Digest auth. Cameras must be reachable from the server
+                    (LAN-side for the kiosk server, or a public IP / port-forward / Cloudflare Tunnel
+                    for Vercel). Credentials never leave the server.
                   </p>
                 </div>
 

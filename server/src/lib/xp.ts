@@ -29,19 +29,19 @@ const calcXPForLevel = (level: number): number => {
 };
 
 export const LEVELS: LevelInfo[] = [
-  { level: 1,  title: 'Newcomer',       xpRequired: 0,       xpForNext: 500,    chestDiscount: 0,  coinRateBonus: 0,  color: '#9CA3AF' },
-  { level: 2,  title: 'Apprentice',     xpRequired: 500,     xpForNext: 1200,   chestDiscount: 0,  coinRateBonus: 0,  color: '#9CA3AF' },
-  { level: 3,  title: 'Initiate',       xpRequired: 1700,    xpForNext: 2000,   chestDiscount: 5,  coinRateBonus: 0,  color: '#6EE7B7' },
-  { level: 4,  title: 'Warrior',        xpRequired: 3700,    xpForNext: 3000,   chestDiscount: 5,  coinRateBonus: 5,  color: '#6EE7B7' },
-  { level: 5,  title: 'Fighter',        xpRequired: 6700,    xpForNext: 4500,   chestDiscount: 10, coinRateBonus: 5,  color: '#3B82F6' },
-  { level: 6,  title: 'Skilled',        xpRequired: 11200,   xpForNext: 6000,   chestDiscount: 10, coinRateBonus: 10, color: '#3B82F6' },
-  { level: 7,  title: 'Veteran',        xpRequired: 17200,   xpForNext: 8000,   chestDiscount: 15, coinRateBonus: 10, color: '#A855F7' },
-  { level: 8,  title: 'Elite',          xpRequired: 25200,   xpForNext: 10000,  chestDiscount: 15, coinRateBonus: 15, color: '#A855F7' },
-  { level: 9,  title: 'Master',         xpRequired: 35200,   xpForNext: 15000,  chestDiscount: 20, coinRateBonus: 20, color: '#F59E0B' },
-  { level: 10, title: 'Grandmaster',    xpRequired: 50200,   xpForNext: 20000,  chestDiscount: 25, coinRateBonus: 25, color: '#F59E0B' },
-  { level: 11, title: 'Legend',         xpRequired: 70200,   xpForNext: 30000,  chestDiscount: 30, coinRateBonus: 30, color: '#FF4500' },
-  { level: 12, title: 'Ninja God',      xpRequired: 100200,  xpForNext: 50000,  chestDiscount: 35, coinRateBonus: 35, color: '#FF4500' },
-  { level: 13, title: 'Immortal',       xpRequired: 150200,  xpForNext: 999999, chestDiscount: 40, coinRateBonus: 40, color: '#FFD700' },
+  { level: 1,  title: 'Newcomer',       xpRequired: 0,       xpForNext: 500,    chestDiscount: 0, coinRateBonus: 0,  color: '#9CA3AF' },
+  { level: 2,  title: 'Apprentice',     xpRequired: 500,     xpForNext: 1200,   chestDiscount: 0, coinRateBonus: 0,  color: '#9CA3AF' },
+  { level: 3,  title: 'Initiate',       xpRequired: 1700,    xpForNext: 2000,   chestDiscount: 0, coinRateBonus: 0,  color: '#6EE7B7' },
+  { level: 4,  title: 'Warrior',        xpRequired: 3700,    xpForNext: 3000,   chestDiscount: 0, coinRateBonus: 5,  color: '#6EE7B7' },
+  { level: 5,  title: 'Fighter',        xpRequired: 6700,    xpForNext: 4500,   chestDiscount: 0, coinRateBonus: 5,  color: '#3B82F6' },
+  { level: 6,  title: 'Skilled',        xpRequired: 11200,   xpForNext: 6000,   chestDiscount: 0, coinRateBonus: 10, color: '#3B82F6' },
+  { level: 7,  title: 'Veteran',        xpRequired: 17200,   xpForNext: 8000,   chestDiscount: 0, coinRateBonus: 10, color: '#A855F7' },
+  { level: 8,  title: 'Elite',          xpRequired: 25200,   xpForNext: 10000,  chestDiscount: 0, coinRateBonus: 15, color: '#A855F7' },
+  { level: 9,  title: 'Master',         xpRequired: 35200,   xpForNext: 15000,  chestDiscount: 0, coinRateBonus: 20, color: '#F59E0B' },
+  { level: 10, title: 'Grandmaster',    xpRequired: 50200,   xpForNext: 20000,  chestDiscount: 0, coinRateBonus: 25, color: '#F59E0B' },
+  { level: 11, title: 'Legend',         xpRequired: 70200,   xpForNext: 30000,  chestDiscount: 0, coinRateBonus: 30, color: '#FF4500' },
+  { level: 12, title: 'Ninja God',      xpRequired: 100200,  xpForNext: 50000,  chestDiscount: 0, coinRateBonus: 35, color: '#FF4500' },
+  { level: 13, title: 'Immortal',       xpRequired: 150200,  xpForNext: 999999, chestDiscount: 0, coinRateBonus: 40, color: '#FFD700' },
 ];
 
 export function getLevelInfo(totalXP: number): LevelInfo & { currentXP: number; progress: number } {

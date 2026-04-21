@@ -1,82 +1,135 @@
 'use client';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useCart } from '@/lib/shop/cart-store';
 import { useCity } from '@/lib/shop/city-store';
 import { JORDAN_CITIES } from '@/lib/shop/delivery';
-import { ShoppingCart, Search, MapPin, Menu, Phone } from 'lucide-react';
+import { ShoppingCart, Search, MapPin, X, Menu, Phone } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { CATEGORIES } from '@/lib/shop/categories';
+import CartDrawer from './CartDrawer';
 
 export default function ShopHeader() {
   const items = useCart(s => s.items);
   const { city, reset } = useCity();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [cartOpen, setCartOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [mounted, setMounted] = useState(false);
+
   useEffect(() => setMounted(true), []);
+
   const count = mounted ? items.reduce((n, i) => n + i.qty, 0) : 0;
   const cityMeta = JORDAN_CITIES.find(c => c.key === city);
 
   return (
     <>
-      {/* Top utility bar */}
-      <div className="bg-black text-white text-xs">
-        <div className="max-w-7xl mx-auto px-4 py-2 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <span className="hidden sm:flex items-center gap-1.5"><Phone className="w-3 h-3" /> +962 XX XXX XXXX</span>
-            <span className="hidden md:inline text-neutral-400">Free delivery over 200 JOD · 30-day returns · 1-year warranty</span>
+      {/* Utility bar */}
+      <div className="bg-[#0a0a0a] text-white text-[11px] font-medium">
+        <div className="max-w-7xl mx-auto px-5 py-2.5 flex items-center justify-between">
+          <div className="flex items-center gap-5 text-neutral-400">
+            <span className="hidden sm:flex items-center gap-1.5">
+              <Phone className="w-3 h-3" /> +962 XX XXX XXXX
+            </span>
+            <span className="hidden md:inline">
+              Free delivery over 200 JOD · 30-day returns · 1-year warranty
+            </span>
           </div>
-          <Link href="https://www.ninjagamesjo.com" className="text-[#39FF14] hover:underline">← Back to Gaming Center</Link>
+          <Link
+            href="https://www.ninjagamesjo.com"
+            className="text-[#39FF14] hover:text-white transition-colors flex items-center gap-1"
+          >
+            ← Back to Gaming Center
+          </Link>
         </div>
       </div>
 
       {/* Main header */}
-      <header className="sticky top-0 z-50 bg-white border-b border-neutral-200">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center gap-4">
-          <button onClick={() => setMenuOpen(!menuOpen)} className="lg:hidden p-2 -ml-2 text-neutral-700">
-            <Menu className="w-6 h-6" />
+      <header className="sticky top-0 z-[200] bg-white border-b border-neutral-100 shadow-[0_1px_0_rgba(0,0,0,0.04),0_4px_12px_-4px_rgba(0,0,0,0.06)]">
+        <div className="max-w-7xl mx-auto px-5 py-3.5 flex items-center gap-4">
+          {/* Mobile hamburger */}
+          <button
+            onClick={() => setMenuOpen(!menuOpen)}
+            className="lg:hidden p-2 -ml-2 rounded-xl hover:bg-neutral-100 transition-colors"
+            aria-label="Menu"
+          >
+            {menuOpen ? <X className="w-5 h-5 text-[#525252]" /> : <Menu className="w-5 h-5 text-[#525252]" />}
           </button>
 
-          <Link href="/ghanemshopidea" className="flex items-center gap-2 flex-shrink-0">
-            <Image src="/logo.jpeg" alt="Ninja Games" width={36} height={36} className="rounded-lg" />
+          {/* Logo */}
+          <Link href="/ghanemshopidea" className="flex items-center gap-2.5 flex-shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src="/logo.jpeg"
+              alt="Ninja Games"
+              width={34}
+              height={34}
+              className="rounded-xl"
+            />
             <div className="hidden sm:block">
-              <div className="font-bold text-sm text-neutral-900 leading-tight">NINJA GAMES</div>
-              <div className="text-[10px] text-neutral-500 tracking-widest leading-tight">PC & PS STORE</div>
+              <div
+                className="font-bold text-sm text-[#0a0a0a] leading-tight tracking-tight"
+                style={{ fontFamily: 'var(--font-display, system-ui)' }}
+              >
+                NINJA GAMES
+              </div>
+              <div className="text-[9px] tracking-[0.2em] text-[#a3a3a3] uppercase leading-tight font-medium">
+                PC & PS STORE
+              </div>
             </div>
           </Link>
 
-          <form className="flex-1 max-w-2xl mx-2 sm:mx-6">
+          {/* Search bar */}
+          <form className="flex-1 max-w-xl mx-2 sm:mx-4 lg:mx-8" onSubmit={e => e.preventDefault()}>
             <div className="relative">
-              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[#a3a3a3] pointer-events-none" />
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search RTX 5090, DualSense, Ryzen 9..."
-                className="w-full pl-11 pr-4 py-2.5 bg-neutral-100 border border-transparent rounded-xl text-sm text-neutral-900 placeholder:text-neutral-400 focus:bg-white focus:border-neutral-300 outline-none"
+                className="w-full pl-10 pr-4 py-2.5 bg-[#f5f5f5] border-2 border-transparent rounded-xl text-sm text-[#0a0a0a] placeholder:text-[#a3a3a3] focus:bg-white focus:border-[#39FF14] outline-none transition-all"
               />
             </div>
           </form>
 
-          <button onClick={reset} className="hidden sm:flex items-center gap-1.5 text-xs text-neutral-600 hover:text-green-600 transition-colors">
-            <MapPin className="w-3.5 h-3.5" />
+          {/* City selector */}
+          <button
+            onClick={reset}
+            className="hidden sm:flex items-center gap-1.5 text-xs text-[#525252] hover:text-[#0a0a0a] transition-colors group flex-shrink-0"
+            title="Change city"
+          >
+            <MapPin className="w-3.5 h-3.5 text-emerald-600 group-hover:text-emerald-700" />
             <span className="font-medium">{cityMeta?.en || 'Pick city'}</span>
           </button>
 
-          <Link href="/ghanemshopidea/cart" className="relative p-2.5 rounded-xl hover:bg-neutral-100 transition-colors">
-            <ShoppingCart className="w-5 h-5 text-neutral-700" />
+          {/* Cart icon */}
+          <button
+            onClick={() => setCartOpen(true)}
+            className="relative p-2.5 rounded-xl hover:bg-neutral-100 transition-colors flex-shrink-0"
+            aria-label={`Cart (${count} items)`}
+          >
+            <ShoppingCart className="w-5 h-5 text-[#0a0a0a]" />
             {count > 0 && (
-              <span className="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 rounded-full bg-[#39FF14] text-black text-[11px] font-bold flex items-center justify-center">{count}</span>
+              <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 rounded-full bg-[#39FF14] text-[#0a0a0a] text-[10px] font-bold flex items-center justify-center leading-none">
+                {count}
+              </span>
             )}
-          </Link>
+          </button>
         </div>
 
-        {/* Category strip — desktop */}
+        {/* Category nav strip — desktop */}
         <nav className="hidden lg:block border-t border-neutral-100">
-          <div className="max-w-7xl mx-auto px-4 py-2 flex items-center gap-1 overflow-x-auto" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}>
+          <div
+            className="max-w-7xl mx-auto px-5 py-2 flex items-center gap-0.5 overflow-x-auto"
+            style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' } as React.CSSProperties}
+          >
             {CATEGORIES.map(c => (
-              <Link key={c.slug} href={`/ghanemshopidea/c/${c.slug}`} className="flex-shrink-0 px-3 py-1.5 text-xs font-medium text-neutral-700 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                <span className="mr-1.5">{c.icon}</span>{c.label}
+              <Link
+                key={c.slug}
+                href={`/ghanemshopidea/c/${c.slug}`}
+                className="flex-shrink-0 flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#525252] hover:text-[#0a0a0a] hover:bg-neutral-50 rounded-lg transition-colors whitespace-nowrap"
+              >
+                <span className="text-sm leading-none">{c.icon}</span>
+                {c.label}
               </Link>
             ))}
           </div>
@@ -85,16 +138,36 @@ export default function ShopHeader() {
         {/* Mobile menu */}
         {menuOpen && (
           <nav className="lg:hidden border-t border-neutral-100 bg-white">
-            <div className="px-4 py-2 grid grid-cols-2 gap-1">
+            <div className="px-4 py-3 grid grid-cols-2 gap-1">
               {CATEGORIES.map(c => (
-                <Link key={c.slug} href={`/ghanemshopidea/c/${c.slug}`} onClick={() => setMenuOpen(false)} className="px-3 py-2 text-sm text-neutral-700 hover:bg-neutral-50 rounded-lg">
-                  <span className="mr-2">{c.icon}</span>{c.label}
+                <Link
+                  key={c.slug}
+                  href={`/ghanemshopidea/c/${c.slug}`}
+                  onClick={() => setMenuOpen(false)}
+                  className="flex items-center gap-2 px-3 py-2.5 text-sm text-[#525252] hover:text-[#0a0a0a] hover:bg-neutral-50 rounded-xl transition-colors"
+                >
+                  <span>{c.icon}</span>
+                  {c.label}
                 </Link>
               ))}
+            </div>
+
+            {/* Mobile city + phone */}
+            <div className="px-4 pb-3 flex items-center gap-4 border-t border-neutral-100 mt-1 pt-3">
+              <button
+                onClick={() => { reset(); setMenuOpen(false); }}
+                className="flex items-center gap-1.5 text-xs text-[#525252]"
+              >
+                <MapPin className="w-3.5 h-3.5 text-emerald-600" />
+                {cityMeta?.en || 'Pick city'}
+              </button>
             </div>
           </nav>
         )}
       </header>
+
+      {/* Cart Drawer */}
+      <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </>
   );
 }

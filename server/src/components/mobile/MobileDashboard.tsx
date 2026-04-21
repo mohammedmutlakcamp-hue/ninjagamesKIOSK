@@ -7,7 +7,7 @@ import {
   doc, onSnapshot, updateDoc, collection, query,
   where, getDocs, orderBy, limit, increment, addDoc, arrayUnion,
 } from 'firebase/firestore';
-import { COINS_PER_MINUTE, NINJA_TYPES as NINJA_TYPES_CONST, CHESTS, CHEST_REWARDS, TIME_PACKAGES as BASE_TIME_PACKAGES, COIN_PACKAGES as BASE_COIN_PACKAGES } from '@/lib/constants';
+import { COINS_PER_MINUTE, NINJA_TYPES as NINJA_TYPES_CONST, CHESTS, CHEST_REWARDS, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
 import type { Chest, ChestReward } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { Lang, t } from '@/lib/translations';
@@ -1350,7 +1350,6 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
     ];
 
     const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => ({ id: p.id, label: p.label, hours: p.hours, coins: p.coins }));
-    const JOD_PACKAGES = BASE_COIN_PACKAGES.map(p => ({ id: p.id, jod: p.price, coins: p.coins }));
 
     const ownedNinjas = livePlayer.ownedNinjas || ['neon', 'shadow'];
 
@@ -1381,15 +1380,19 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
       }
     };
 
-    const requestTopup = async (pkg: any) => {
+    const TOKEN_MIN = 100;
+    const TOKENS_PER_JOD = 100;
+
+    const requestCustomTopup = async (coins: number, jod: number) => {
       if (!livePlayer.uid) return;
       try {
         await addDoc(collection(db, 'topup_requests'), {
           playerId: livePlayer.uid,
           playerName: livePlayer.username,
-          packageId: pkg.id,
-          coins: pkg.coins,
-          jod: pkg.jod,
+          packageId: 'custom',
+          coins,
+          jod,
+          custom: true,
           status: 'pending',
           createdAt: Date.now(),
         });
@@ -1555,33 +1558,10 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
               className="space-y-3"
             >
               <p className="text-white/50 text-sm text-center mb-4">
-                {lang === 'ar' ? 'اشترِ التوكنز بالدينار الأردني (JOD)' : 'Purchase coins with Jordanian Dinar (JOD)'}
+                {lang === 'ar' ? 'أدخل عدد التوكنز المطلوب' : 'Enter how many tokens you want'}
               </p>
-              
-              {JOD_PACKAGES.map((pkg) => (
-                <motion.div
-                  key={pkg.id}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => requestTopup(pkg)}
-                  className="flex items-center justify-between p-4 rounded-2xl border cursor-pointer"
-                  style={{
-                    background: 'rgba(255,215,0,0.06)',
-                    borderColor: 'rgba(255,215,0,0.2)',
-                  }}
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-yellow-500/20 flex items-center justify-center">
-                      <CreditCard size={20} className="text-yellow-400" />
-                    </div>
-                    <div>
-                      <h3 className="font-ninja text-yellow-400">{pkg.jod} JOD</h3>
-                      <p className="text-xs text-white/50">{pkg.coins} {lang === 'ar' ? 'توكنز' : 'coins'}</p>
-                    </div>
-                  </div>
 
-                  <span className="font-ninja text-xs text-yellow-400">{lang === 'ar' ? 'طلب' : 'REQUEST'}</span>
-                </motion.div>
-              ))}
+              <CoinsTopupCard ar={lang === 'ar'} tokenMin={TOKEN_MIN} perJOD={TOKENS_PER_JOD} onSubmit={requestCustomTopup} />
               
               <div className="mt-4 p-3 rounded-xl bg-white/5 border border-white/10">
                 <p className="text-xs text-white/40">
@@ -1975,5 +1955,79 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         {openingChest && renderChestOverlay()}
       </AnimatePresence>
     </div>
+  );
+}
+
+function CoinsTopupCard({
+  ar,
+  tokenMin,
+  perJOD,
+  onSubmit,
+}: {
+  ar: boolean;
+  tokenMin: number;
+  perJOD: number;
+  onSubmit: (coins: number, jod: number) => Promise<void>;
+}) {
+  const [tokens, setTokens] = useState('');
+  const [sending, setSending] = useState(false);
+  const n = parseInt(tokens, 10);
+  const valid = !isNaN(n) && n >= tokenMin;
+  const jod = valid ? Math.round((n / perJOD) * 100) / 100 : 0;
+
+  const submit = async () => {
+    if (!valid || sending) return;
+    setSending(true);
+    await onSubmit(n, jod);
+    setTokens('');
+    setSending(false);
+  };
+
+  return (
+    <>
+      <div
+        className="rounded-2xl p-4"
+        style={{
+          background: 'rgba(255,215,0,0.06)',
+          border: `1px solid ${valid ? 'rgba(255,215,0,0.5)' : 'rgba(255,215,0,0.2)'}`,
+          boxShadow: valid ? '0 0 16px rgba(255,215,0,0.12)' : 'none',
+        }}
+      >
+        <label className="block font-ninja text-[11px] tracking-wider text-white/60 mb-2">
+          {ar ? 'كم توكنز تريد؟' : 'HOW MANY TOKENS?'}
+        </label>
+        <div className="flex items-center gap-3">
+          <input
+            type="number"
+            min={tokenMin}
+            step={50}
+            inputMode="numeric"
+            value={tokens}
+            onChange={(e) => setTokens(e.target.value)}
+            placeholder={ar ? 'أدخل التوكنز' : 'Enter tokens'}
+            className="flex-1 bg-white/5 border border-yellow-500/30 rounded-xl px-3 py-3 font-ninja text-xl text-white outline-none focus:border-yellow-400 placeholder:text-white/30"
+          />
+          <div className="text-right min-w-[70px]">
+            <div className="font-ninja text-2xl text-white leading-none">{valid ? jod.toFixed(2) : '—'}</div>
+            <div className="text-[10px] text-white/40 mt-0.5">JOD</div>
+          </div>
+        </div>
+        <p className="text-[10px] text-white/40 mt-2">
+          {ar ? `الحد الأدنى ${tokenMin} · ${perJOD} توكنز = 1 دينار` : `Min ${tokenMin} · ${perJOD} tokens = 1 JOD`}
+        </p>
+      </div>
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={submit}
+        disabled={!valid || sending}
+        className={`mt-3 w-full py-3.5 rounded-2xl font-ninja text-sm tracking-wider ${!valid || sending ? 'opacity-40' : ''}`}
+        style={{
+          background: valid ? 'linear-gradient(135deg, #facc15, #eab308)' : 'rgba(255,215,0,0.15)',
+          color: valid ? '#000' : 'rgba(255,215,0,0.4)',
+        }}
+      >
+        {sending ? 'SENDING…' : ar ? 'طلب الشحن' : 'REQUEST TOP-UP'}
+      </motion.button>
+    </>
   );
 }

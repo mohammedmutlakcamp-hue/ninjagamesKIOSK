@@ -4,7 +4,7 @@ import { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
-import { CHESTS, TIME_PACKAGES as BASE_TIME_PACKAGES, COIN_PACKAGES as BASE_COIN_PACKAGES } from '@/lib/constants';
+import { CHESTS, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
 import {
   Coins, X, Check, Crown, Star, Package, Clock, CreditCard,
   ChevronDown, Timer, Lock, Info, ShoppingBag, Sparkles,
@@ -50,14 +50,8 @@ const TIME_PACKAGES = BASE_TIME_PACKAGES.map(p => {
   };
 });
 
-const JOD_PACKAGES = BASE_COIN_PACKAGES.map(p => ({
-  id: p.id,
-  jod: p.price,
-  coins: p.coins,
-  popular: !!p.popular,
-  name: p.name,
-  bonus: p.bonusPercentage || 0,
-}));
+const TOKEN_MIN = 100;
+const TOKENS_PER_JOD = 100;
 
 const TIERS_ORDER: Tier[] = ['free', 'rare', 'epic', 'legendary', 'mythic'];
 type SubTab = 'skins' | 'chests' | 'time' | 'coins';
@@ -116,18 +110,19 @@ export function StoreView({ player, onBack }: Props) {
     }
   };
 
-  const requestTopup = async (pkg: typeof JOD_PACKAGES[number]) => {
+  const requestCustomTopup = async (coins: number, jod: number) => {
     try {
       await addDoc(collection(db, 'topup_requests'), {
         playerId: player.uid,
         playerName: player.username,
-        packageId: pkg.id,
-        coins: pkg.coins,
-        jod: pkg.jod,
+        packageId: 'custom',
+        coins,
+        jod,
+        custom: true,
         status: 'pending',
         createdAt: Date.now(),
       });
-      showToast(`Request sent! Staff will process ${pkg.jod} JOD.`, true);
+      showToast(`Request sent! Staff will process ${jod} JOD.`, true);
     } catch {
       showToast('Request failed.', false);
     }
@@ -403,57 +398,7 @@ export function StoreView({ player, onBack }: Props) {
 
           {/* ── COINS ── */}
           {subTab === 'coins' && (
-            <motion.div key="coins" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4 pb-6 pt-2">
-              <p className="font-body text-gray-500 text-xs mb-4 text-center">{ar ? 'اشترِ العملات بالدينار الأردني' : 'Purchase coins with Jordanian Dinar'}</p>
-              <div className="space-y-3">
-                {JOD_PACKAGES.map((pkg, i) => (
-                  <motion.div key={pkg.id}
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.08 }}
-                    className="rounded-2xl p-4 flex items-center gap-4 relative overflow-hidden"
-                    style={{
-                      background: 'rgba(255,255,255,0.04)',
-                      border: `1px solid ${pkg.popular ? '#FFD700' : 'rgba(255,255,255,0.08)'}`,
-                      boxShadow: pkg.popular ? '0 0 16px rgba(255,215,0,0.12)' : 'none',
-                    }}
-                  >
-                    {pkg.popular && (
-                      <div className="absolute top-0 right-0 px-2 py-0.5 bg-yellow-500 rounded-bl-xl rounded-tr-xl font-ninja text-[9px] text-black flex items-center gap-1">
-                        <Crown size={8} /> POPULAR
-                      </div>
-                    )}
-                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shrink-0"
-                      style={{ background: 'rgba(255,215,0,0.1)', border: '1px solid rgba(255,215,0,0.25)' }}>
-                      <CreditCard size={22} className="text-yellow-400" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-ninja text-yellow-400 text-lg">{pkg.jod} JOD</p>
-                      <p className="font-body text-xs text-gray-400 flex items-center gap-1">
-                        <Coins size={10} className="text-yellow-300" /> {pkg.coins} coins
-                      </p>
-                    </div>
-                    <motion.button
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => requestTopup(pkg)}
-                      className="px-4 py-2 rounded-xl font-ninja text-xs transition-all"
-                      style={{
-                        background: 'rgba(255,215,0,0.12)',
-                        border: '1px solid rgba(255,215,0,0.35)',
-                        color: '#FFD700',
-                      }}
-                    >
-                      REQUEST
-                    </motion.button>
-                  </motion.div>
-                ))}
-              </div>
-              <div className="mt-4 p-3 rounded-xl flex items-start gap-2"
-                style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
-                <Info size={14} className="text-gray-600 mt-0.5 shrink-0" />
-                <p className="font-body text-[11px] text-gray-600">{ar ? 'سيأتي إليك أحد الموظفين لاستلام الدفعة وإضافة العملات إلى حسابك.' : 'A staff member will come to you to collect payment and add coins to your account.'}</p>
-              </div>
-            </motion.div>
+            <CoinsTopupPanel ar={ar} onSubmit={requestCustomTopup} />
           )}
         </AnimatePresence>
       </div>
@@ -572,5 +517,82 @@ export function StoreView({ player, onBack }: Props) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+function CoinsTopupPanel({ ar, onSubmit }: { ar: boolean; onSubmit: (coins: number, jod: number) => Promise<void> }) {
+  const [tokens, setTokens] = useState('');
+  const [sending, setSending] = useState(false);
+  const n = parseInt(tokens, 10);
+  const valid = !isNaN(n) && n >= TOKEN_MIN;
+  const jod = valid ? Math.round((n / TOKENS_PER_JOD) * 100) / 100 : 0;
+
+  const submit = async () => {
+    if (!valid || sending) return;
+    setSending(true);
+    await onSubmit(n, jod);
+    setTokens('');
+    setSending(false);
+  };
+
+  return (
+    <motion.div key="coins" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="px-4 pb-6 pt-2">
+      <p className="font-body text-gray-500 text-xs mb-4 text-center">
+        {ar ? 'أدخل عدد التوكنز المطلوب' : 'Enter how many tokens you want'}
+      </p>
+      <div
+        className="rounded-2xl p-5"
+        style={{
+          background: 'rgba(255,255,255,0.04)',
+          border: `1px solid ${valid ? 'rgba(255,215,0,0.5)' : 'rgba(255,255,255,0.08)'}`,
+          boxShadow: valid ? '0 0 16px rgba(255,215,0,0.12)' : 'none',
+        }}
+      >
+        <label className="block font-ninja text-[11px] tracking-wider text-gray-400 mb-2">
+          {ar ? 'كم توكنز تريد؟' : 'HOW MANY TOKENS?'}
+        </label>
+        <div className="flex items-center gap-3">
+          <div className="flex-1 relative">
+            <input
+              type="number"
+              min={TOKEN_MIN}
+              step={50}
+              inputMode="numeric"
+              value={tokens}
+              onChange={(e) => setTokens(e.target.value)}
+              placeholder={ar ? 'أدخل التوكنز' : 'Enter tokens'}
+              className="w-full bg-white/5 border border-yellow-500/30 rounded-xl px-3 py-3 font-ninja text-xl text-white outline-none focus:border-yellow-400 placeholder:text-gray-600"
+            />
+            <Coins size={16} className="absolute right-3 top-1/2 -translate-y-1/2 text-yellow-400/70 pointer-events-none" />
+          </div>
+          <div className="text-right">
+            <div className="font-ninja text-2xl text-white leading-none">{valid ? jod.toFixed(2) : '—'}</div>
+            <div className="font-body text-[10px] text-gray-500 mt-0.5">JOD</div>
+          </div>
+        </div>
+        <p className="font-body text-[10px] text-gray-500 mt-2">
+          {ar ? `الحد الأدنى ${TOKEN_MIN} · ${TOKENS_PER_JOD} توكنز = 1 دينار` : `Min ${TOKEN_MIN} · ${TOKENS_PER_JOD} tokens = 1 JOD`}
+        </p>
+      </div>
+      <motion.button
+        whileTap={{ scale: 0.97 }}
+        onClick={submit}
+        disabled={!valid || sending}
+        className={`mt-4 w-full py-3.5 rounded-xl font-ninja text-sm tracking-wider ${!valid || sending ? 'opacity-40' : ''}`}
+        style={{
+          background: valid ? 'linear-gradient(135deg, #facc15, #eab308)' : 'rgba(255,215,0,0.15)',
+          color: valid ? '#000' : 'rgba(255,215,0,0.4)',
+        }}
+      >
+        {sending ? 'SENDING…' : (ar ? 'طلب الشحن' : 'REQUEST TOP-UP')}
+      </motion.button>
+      <div className="mt-4 p-3 rounded-xl flex items-start gap-2"
+        style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)' }}>
+        <Info size={14} className="text-gray-600 mt-0.5 shrink-0" />
+        <p className="font-body text-[11px] text-gray-600">
+          {ar ? 'سيأتي إليك أحد الموظفين لاستلام الدفعة وإضافة العملات إلى حسابك.' : 'A staff member will come to you to collect payment and add coins to your account.'}
+        </p>
+      </div>
+    </motion.div>
   );
 }
