@@ -413,8 +413,8 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
       setError(currentLang === 'ar' ? 'رقم الهاتف غير صحيح' : 'Invalid phone number');
       return;
     }
-    if (pin.length !== 6) {
-      setError(t(currentLang, 'pin_must_be_4'));
+    if (pin.length < 1 || pin.length > 400) {
+      setError(currentLang === 'ar' ? 'الرمز يجب أن يكون من 1 إلى 400 حرف' : 'PIN must be 1-400 characters');
       return;
     }
     if (pin !== confirmPin) {
@@ -723,20 +723,20 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
                 <CyberInput
                   type="password"
                   value={pin}
-                  onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) => setPin(e.target.value.slice(0, 400))}
                   icon={<KeyRound size={16} strokeWidth={2.2} />}
-                  placeholder="••••••"
-                  maxLength={6}
+                  placeholder={currentLang === 'ar' ? 'رمز PIN' : 'PIN'}
+                  maxLength={400}
                   center
-                  label={<><KeyRound size={11} /> {t(currentLang, 'pin_4_digits')}</>}
+                  label={<><KeyRound size={11} /> {currentLang === 'ar' ? 'رمز PIN (1-400 حرف)' : 'PIN (1-400 chars)'}</>}
                 />
                 <CyberInput
                   type="password"
                   value={confirmPin}
-                  onChange={(e) => setConfirmPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                  onChange={(e) => setConfirmPin(e.target.value.slice(0, 400))}
                   icon={<ShieldCheck size={16} strokeWidth={2.2} />}
-                  placeholder="••••••"
-                  maxLength={6}
+                  placeholder={currentLang === 'ar' ? 'تأكيد' : 'Confirm'}
+                  maxLength={400}
                   center
                   label={<><ShieldCheck size={11} /> {t(currentLang, 'confirm_pin')}</>}
                 />

@@ -262,7 +262,7 @@ export default function KioskPage() {
   // Step 2 of legacy flow: write the new PIN, clear legacy fields, then fall through to normal login
   const finishPinSetup = async () => {
     if (!legacyPlayer) return;
-    if (pin.length !== 6) { setError(lang === 'ar' ? 'يجب أن يكون رمز PIN من 6 أرقام' : 'PIN must be 6 digits'); return; }
+    if (pin.length < 1 || pin.length > 400) { setError(lang === 'ar' ? 'الرمز يجب أن يكون من 1 إلى 400 حرف' : 'PIN must be 1-400 characters'); return; }
     if (pin !== pinConfirm) { setError(lang === 'ar' ? 'رمز PIN غير متطابق' : 'PINs do not match'); return; }
     setLoading(true); setError('');
     try {
@@ -370,7 +370,7 @@ export default function KioskPage() {
   // Player submits their new PIN in the post-approval popup
   const saveNewPinAfterForgot = async () => {
     if (newPinSaving) return;
-    if (newPinAfterForgot.length !== 6) { setNewPinError(lang === 'ar' ? 'يجب أن يكون رمز PIN من 6 أرقام' : 'PIN must be 6 digits'); return; }
+    if (newPinAfterForgot.length < 1 || newPinAfterForgot.length > 400) { setNewPinError(lang === 'ar' ? 'الرمز يجب أن يكون من 1 إلى 400 حرف' : 'PIN must be 1-400 characters'); return; }
     if (newPinAfterForgot !== newPinConfirmAfterForgot) { setNewPinError(lang === 'ar' ? 'رمز PIN غير متطابق' : 'PINs do not match'); return; }
     setNewPinSaving(true); setNewPinError('');
     try {
@@ -1159,7 +1159,7 @@ export default function KioskPage() {
                               <input
                                 type="password"
                                 value={pin}
-                                onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                onChange={(e) => setPin(e.target.value.slice(0, 400))}
                                 className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
                                 style={{
                                   background: 'rgba(8,12,18,0.9)', backdropFilter: 'blur(8px)',
@@ -1168,7 +1168,7 @@ export default function KioskPage() {
                                   color: '#ffffff', colorScheme: 'dark', WebkitTextFillColor: '#ffffff',
                                 }}
                                 placeholder={lang === 'ar' ? 'رمز PIN الجديد' : 'New PIN'}
-                                maxLength={6}
+                                maxLength={400}
                               />
                             </div>
                           </div>
@@ -1178,7 +1178,7 @@ export default function KioskPage() {
                               <input
                                 type="password"
                                 value={pinConfirm}
-                                onChange={(e) => setPinConfirm(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                onChange={(e) => setPinConfirm(e.target.value.slice(0, 400))}
                                 className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
                                 style={{
                                   background: 'rgba(8,12,18,0.9)', backdropFilter: 'blur(8px)',
@@ -1187,7 +1187,7 @@ export default function KioskPage() {
                                   color: '#ffffff', colorScheme: 'dark', WebkitTextFillColor: '#ffffff',
                                 }}
                                 placeholder={lang === 'ar' ? 'تأكيد رمز PIN' : 'Confirm PIN'}
-                                maxLength={6}
+                                maxLength={400}
                                 onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleLogin()}
                               />
                             </div>
@@ -1195,7 +1195,7 @@ export default function KioskPage() {
                         </div>
                       )}
 
-                      {/* Mode C (default): regular 6-digit PIN with dot indicators */}
+                      {/* Mode C (default): free-length PIN — any chars, 1-400 */}
                       {!legacyPlayer && !pinSetupMode && (
                       <div className="relative group">
                         <div className="relative">
@@ -1203,8 +1203,8 @@ export default function KioskPage() {
                           <input
                             type="password"
                             value={pin}
-                            onChange={(e) => setPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                            className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.5em] text-center outline-none transition-all z-[1]"
+                            onChange={(e) => setPin(e.target.value.slice(0, 400))}
+                            className="relative w-full rounded-lg pl-11 pr-4 py-4 font-mono text-2xl tracking-[0.3em] text-center outline-none transition-all z-[1]"
                             style={{
                               background: 'rgba(8,12,18,0.9)',
                               backdropFilter: 'blur(8px)',
@@ -1215,31 +1215,20 @@ export default function KioskPage() {
                               colorScheme: 'dark',
                               WebkitTextFillColor: '#ffffff',
                             }}
-                            placeholder="• • • • • •"
-                            maxLength={6}
+                            placeholder={lang === 'ar' ? 'رمز PIN' : 'PIN'}
+                            maxLength={400}
                             onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleLogin()}
                           />
                           <div className="absolute bottom-0 left-1/2 -translate-x-1/2 h-[2px] w-0 group-focus-within:w-full transition-all duration-300 pointer-events-none"
                             style={{ background: 'linear-gradient(90deg, transparent, #39FF14, transparent)', boxShadow: '0 0 8px #39FF14' }}
                           />
                         </div>
-                        {/* 6 PIN dot indicators below */}
-                        <div className="flex items-center justify-center gap-2 mt-2">
-                          {[0, 1, 2, 3, 4, 5].map(i => (
-                            <motion.div
-                              key={i}
-                              animate={{
-                                scale: i < pin.length ? 1 : 0.7,
-                                opacity: i < pin.length ? 1 : 0.3,
-                              }}
-                              className="w-1.5 h-1.5 rounded-full"
-                              style={{
-                                background: i < pin.length ? '#39FF14' : '#374151',
-                                boxShadow: i < pin.length ? '0 0 6px #39FF14' : 'none',
-                              }}
-                            />
-                          ))}
-                        </div>
+                        {/* Character-count indicator */}
+                        {pin.length > 0 && (
+                          <p className="text-center mt-2 font-mono text-xs text-ninja-green/60" style={{ textShadow: '0 0 6px rgba(57,255,20,0.4)' }}>
+                            {pin.length} {lang === 'ar' ? 'حرف' : pin.length === 1 ? 'char' : 'chars'}
+                          </p>
+                        )}
                       </div>
                       )}
                     </div>
@@ -2092,31 +2081,29 @@ export default function KioskPage() {
                     {lang === 'ar' ? 'تمت الموافقة!' : 'APPROVED!'}
                   </p>
                   <p className="font-body text-sm text-gray-400">
-                    {lang === 'ar' ? 'اختر رمز PIN جديد (6 أرقام)' : 'Pick your new 6-digit PIN'}
+                    {lang === 'ar' ? 'اختر رمز PIN جديد (1 إلى 400 حرف)' : 'Pick your new PIN (1-400 characters)'}
                   </p>
                 </div>
 
                 <div className="space-y-3 mb-4">
                   <input
                     type="password"
-                    inputMode="numeric"
                     value={newPinAfterForgot}
-                    onChange={(e) => { setNewPinAfterForgot(e.target.value.replace(/\D/g, '').slice(0, 6)); setNewPinError(''); }}
+                    onChange={(e) => { setNewPinAfterForgot(e.target.value.slice(0, 400)); setNewPinError(''); }}
                     placeholder={lang === 'ar' ? 'رمز PIN الجديد' : 'New PIN'}
-                    maxLength={6}
+                    maxLength={400}
                     autoFocus
-                    className="w-full bg-black/50 border border-ninja-green/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-ninja-green"
+                    className="w-full bg-black/50 border border-ninja-green/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.3em] text-white focus:outline-none focus:border-ninja-green"
                     style={{ direction: 'ltr' }}
                   />
                   <input
                     type="password"
-                    inputMode="numeric"
                     value={newPinConfirmAfterForgot}
-                    onChange={(e) => { setNewPinConfirmAfterForgot(e.target.value.replace(/\D/g, '').slice(0, 6)); setNewPinError(''); }}
+                    onChange={(e) => { setNewPinConfirmAfterForgot(e.target.value.slice(0, 400)); setNewPinError(''); }}
                     onKeyDown={(e) => e.key === 'Enter' && saveNewPinAfterForgot()}
                     placeholder={lang === 'ar' ? 'تأكيد رمز PIN' : 'Confirm PIN'}
-                    maxLength={6}
-                    className="w-full bg-black/50 border border-ninja-green/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.5em] text-white focus:outline-none focus:border-ninja-green"
+                    maxLength={400}
+                    className="w-full bg-black/50 border border-ninja-green/30 rounded-lg px-4 py-4 text-center font-mono text-2xl tracking-[0.3em] text-white focus:outline-none focus:border-ninja-green"
                     style={{ direction: 'ltr' }}
                   />
                 </div>
@@ -2125,7 +2112,7 @@ export default function KioskPage() {
 
                 <motion.button whileTap={{ scale: 0.97 }} whileHover={{ scale: 1.02 }}
                   onClick={saveNewPinAfterForgot}
-                  disabled={newPinSaving || newPinAfterForgot.length !== 6}
+                  disabled={newPinSaving || newPinAfterForgot.length < 1}
                   className="w-full h-12 rounded-lg font-ninja text-sm tracking-wider flex items-center justify-center gap-2 disabled:opacity-50"
                   style={{
                     background: 'linear-gradient(135deg, rgba(57,255,20,0.25), rgba(57,255,20,0.08))',

@@ -406,7 +406,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   const handleSendToFriend = async (item: InventoryItem) => {
     if (sendLoading) return;
     if (!sendPinVerified) {
-      if (!sendPin || sendPin.length !== 6) { setSendError(ar ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'); return; }
+      if (!sendPin || sendPin.length < 1) { setSendError(ar ? 'أدخل رمز PIN' : 'Enter your PIN'); return; }
       if (sendPin !== String(player.pin)) { setSendError(ar ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
       setSendPinVerified(true); setSendError(''); return;
     }
@@ -908,7 +908,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                   </span>
                   <span className="font-body text-[10px] text-gray-500 uppercase">{detailModal.type.replace('_', ' ')}</span>
                   {isEquipped(detailModal) && <span className="flex items-center gap-1 font-ninja text-[10px] text-ninja-green" style={{ textShadow: '0 0 6px rgba(57,255,20,0.4)' }}><ShieldCheck size={10} /> {ar ? 'مُجهز' : 'EQUIPPED'}</span>}
-                  {detailModal.tradeable === false && <span className="flex items-center gap-1 font-body text-[9px] text-gray-500 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/5"><Lock size={8} /> {ar ? 'غير قابل للتبادل' : 'Non-tradeable'}</span>}
+                  {detailModal.tradeable === false && detailModal.type !== 'voucher' && <span className="flex items-center gap-1 font-body text-[9px] text-gray-500 bg-white/[0.03] px-1.5 py-0.5 rounded border border-white/5"><Lock size={8} /> {ar ? 'غير قابل للتبادل' : 'Non-tradeable'}</span>}
                 </div>
 
                 {/* Details grid — HUD styled */}
@@ -952,21 +952,21 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                       <ShieldCheck size={16} /> {ar ? 'مُجهز حالياً' : 'CURRENTLY EQUIPPED'}
                     </div>
                   )}
-                  {detailModal.type !== 'skin' && detailModal.tradeable !== false && (
+                  {detailModal.type !== 'skin' && (detailModal.tradeable !== false || detailModal.type === 'voucher' || detailModal.type === 'vip' || detailModal.type === 'chest') && (
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(57,255,20,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => setUseModal(detailModal)}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-black"
                       style={{ background: 'linear-gradient(135deg, #2ddb1a, #39FF14)', boxShadow: '0 0 12px rgba(57,255,20,0.2)' }}>
                       <Sparkles size={16} /> {ar ? 'استخدام' : 'USE'}
                     </motion.button>
                   )}
-                  {detailModal.tradeable !== false && (
+                  {(detailModal.tradeable !== false || detailModal.type === 'voucher') && (
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(168,85,247,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => setSendModal(detailModal)}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-white"
                       style={{ background: 'linear-gradient(135deg, #7C3AED, #A855F7)', border: '1px solid rgba(168,85,247,0.3)', boxShadow: '0 0 12px rgba(168,85,247,0.15)' }}>
                       <Send size={16} /> {ar ? 'إرسال' : 'SEND'}
                     </motion.button>
                   )}
-                  {detailModal.tradeable !== false && detailModal.type !== 'skin' && detailModal.type !== 'vip' && (
+                  {detailModal.tradeable !== false && detailModal.type !== 'skin' && detailModal.type !== 'vip' && detailModal.type !== 'voucher' && (
                     <motion.button whileHover={{ scale: 1.03, boxShadow: '0 0 20px rgba(234,179,8,0.3)' }} whileTap={{ scale: 0.96 }} onClick={() => setSellModal(detailModal)}
                       className="flex-1 py-3 rounded-xl flex items-center justify-center gap-2 font-ninja text-sm text-black"
                       style={{ background: 'linear-gradient(135deg, #d4a017, #eab308)', boxShadow: '0 0 12px rgba(234,179,8,0.2)' }}>
@@ -1305,8 +1305,8 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                     <div className="space-y-4">
                       <div>
                         <label className="font-body text-[10px] text-gray-500 uppercase tracking-wider mb-1.5 block flex items-center gap-1"><Lock size={10} /> {ar ? 'تحقق من PIN' : 'Verify PIN'}</label>
-                        <NinjaInput type="password" maxLength={6} value={sendPin} onChange={(e) => { setSendPin(e.target.value.replace(/\D/g, '')); setSendError(''); }}
-                          placeholder={ar ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'} icon={<Lock size={14} />} className="text-center text-lg tracking-[0.5em]" />
+                        <NinjaInput type="password" maxLength={400} value={sendPin} onChange={(e) => { setSendPin(e.target.value.slice(0, 400)); setSendError(''); }}
+                          placeholder={ar ? 'أدخل رمز PIN' : 'Enter your PIN'} icon={<Lock size={14} />} className="text-center text-lg tracking-[0.2em]" />
                       </div>
                       {sendError && <p className="font-body text-red-400 text-sm text-center">{sendError}</p>}
                       <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => handleSendToFriend(sendModal)}

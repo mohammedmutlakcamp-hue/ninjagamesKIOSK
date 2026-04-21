@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { Lang, t } from '@/lib/translations';
 import { CHEST_REWARDS, CHESTS } from '@/lib/constants';
 import { pickChestReward } from '@/lib/chest-economy';
@@ -278,21 +278,52 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
   // Use item function
   async function handleUseItem(item: InventoryItem) {
     if (item.used || !player?.uid) return;
-    
+
     const updatedInventory = (player.inventory || []).map((invItem: any) =>
       invItem.id === item.id ? { ...invItem, used: true } : invItem
     );
-    
+
     const updates: any = { inventory: updatedInventory };
-    
+
     // Apply item effects based on type
     if (item.type === 'consumable') {
       if (item.name.includes('Coin')) {
         const coinValue = parseInt(item.name.match(/\d+/)?.[0] || '0');
         updates.coins = increment(coinValue);
       }
+    } else if (item.type === 'voucher') {
+      const lower = item.name.toLowerCase();
+      const isFreePlay = lower.includes('free play');
+      const is1Hour = lower.includes('1 hour') || lower.includes('60 min');
+      if (isFreePlay) {
+        // Self-redeems — grant free playtime directly.
+        const duration = is1Hour ? 60 * 60 * 1000 : 30 * 60 * 1000;
+        updates.freePlayUntil = Date.now() + duration;
+      } else if (!lower.includes('tournament')) {
+        // Desk-redeemable voucher: create a paid-by-voucher order so staff
+        // sees it in the admin Orders panel. No cash, no coins deducted.
+        try {
+          await addDoc(collection(db, 'orders'), {
+            playerId: player.uid,
+            playerName: player.username,
+            pcId: 'voucher-redeem',
+            pcName: player.pcName || 'Mobile',
+            items: [{ menuItemId: item.id, name: `[VOUCHER] ${item.name}`, quantity: 1, price: 0, priceJOD: 0 }],
+            totalCoins: 0,
+            totalJOD: 0,
+            paid: true,
+            paymentMethod: 'voucher',
+            voucherName: item.name,
+            voucherValue: item.value || 0,
+            prepTime: 5,
+            status: 'pending',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          });
+        } catch (err) { console.error('voucher order creation failed', err); }
+      }
     }
-    
+
     await updateDoc(doc(db, 'players', player.uid), updates);
     setSelectedItem(null);
   }
@@ -576,8 +607,8 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
                     </div>
                   )}
 
-                  {/* Non-tradeable badge */}
-                  {item.tradeable === false && !item.used && !item.equipped && (
+                  {/* Non-tradeable badge — vouchers are sendable now, skip the badge for them */}
+                  {item.tradeable === false && item.type !== 'voucher' && !item.used && !item.equipped && (
                     <div
                       className="absolute top-1.5 right-1.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full"
                       style={{ background: 'rgba(255,255,255,0.08)', color: '#888' }}
@@ -675,20 +706,22 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
                   </motion.button>
                 )}
 
-                {selectedItem.type === 'consumable' && !selectedItem.used && (
+                {(selectedItem.type === 'consumable' || selectedItem.type === 'voucher') && !selectedItem.used && (
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleUseItem(selectedItem)}
                     className="w-full flex items-center justify-center gap-2 py-3 rounded-xl font-bold text-black"
                     style={{ background: 'linear-gradient(135deg, #39FF14, #00E600)' }}
                   >
-                    <Zap size={18} />
-                    {lang === 'ar' ? 'استخدام' : 'Use'}
+                    {selectedItem.type === 'voucher' ? <Gift size={18} /> : <Zap size={18} />}
+                    {selectedItem.type === 'voucher'
+                      ? (lang === 'ar' ? 'استبدال عند الكاشير' : 'Redeem at Desk')
+                      : (lang === 'ar' ? 'استخدام' : 'Use')}
                   </motion.button>
                 )}
 
-                {/* Send to friend — only for tradeable items */}
-                {!selectedItem.used && selectedItem.tradeable !== false && (
+                {/* Send to friend — vouchers are always sendable, others need tradeable. */}
+                {!selectedItem.used && (selectedItem.tradeable !== false || selectedItem.type === 'voucher') && (
                   <motion.button
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setShowSendModal(true)}
@@ -699,8 +732,8 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
                   </motion.button>
                 )}
 
-                {/* Non-tradeable notice */}
-                {selectedItem.tradeable === false && (
+                {/* Non-tradeable notice — only for truly locked items (skins, etc.) */}
+                {selectedItem.tradeable === false && selectedItem.type !== 'voucher' && (
                   <div className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white/5 border border-white/10 text-white/40 text-sm">
                     <Package size={16} />
                     {lang === 'ar' ? 'عنصر غير قابل للتداول' : 'Non-tradeable item'}

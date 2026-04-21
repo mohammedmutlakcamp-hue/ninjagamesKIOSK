@@ -852,7 +852,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
   const handleSendCoinsQuick = async () => {
     if (sendLoading) return;
-    if (!sendPin || sendPin.length !== 6) { setSendError(lang === 'ar' ? 'أدخل رمز PIN المكون من 6 أرقام' : 'Enter your 6-digit PIN'); return; }
+    if (!sendPin || sendPin.length < 1) { setSendError(lang === 'ar' ? 'أدخل رمز PIN' : 'Enter your PIN'); return; }
     if (sendPin !== String(player.pin)) { setSendError(lang === 'ar' ? 'رمز PIN غير صحيح' : 'Wrong PIN'); setSendPin(''); return; }
     const amount = parseInt(sendAmount);
     if (!sendTarget.trim()) { setSendError(lang === 'ar' ? 'أدخل اسم المستخدم' : 'Enter a username'); return; }
@@ -1985,28 +1985,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             </motion.button>
           )}
 
-          {/* Book-a-PC button — hold a free PC for later */}
-          {!isGuest && (
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => setShowBooking(true)}
-              className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-lg font-ninja text-sm tracking-wider relative overflow-hidden`}
-              style={{
-                background: 'linear-gradient(135deg, rgba(0,200,255,0.10), rgba(0,136,204,0.06))',
-                border: '2px solid rgba(0,200,255,0.30)',
-                boxShadow: '0 0 12px rgba(0,200,255,0.12)',
-                color: '#00c8ff',
-              }}
-            >
-              <span className="relative z-10 text-xl">📅</span>
-              {!sidebarCollapsed && (
-                <span className="relative z-10 flex-1 text-left" style={{ textShadow: '0 0 8px rgba(0,200,255,0.4)' }}>
-                  {lang === 'ar' ? 'احجز جهاز' : 'BOOK A PC'}
-                </span>
-              )}
-            </motion.button>
-          )}
           {/* VIP Button — always glowing gold */}
           <motion.button
             whileHover={{ scale: 1.02, boxShadow: '0 0 25px rgba(255,215,0,0.35)' }}
@@ -2694,14 +2672,14 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     </div>
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'رمز PIN من 6 أرقام' : '6-Digit PIN'}</label>
-                        <input type="password" value={regPin} onChange={e => setRegPin(e.target.value.replace(/\D/g, '').slice(0,6))}
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm tracking-[0.3em] text-center focus:border-purple-500 outline-none" placeholder="• • • • • •" maxLength={6} />
+                        <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'رمز PIN (1-400 حرف)' : 'PIN (1-400 chars)'}</label>
+                        <input type="password" value={regPin} onChange={e => setRegPin(e.target.value.slice(0,400))}
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm tracking-[0.2em] text-center focus:border-purple-500 outline-none" placeholder={lang === 'ar' ? 'رمز PIN' : 'PIN'} maxLength={400} />
                       </div>
                       <div>
                         <label className="text-gray-500 font-body text-[11px] mb-1 block">{lang === 'ar' ? 'تأكيد رمز PIN' : 'Confirm PIN'}</label>
-                        <input type="password" value={regConfirmPin} onChange={e => setRegConfirmPin(e.target.value.replace(/\D/g, '').slice(0,6))}
-                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm tracking-[0.3em] text-center focus:border-purple-500 outline-none" placeholder="• • • • • •" maxLength={6} />
+                        <input type="password" value={regConfirmPin} onChange={e => setRegConfirmPin(e.target.value.slice(0,400))}
+                          className="w-full bg-white/[0.03] border border-white/10 rounded-lg px-3 py-2.5 text-white font-body text-sm tracking-[0.2em] text-center focus:border-purple-500 outline-none" placeholder={lang === 'ar' ? 'تأكيد' : 'Confirm'} maxLength={400} />
                       </div>
                     </div>
                     {regError && <p className="text-red-400 font-body text-sm text-center">{regError}</p>}
@@ -2709,7 +2687,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                       onClick={async () => {
                         setRegError('');
                         if (!regFirstName || !regLastName || !regUsername || !regPin) { setRegError('Fill all fields'); return; }
-                        if (regPin.length !== 6) { setRegError('PIN must be 6 digits'); return; }
+                        if (regPin.length < 1 || regPin.length > 400) { setRegError('PIN must be 1-400 characters'); return; }
                         if (regPin !== regConfirmPin) { setRegError('PINs do not match'); return; }
                         setRegLoading(true);
                         const qU = query(collection(db, 'players'), where('username', '==', regUsername.toLowerCase()));
@@ -3896,11 +3874,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                   <NinjaInput
                     type="password"
                     value={sendPin}
-                    onChange={(e) => setSendPin(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                    placeholder="• • • • • •"
-                    maxLength={6}
+                    onChange={(e) => setSendPin(e.target.value.slice(0, 400))}
+                    placeholder={lang === 'ar' ? 'رمز PIN' : 'PIN'}
+                    maxLength={400}
                     onKeyDown={(e) => (e.key === 'Enter' || e.code === 'NumpadEnter') && handleSendCoinsQuick()}
-                    className="text-2xl tracking-[0.5em] text-center"
+                    className="text-2xl tracking-[0.2em] text-center"
                     icon={<Shield size={18} />}
                   />
                 </div>

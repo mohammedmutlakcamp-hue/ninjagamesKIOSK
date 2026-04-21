@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { collection, query, where, getDocs, doc, updateDoc } from 'firebase/firestore';
@@ -59,17 +59,15 @@ export default function MobileApp() {
     typeof window !== 'undefined' ? (localStorage.getItem('app-lang') as Lang) || 'en' : 'en'
   );
   const [username, setUsername] = useState('');
-  const [pin, setPin] = useState(['', '', '', '', '', '']);
+  const [pin, setPin] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [player, setPlayer] = useState<any>(null);
   const [restoringSession, setRestoringSession] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
-  const pinRefs = useRef<(HTMLInputElement | null)[]>([]);
   const errorTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  const pinValue = pin.join('');
-  const isReady = username.length > 0 && pinValue.length === 6;
+  const isReady = username.length > 0 && pin.length >= 1;
 
   // Restore persistent session on mount
   useEffect(() => {
@@ -103,35 +101,9 @@ export default function MobileApp() {
     return () => { if (errorTimerRef.current) clearTimeout(errorTimerRef.current); };
   }, [error]);
 
-  const handlePinChange = useCallback((index: number, value: string) => {
-    const digit = value.replace(/\D/g, '').slice(-1);
-    setPin(prev => {
-      const next = [...prev];
-      next[index] = digit;
-      return next;
-    });
-    if (digit && index < 5) {
-      pinRefs.current[index + 1]?.focus();
-    }
-  }, []);
-
-  const handlePinKeyDown = useCallback((index: number, e: React.KeyboardEvent) => {
-    if (e.key === 'Backspace' && !pin[index] && index > 0) {
-      pinRefs.current[index - 1]?.focus();
-      setPin(prev => {
-        const next = [...prev];
-        next[index - 1] = '';
-        return next;
-      });
-    }
-    if ((e.key === 'Enter' || e.code === 'NumpadEnter') && isReady) {
-      handleLogin();
-    }
-  }, [pin, isReady]);
-
   const handleLogin = async () => {
-    const currentPin = pin.join('');
-    if (!username || currentPin.length !== 6) { setError(t(lang, 'enter_credentials')); return; }
+    const currentPin = pin;
+    if (!username || currentPin.length < 1 || currentPin.length > 400) { setError(t(lang, 'enter_credentials')); return; }
     setLoading(true);
     setError('');
     try {
@@ -168,7 +140,7 @@ export default function MobileApp() {
       <VoiceCallProvider player={player}>
         <MobileDashboard player={player} lang={lang} onLogout={() => {
           localStorage.removeItem('ninja-player-session');
-          setScreen('login'); setPlayer(null); setUsername(''); setPin(['', '', '', '', '', '']);
+          setScreen('login'); setPlayer(null); setUsername(''); setPin('');
         }} />
       </VoiceCallProvider>
     );
@@ -312,34 +284,27 @@ export default function MobileApp() {
             autoCorrect="off"
           />
 
-          {/* PIN - 6 digit boxes */}
+          {/* PIN — single password field, any length 1-400 */}
           <div>
             <p className="text-[10px] font-medium tracking-wider text-white/30 mb-2.5 uppercase text-center">
               {t(lang, 'pin')}
             </p>
-            <div className="flex justify-center gap-2" dir="ltr">
-              {[0, 1, 2, 3, 4, 5].map(i => (
-                <input
-                  key={i}
-                  ref={el => { pinRefs.current[i] = el; }}
-                  type="tel"
-                  inputMode="numeric"
-                  maxLength={1}
-                  value={pin[i]}
-                  onChange={(e) => handlePinChange(i, e.target.value)}
-                  onKeyDown={(e) => handlePinKeyDown(i, e)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  className="w-12 h-12 text-center text-xl font-bold text-white rounded-2xl outline-none transition-all duration-300"
-                  style={{
-                    background: pin[i] ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.06)',
-                    border: `1.5px solid ${pin[i] ? 'rgba(57,255,20,0.35)' : 'rgba(255,255,255,0.1)'}`,
-                    caretColor: 'transparent',
-                    fontSize: '16px',
-                    boxShadow: pin[i] ? '0 0 12px rgba(57,255,20,0.1)' : 'none',
-                  }}
-                />
-              ))}
-            </div>
+            <input
+              type="password"
+              value={pin}
+              onChange={(e) => setPin(e.target.value.slice(0, 400))}
+              onKeyDown={(e) => { if ((e.key === 'Enter' || e.code === 'NumpadEnter') && isReady) handleLogin(); }}
+              maxLength={400}
+              placeholder={lang === 'ar' ? 'رمز PIN' : 'PIN'}
+              dir="ltr"
+              className="w-full px-4 py-3.5 text-center text-base font-bold text-white rounded-2xl outline-none transition-all duration-300 tracking-[0.2em]"
+              style={{
+                background: pin ? 'rgba(57,255,20,0.1)' : 'rgba(255,255,255,0.06)',
+                border: `1.5px solid ${pin ? 'rgba(57,255,20,0.35)' : 'rgba(255,255,255,0.1)'}`,
+                fontSize: '16px',
+                boxShadow: pin ? '0 0 12px rgba(57,255,20,0.1)' : 'none',
+              }}
+            />
           </div>
 
           {/* Login Button */}
