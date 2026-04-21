@@ -48,8 +48,14 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
   const [showEodReport, setShowEodReport] = useState(false);
   const [employeeName, setEmployeeName] = useState<string>('');
   const [showEmployeePrompt, setShowEmployeePrompt] = useState(false);
-  const prevFoodCountRef = useRef<number>(0);
-  const prevShishaCountRef = useRef<number>(0);
+  // Track which pending orders we've already shown a popup for, plus a
+  // "first snapshot" flag so we never fire popups for orders that existed
+  // before the panel opened. Keying by id (not count) means a new order
+  // still fires even if another was simultaneously marked preparing.
+  const seenFoodIdsRef = useRef<Set<string>>(new Set());
+  const seenShishaIdsRef = useRef<Set<string>>(new Set());
+  const foodInitializedRef = useRef<boolean>(false);
+  const shishaInitializedRef = useRef<boolean>(false);
   const readyLoopRef = useRef<number | null>(null);
 
   // Load / prompt for the current employee so each action stamps who did it.
@@ -96,13 +102,21 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
       });
       setFoodOrders(all);
       const pending = all.filter(o => o.status === 'pending');
-      if (pending.length > prevFoodCountRef.current && prevFoodCountRef.current > 0) {
-        const newest = pending[0];
-        setNewOrderPopup(newest);
-        playNotificationSound();
-        setTimeout(() => setNewOrderPopup(prev => prev?.id === newest.id ? null : prev), 15000);
+      if (!foodInitializedRef.current) {
+        // First snapshot — seed the seen-set with existing pending orders so
+        // the admin doesn't get flooded with popups for pre-existing orders.
+        pending.forEach(o => seenFoodIdsRef.current.add(o.id));
+        foodInitializedRef.current = true;
+      } else {
+        const newOnes = pending.filter(o => !seenFoodIdsRef.current.has(o.id));
+        newOnes.forEach(o => seenFoodIdsRef.current.add(o.id));
+        if (newOnes.length > 0) {
+          const newest = newOnes[0];
+          setNewOrderPopup(newest);
+          playNotificationSound();
+          setTimeout(() => setNewOrderPopup(prev => prev?.id === newest.id ? null : prev), 15000);
+        }
       }
-      prevFoodCountRef.current = pending.length;
     });
     return () => unsub();
   }, []);
@@ -142,13 +156,19 @@ export function OrdersPanel({ kindFilter }: OrdersPanelProps = {}) {
       });
       setShishaOrders(all);
       const pending = all.filter(o => o.status === 'pending');
-      if (pending.length > prevShishaCountRef.current && prevShishaCountRef.current > 0) {
-        const newest = pending[0];
-        setNewOrderPopup(newest);
-        playNotificationSound();
-        setTimeout(() => setNewOrderPopup(prev => prev?.id === newest.id ? null : prev), 15000);
+      if (!shishaInitializedRef.current) {
+        pending.forEach(o => seenShishaIdsRef.current.add(o.id));
+        shishaInitializedRef.current = true;
+      } else {
+        const newOnes = pending.filter(o => !seenShishaIdsRef.current.has(o.id));
+        newOnes.forEach(o => seenShishaIdsRef.current.add(o.id));
+        if (newOnes.length > 0) {
+          const newest = newOnes[0];
+          setNewOrderPopup(newest);
+          playNotificationSound();
+          setTimeout(() => setNewOrderPopup(prev => prev?.id === newest.id ? null : prev), 15000);
+        }
       }
-      prevShishaCountRef.current = pending.length;
     });
     return () => unsub();
   }, []);
