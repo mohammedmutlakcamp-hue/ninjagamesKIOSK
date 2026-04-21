@@ -25,7 +25,7 @@ import { StoreTab } from './tabs/StoreTab';
 import { VIPTab } from './tabs/VIPTab';
 import { ChatBubble } from './ChatBubble';
 import { OrderBubble } from './OrderBubble';
-import { LotteryPopup } from './LotteryPopup';
+import { RafflePopup } from './RafflePopup';
 import { BookingPopup } from './BookingPopup';
 import { BookingWatcher } from './BookingWatcher';
 import { SupportBubble } from './SupportBubble';
@@ -104,6 +104,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
   const topUpCustomValid = !isNaN(topUpCustomNum) && topUpCustomNum >= CUSTOM_TOKEN_MIN;
   const topUpCustomPriceJOD = topUpCustomValid ? Math.round((topUpCustomNum / CUSTOM_TOKENS_PER_JOD) * 100) / 100 : 0;
   const [showLottery, setShowLottery] = useState(false);
+  // Live raffle state — drives the sidebar button glow + entrants counter.
+  const [raffleActive, setRaffleActive] = useState(false);
+  const [raffleEntrantCount, setRaffleEntrantCount] = useState(0);
   const [showBooking, setShowBooking] = useState(false);
   // Live-tracked pending topup so the top-bar chip and popup stay in sync.
   // Whichever one calls cancel deletes the Firestore doc → the listener clears
@@ -295,7 +298,18 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
         setDisabledGames(snap.data().disabledGames || []);
       }
     });
-    return () => { unsubPricing(); unsubHappy(); unsubGames(); };
+    // Live raffle — drives the glowing sidebar button.
+    const unsubRaffle = onSnapshot(doc(db, 'raffles', 'current'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as any;
+        setRaffleActive(!!data.active);
+        setRaffleEntrantCount(Array.isArray(data.entrants) ? data.entrants.length : 0);
+      } else {
+        setRaffleActive(false);
+        setRaffleEntrantCount(0);
+      }
+    });
+    return () => { unsubPricing(); unsubHappy(); unsubGames(); unsubRaffle(); };
   }, []);
 
   // ── Promotions (admin-scheduled time-window bundles) ──
@@ -873,11 +887,16 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       batch.update(doc(db, 'players', player.uid), { coins: inc(-(amount + fee)), totalCoinsSpent: inc(amount + fee) });
       batch.update(doc(db, 'players', targetDoc.id), { coins: inc(amount) });
       await batch.commit();
-      addDoc(collection(db, 'coin-transfers'), {
-        senderId: player.uid, senderName: player.username,
-        receiverId: targetDoc.id, receiverName: targetDoc.data().username,
-        amount, type: 'send', timestamp: Date.now()
-      }).catch(() => {});
+      try {
+        await addDoc(collection(db, 'coin-transfers'), {
+          senderId: player.uid, senderName: player.username,
+          receiverId: targetDoc.id, receiverName: targetDoc.data().username,
+          amount, type: 'send', timestamp: Date.now(),
+        });
+      } catch (logErr) {
+        // Surface failures so we stop losing transfer audit entries silently.
+        console.error('coin-transfers log failed', logErr);
+      }
       setSendSuccess(`Sent ${amount} tokens to ${sendTarget}! (${fee} fee burned)`);
       setSendAmount('');
       trackDailyTask(player.uid, 'send_coins').catch(() => {});
@@ -1308,127 +1327,30 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             <>
               {/* Top row: Language — Avatar — Settings */}
               <div className="flex items-center justify-between mb-2">
-                {/* Language switcher — inline SVG flags drawn to fill the
-                    circle perfectly. No external image, no aspect-ratio
-                    fitting bugs, no transparent gutters. Stripes for the
-                    USA flag, green field + shahada-style band for Saudi. */}
+                {/* Language switcher — EN / AR text toggle. Tap to swap.
+                    The active side is highlighted, the inactive side dim. */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
-                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-visible transition-all hover:scale-110 relative"
+                  className="w-14 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-105 relative font-ninja"
                   style={{
-                    background: 'radial-gradient(circle at 35% 30%, rgba(255,255,255,0.18), transparent 60%)',
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.55), 0 0 14px rgba(168,85,247,0.18), inset 0 -2px 6px rgba(0,0,0,0.45), inset 0 2px 4px rgba(255,255,255,0.18)',
-                    border: '1px solid rgba(255,255,255,0.12)',
+                    background: 'linear-gradient(135deg, rgba(20,24,36,0.95), rgba(8,12,20,0.95))',
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.55), 0 0 10px rgba(168,85,247,0.2), inset 0 -2px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.08)',
+                    border: '1px solid rgba(168,85,247,0.35)',
                   }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                  {lang === 'en' ? (
-                    /* USA flag — 3D spherical rendering: radial-shaded field, proper 5-point stars, glossy highlight, beveled rim. */
-                    <svg viewBox="0 0 60 60" className="w-full h-full rounded-full" preserveAspectRatio="xMidYMid slice" aria-label="EN">
-                      <defs>
-                        <clipPath id="usaCircle"><circle cx="30" cy="30" r="29" /></clipPath>
-                        <radialGradient id="usaSphereShade" cx="35%" cy="30%" r="75%">
-                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.35" />
-                          <stop offset="45%" stopColor="#ffffff" stopOpacity="0" />
-                          <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
-                        </radialGradient>
-                        <radialGradient id="usaGloss" cx="40%" cy="20%" r="45%">
-                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.75" />
-                          <stop offset="70%" stopColor="#ffffff" stopOpacity="0" />
-                        </radialGradient>
-                        <symbol id="usStar" viewBox="0 0 10 10">
-                          <polygon points="5,0.4 6.2,3.8 9.8,3.8 6.9,5.8 8.0,9.2 5,7.1 2,9.2 3.1,5.8 0.2,3.8 3.8,3.8"
-                            fill="#FFFFFF" />
-                        </symbol>
-                      </defs>
-                      <g clipPath="url(#usaCircle)">
-                        {/* 13 stripes */}
-                        {Array.from({ length: 13 }).map((_, i) => (
-                          <rect key={i} x="0" y={i * (60 / 13)} width="60" height={60 / 13}
-                            fill={i % 2 === 0 ? '#B22234' : '#FFFFFF'} />
-                        ))}
-                        {/* Blue canton — rows 0..6 of stripes */}
-                        <rect x="0" y="0" width="30" height={(60 / 13) * 7} fill="#0A3161" />
-                        {/* Stars — staggered rows, 5 per row */}
-                        {[0, 1, 2, 3].map((r) => (
-                          Array.from({ length: 5 }).map((__, c) => (
-                            <use key={`${r}-${c}`} href="#usStar"
-                              x={3 + c * 5.5 + (r % 2) * 2.7} y={2 + r * 3.6}
-                              width={3} height={3} />
-                          ))
-                        ))}
-                        {/* 3D sphere shading overlay */}
-                        <rect x="0" y="0" width="60" height="60" fill="url(#usaSphereShade)" />
-                        {/* Top gloss */}
-                        <ellipse cx="24" cy="15" rx="20" ry="11" fill="url(#usaGloss)" />
-                      </g>
-                      {/* Rim */}
-                      <circle cx="30" cy="30" r="29" fill="none" stroke="rgba(255,255,255,0.25)" strokeWidth="1" />
-                      <circle cx="30" cy="30" r="28" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="0.8" />
-                    </svg>
-                  ) : (
-                    /* Saudi Arabia flag — 3D sphere with green radial field, stylized shahada script, crossed sword, glossy highlight. */
-                    <svg viewBox="0 0 60 60" className="w-full h-full rounded-full" preserveAspectRatio="xMidYMid slice" aria-label="AR">
-                      <defs>
-                        <clipPath id="saCircle"><circle cx="30" cy="30" r="29" /></clipPath>
-                        <radialGradient id="saField" cx="35%" cy="30%" r="80%">
-                          <stop offset="0%" stopColor="#0E9652" />
-                          <stop offset="55%" stopColor="#0A7A41" />
-                          <stop offset="100%" stopColor="#03421F" />
-                        </radialGradient>
-                        <radialGradient id="saSphereShade" cx="35%" cy="30%" r="75%">
-                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.3" />
-                          <stop offset="45%" stopColor="#ffffff" stopOpacity="0" />
-                          <stop offset="100%" stopColor="#000000" stopOpacity="0.55" />
-                        </radialGradient>
-                        <radialGradient id="saGloss" cx="40%" cy="20%" r="45%">
-                          <stop offset="0%" stopColor="#ffffff" stopOpacity="0.7" />
-                          <stop offset="70%" stopColor="#ffffff" stopOpacity="0" />
-                        </radialGradient>
-                        <linearGradient id="swordBlade" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#fdfdfd" />
-                          <stop offset="50%" stopColor="#cfd3d8" />
-                          <stop offset="100%" stopColor="#8a8f94" />
-                        </linearGradient>
-                      </defs>
-                      <g clipPath="url(#saCircle)">
-                        <rect x="0" y="0" width="60" height="60" fill="url(#saField)" />
-                        {/* Stylized shahada script — flowing curved strokes (calligraphic impression) */}
-                        <g fill="none" stroke="#FFFFFF" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M10 21 Q18 17 26 21 T42 21 T52 21" />
-                          <path d="M11 26 Q20 22 30 26 Q40 30 50 26" opacity="0.85" />
-                        </g>
-                        {/* Diacritical dots above the script */}
-                        <circle cx="18" cy="17" r="0.9" fill="#FFFFFF" />
-                        <circle cx="34" cy="17" r="0.9" fill="#FFFFFF" />
-                        <circle cx="46" cy="17" r="0.9" fill="#FFFFFF" />
-                        {/* Crossed sword — chrome blade + gold hilt */}
-                        <g>
-                          {/* Blade */}
-                          <rect x="10" y="35.5" width="38" height="2.6" rx="1.2" fill="url(#swordBlade)"
-                            stroke="#e7eaee" strokeWidth="0.3" />
-                          {/* Blade tip (arrow) */}
-                          <polygon points="48,34.2 52,36.8 48,39.4" fill="url(#swordBlade)" stroke="#e7eaee" strokeWidth="0.3" />
-                          {/* Cross guard */}
-                          <rect x="8" y="34.5" width="2.2" height="4.6" rx="0.6" fill="#d1b44a" stroke="#8a6f1d" strokeWidth="0.3" />
-                          {/* Hilt pommel */}
-                          <circle cx="6.8" cy="36.8" r="1.6" fill="#e9c968" stroke="#8a6f1d" strokeWidth="0.3" />
-                        </g>
-                        {/* 3D sphere shading overlay */}
-                        <rect x="0" y="0" width="60" height="60" fill="url(#saSphereShade)" />
-                        {/* Top gloss */}
-                        <ellipse cx="24" cy="15" rx="20" ry="11" fill="url(#saGloss)" />
-                      </g>
-                      {/* Rim */}
-                      <circle cx="30" cy="30" r="29" fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth="1" />
-                      <circle cx="30" cy="30" r="28" fill="none" stroke="rgba(0,0,0,0.4)" strokeWidth="0.8" />
-                    </svg>
-                  )}
-                  {/* Country code chip in corner so it's instantly readable */}
-                  <span className="absolute bottom-0 right-0 text-[8px] font-ninja font-bold leading-none px-1 py-0.5 rounded-tl"
-                    style={{ background: 'rgba(0,0,0,0.7)', color: '#fff' }}>
-                    {lang === 'en' ? 'EN' : 'AR'}
+                  <span className="text-[11px] tracking-wider flex items-center gap-[3px]">
+                    <span style={{
+                      color: lang === 'en' ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
+                      textShadow: lang === 'en' ? '0 0 10px rgba(168,85,247,0.8)' : 'none',
+                      fontWeight: lang === 'en' ? 900 : 500,
+                    }}>EN</span>
+                    <span className="opacity-30 text-[9px]">/</span>
+                    <span style={{
+                      color: lang === 'ar' ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
+                      textShadow: lang === 'ar' ? '0 0 10px rgba(168,85,247,0.8)' : 'none',
+                      fontWeight: lang === 'ar' ? 900 : 500,
+                    }}>AR</span>
                   </span>
                 </button>
-
                 {/* Center — Big avatar in octagonal sci-fi frame */}
                 <div className="relative cursor-pointer" onClick={() => setActivePopup('profile')}>
                   {/* Octagonal outer frame */}
@@ -1956,30 +1878,54 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
         {/* Bottom section */}
         <div className={`p-3 space-y-2 flex-shrink-0 border-t relative z-10 ${isPlayerVIP ? 'border-yellow-500/10' : 'border-gray-800/40'}`}>
-          {/* Lottery Chest button — big-ticket chance-to-win */}
-          {!isGuest && (
+          {/* Raffle Chest button — live group raffle; only visible + glowing while admin has one active. */}
+          {!isGuest && raffleActive && (
             <motion.button
-              whileHover={{ scale: 1.02 }}
+              whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.96 }}
               onClick={() => setShowLottery(true)}
               className={`w-full flex items-center ${sidebarCollapsed ? 'justify-center' : 'gap-3 px-4'} py-3 rounded-lg font-ninja text-sm tracking-wider relative overflow-hidden`}
               style={{
-                background: 'linear-gradient(135deg, rgba(234,179,8,0.12), rgba(251,146,60,0.08))',
-                border: '2px solid rgba(234,179,8,0.35)',
-                boxShadow: '0 0 12px rgba(234,179,8,0.15)',
-                color: '#eab308',
+                background: 'linear-gradient(135deg, rgba(234,179,8,0.22), rgba(251,146,60,0.14))',
+                border: '2px solid rgba(255,215,0,0.65)',
+                color: '#FFD700',
               }}
             >
+              {/* Continuous gold glow pulse when active */}
+              <motion.div
+                className="absolute inset-0 rounded-lg pointer-events-none"
+                animate={{
+                  boxShadow: [
+                    '0 0 12px rgba(255,215,0,0.35), inset 0 0 12px rgba(255,215,0,0.15)',
+                    '0 0 28px rgba(255,215,0,0.75), inset 0 0 24px rgba(255,215,0,0.35)',
+                    '0 0 12px rgba(255,215,0,0.35), inset 0 0 12px rgba(255,215,0,0.15)',
+                  ],
+                }}
+                transition={{ duration: 1.8, repeat: Infinity, ease: 'easeInOut' }}
+              />
+              {/* Metallic sweep */}
+              <motion.div
+                className="absolute inset-0 pointer-events-none"
+                animate={{ x: ['-100%', '250%'] }}
+                transition={{ duration: 2.4, repeat: Infinity, ease: 'easeInOut', repeatDelay: 1.2 }}
+                style={{ background: 'linear-gradient(105deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%)', width: '40%' }}
+              />
               <motion.div
                 animate={{ rotate: [0, -8, 8, 0] }}
-                transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
+                transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
                 className="relative z-10"
               >
-                🎰
+                🎟️
               </motion.div>
               {!sidebarCollapsed && (
-                <span className="relative z-10 flex-1 text-left" style={{ textShadow: '0 0 8px rgba(234,179,8,0.4)' }}>
-                  {lang === 'ar' ? 'يانصيب' : 'LOTTERY'}
+                <span className="relative z-10 flex-1 text-left tracking-widest" style={{ textShadow: '0 0 10px rgba(255,215,0,0.6)' }}>
+                  {lang === 'ar' ? 'يانصيب مباشر' : 'LIVE RAFFLE'}
+                </span>
+              )}
+              {!sidebarCollapsed && raffleEntrantCount > 0 && (
+                <span className="relative z-10 text-[10px] px-2 py-0.5 rounded-full font-bold"
+                  style={{ background: 'rgba(0,0,0,0.55)', color: '#FFD700', border: '1px solid rgba(255,215,0,0.4)' }}>
+                  {raffleEntrantCount}
                 </span>
               )}
             </motion.button>
@@ -3716,9 +3662,9 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       {/* Floating Order Bubble (food + shisha) */}
       {!isGuest && player?.uid && <OrderBubble playerUid={player.uid} />}
 
-      {/* Lottery Chest popup */}
+      {/* Raffle Chest popup */}
       {showLottery && !isGuest && (
-        <LotteryPopup player={player} onClose={() => setShowLottery(false)} />
+        <RafflePopup player={player} onClose={() => setShowLottery(false)} />
       )}
 
       {/* Booking popup */}

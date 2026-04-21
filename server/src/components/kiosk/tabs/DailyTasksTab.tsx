@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, getDoc, setDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
@@ -75,12 +75,11 @@ interface DailyTask {
   shortcutLabel?: string; shortcutLabelAr?: string;
 }
 
-const DAILY_TASKS: DailyTask[] = [
+const DAILY_TASKS_DEFAULTS: DailyTask[] = [
   { id: 'daily_login',    title: 'Check-in',                 titleAr: 'تسجيل الدخول',          description: 'Log in to the kiosk today',                                    descriptionAr: 'سجّل دخولك إلى الكشك اليوم',                                   icon: <CheckCircle2 size={32} />,    color: '#39FF14', glowColor: '57,255,20',   target: 1,  reward: 2 },
   { id: 'open_chest',     title: 'Open Chest',               titleAr: 'افتح صندوقاً',          description: 'Open any chest',                                              descriptionAr: 'افتح أي صندوق',                                                icon: <Package size={32} />,         color: '#FFB800', glowColor: '255,184,0',   target: 1,  reward: 3, shortcut: 'chests',     shortcutLabel: 'OPEN',  shortcutLabelAr: 'افتح'  },
   { id: 'send_coins',     title: 'Send Coins',               titleAr: 'أرسل العملات',          description: 'Send coins to a friend',                                      descriptionAr: 'أرسل عملات إلى صديق',                                          icon: <Send size={32} />,            color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 3, shortcut: 'send-coins', shortcutLabel: 'SEND',  shortcutLabelAr: 'أرسل' },
   { id: 'order_food',     title: 'Order from Food & Snacks', titleAr: 'اطلب من الطعام والوجبات', description: 'Place any order from the Food & Snacks menu',               descriptionAr: 'اطلب أي شيء من قائمة الطعام والوجبات',                          icon: <UtensilsCrossed size={32} />, color: '#F97316', glowColor: '249,115,22',  target: 1,  reward: 2, shortcut: 'food',       shortcutLabel: 'ORDER', shortcutLabelAr: 'اطلب' },
-  { id: 'check_socials',  title: 'Check Our Socials',        titleAr: 'تابع حساباتنا',          description: 'Like 3 of our latest Instagram posts — admin will verify',    descriptionAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام — يؤكد الموظف',           icon: <Instagram size={32} />,       color: '#E879F9', glowColor: '232,121,249', target: 1,  reward: 25 },
   { id: 'play_30_min',    title: 'Play 75 Min',              titleAr: 'العب 75 دقيقة',         description: 'Play for at least 75 minutes',                                descriptionAr: 'العب لمدة 75 دقيقة على الأقل',                                  icon: <Target size={32} />,          color: '#39FF14', glowColor: '57,255,20',   target: 75, reward: 10 },
 ];
 
@@ -103,7 +102,7 @@ interface SocialBonus {
 const SOCIAL_BONUS_TASKS: SocialBonus[] = [
   {
     id: 'check_socials_bonus',
-    title: 'Check Our Socials',                  titleAr: 'تابع حساباتنا',
+    title: 'Check Our Instagram',                titleAr: 'تابع إنستغرام',
     subtitle: 'Like our 3 latest Instagram posts', subtitleAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام',
     icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 10,
     repeatEveryDays: 10,
@@ -149,6 +148,33 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
   const VIP_CONFIG = useVipConfig();
+  // Admin override: reward / target per task from Firestore config/daily-tasks.
+  // Overrides merge over DAILY_TASKS_DEFAULTS so the UI + claim logic pick up
+  // admin edits without a redeploy.
+  const [taskOverrides, setTaskOverrides] = useState<Record<string, { reward?: number; target?: number; hidden?: boolean }>>({});
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, 'config', 'daily-tasks'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as any;
+        setTaskOverrides(data.overrides || {});
+      } else {
+        setTaskOverrides({});
+      }
+    });
+    return () => unsub();
+  }, []);
+  const DAILY_TASKS = useMemo<DailyTask[]>(() => {
+    return DAILY_TASKS_DEFAULTS
+      .filter((t) => !taskOverrides[t.id]?.hidden)
+      .map((t) => {
+        const o = taskOverrides[t.id] || {};
+        return {
+          ...t,
+          reward: typeof o.reward === 'number' ? o.reward : t.reward,
+          target: typeof o.target === 'number' ? o.target : t.target,
+        };
+      });
+  }, [taskOverrides]);
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const [claiming, setClaimingId] = useState<string | null>(null);
@@ -915,26 +941,6 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                             textShadow: `0 0 6px rgba(${task.glowColor},0.5)`,
                           }}>
                           {(ar ? task.shortcutLabelAr : task.shortcutLabel) || task.shortcutLabel} <ArrowRight size={13} />
-                        </motion.button>
-                      )}
-                      {/* Special: check_socials opens the verification popup */}
-                      {!isClaimed && !isComplete && task.id === 'check_socials' && (
-                        <motion.button
-                          whileHover={{ scale: 1.06, boxShadow: `0 0 18px rgba(${task.glowColor},0.4)` }}
-                          whileTap={{ scale: 0.94 }}
-                          onClick={() => {
-                            if (player?.uid) trackDailyTask(player.uid, 'check_socials').catch(() => {});
-                            setSocialOpen(SOCIAL_BONUS_TASKS[0]);
-                          }}
-                          className="w-[88px] h-[34px] rounded-lg font-ninja text-xs tracking-wider flex items-center justify-center gap-1 transition-all flex-shrink-0"
-                          style={{
-                            background: `linear-gradient(135deg, rgba(${task.glowColor},0.2), rgba(${task.glowColor},0.06))`,
-                            border: `1.5px solid rgba(${task.glowColor},0.5)`,
-                            color: task.color,
-                            boxShadow: `0 0 12px rgba(${task.glowColor},0.25)`,
-                            textShadow: `0 0 6px rgba(${task.glowColor},0.5)`,
-                          }}>
-                          {ar ? 'تحقّق' : 'CHECK'} <ArrowRight size={13} />
                         </motion.button>
                       )}
 

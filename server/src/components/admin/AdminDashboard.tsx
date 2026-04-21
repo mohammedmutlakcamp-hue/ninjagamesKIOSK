@@ -12,7 +12,7 @@ import { OrdersPanel } from './OrdersPanel';
 import { RevenuePanel } from './RevenuePanel';
 import { SettingsPanel } from './SettingsPanel';
 import { TournamentManagement } from './TournamentManagement';
-import { LotteryManagement } from './LotteryManagement';
+import { RaffleManagement } from './RaffleManagement';
 import { TopUpRequests } from './TopUpRequests';
 import { NotificationsPanel } from './NotificationsPanel';
 import { VIPRequests } from './VIPRequests';
@@ -790,7 +790,7 @@ function AdminDashboardInner({ admin }: Props) {
       items: [
         { id: 'games', label: 'Games', icon: <Gamepad2 size={18} /> },
         { id: 'chests', label: 'Chests', icon: <Package size={18} /> },
-        { id: 'lottery', label: 'Lottery', icon: <Ticket size={18} /> },
+        { id: 'lottery', label: 'Raffle Chest', icon: <Ticket size={18} /> },
         { id: 'skins', label: 'Skins', icon: <Palette size={18} /> },
         { id: 'achievements', label: 'Achievements', icon: <Award size={18} /> },
         { id: 'dailytasks', label: 'Daily Tasks', icon: <ClipboardCheck size={18} /> },
@@ -997,7 +997,7 @@ function AdminDashboardInner({ admin }: Props) {
           {tab === 'realpl' && <RealPLDashboard />}
           {tab === 'reset' && <ResetPanel />}
           {tab === 'tournaments' && <TournamentManagement />}
-          {tab === 'lottery' && <LotteryManagement />}
+          {tab === 'lottery' && <RaffleManagement />}
           {tab === 'revenue' && <RevenuePanel />}
           {tab === 'notifications' && <NotificationsPanel />}
           {tab === 'settings' && <SettingsPanel />}
