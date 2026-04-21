@@ -64,7 +64,7 @@ import {
   Palette, ClipboardCheck, MessageSquare, Wrench, Trophy, Tag, TrendingUp, Megaphone,
   ArrowLeftRight, Clock, Ticket, Sunset, Heart, Gift, Receipt, MapPin, CalendarClock,
   BarChart3, Flag, Award, BookmarkCheck, Repeat, Download, Loader2, ChevronRight, Instagram, Key, Check,
-  ToggleRight, HardDriveDownload, ListChecks, Flame, Video, RefreshCw
+  ToggleRight, HardDriveDownload, ListChecks, Flame, Video, RefreshCw, Search
 } from 'lucide-react';
 
 type Tab = 'dashboard' | 'pcshub' | 'hubblyhub' | 'pcs' | 'livepcs' | 'players' | 'topups' | 'menu' | 'hubblymenu' | 'orders' | 'hubbly' | 'cameras' | 'tournaments' | 'revenue' | 'notifications' | 'whatsapp' | 'settings' | 'vip' | 'games' | 'chests' | 'lottery' | 'skins' | 'dailytasks' | 'socialtasks' | 'chat' | 'software' | 'leaderboard' | 'pricing' | 'profit' | 'realpl' | 'announcements' | 'transfers' | 'shifts' | 'discounts' | 'happyhour' | 'loyalty' | 'campaigns' | 'promotions' | 'invoices' | 'zones' | 'scheduled' | 'analytics' | 'reports' | 'achievements' | 'reservations' | 'swap' | 'updates' | 'debuglogs' | 'flags' | 'remoteinstall' | 'gamereport' | 'reset';
@@ -226,6 +226,7 @@ function DarkModeToggleButton() {
 function AdminDashboardInner({ admin }: Props) {
   const [tab, setTab] = useState<Tab>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [navSearch, setNavSearch] = useState('');
   const [pendingRegs, setPendingRegs] = useState<PendingRegistration[]>([]);
   const [activeNotification, setActiveNotification] = useState<PendingRegistration | null>(null);
   const [guestNotification, setGuestNotification] = useState<{ id: string; pcName: string; timestamp: number } | null>(null);
@@ -826,29 +827,70 @@ function AdminDashboardInner({ admin }: Props) {
           </div>
         </div>
 
+        {/* Sidebar search */}
+        <div className="px-3 pt-3">
+          <div className="relative">
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[#86868b] pointer-events-none" />
+            <input
+              type="text"
+              value={navSearch}
+              onChange={(e) => setNavSearch(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Escape') setNavSearch(''); }}
+              placeholder="Search menu..."
+              className="w-full pl-8 pr-8 py-2 text-[13px] bg-[#f5f5f7] border border-[#e5e5ea] rounded-lg focus:outline-none focus:border-[#0071e3] focus:bg-white placeholder:text-[#aeaeb2]"
+            />
+            {navSearch && (
+              <button
+                onClick={() => setNavSearch('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 rounded hover:bg-[#e5e5ea] text-[#86868b]"
+                aria-label="Clear search"
+              >
+                <XIcon size={12} />
+              </button>
+            )}
+          </div>
+        </div>
+
         {/* Navigation */}
         <nav className="flex-1 py-2 overflow-y-auto px-2">
-          {navSections.map((section, si) => (
-            <div key={si} className={si > 0 ? 'mt-4' : ''}>
-              {section.title && (
-                <p className="px-3 pb-1 text-[10px] font-semibold text-[#86868b] uppercase tracking-wider">{section.title}</p>
-              )}
-              {section.items.map((item) => (
-                <button
-                  key={item.id}
-                  onClick={() => { setTab(item.id); setSidebarOpen(false); }}
-                  className={`w-full flex items-center gap-2.5 px-3 py-[7px] text-left rounded-lg transition-all text-[13px] ${
-                    tab === item.id
-                      ? 'bg-[#0071e3] text-white font-medium'
-                      : 'text-[#1d1d1f] hover:bg-[#f5f5f7]'
-                  }`}
-                >
-                  <span className={tab === item.id ? 'text-white' : 'text-[#86868b]'}>{item.icon}</span>
-                  <span>{item.label}</span>
-                </button>
-              ))}
-            </div>
-          ))}
+          {(() => {
+            const q = navSearch.trim().toLowerCase();
+            const filtered = q
+              ? navSections
+                  .map((s) => ({ ...s, items: s.items.filter((i) => i.label.toLowerCase().includes(q)) }))
+                  .filter((s) => s.items.length > 0)
+              : navSections;
+
+            if (filtered.length === 0) {
+              return (
+                <p className="px-4 py-6 text-center text-[12px] text-[#86868b]">
+                  No tabs match &ldquo;{navSearch}&rdquo;
+                </p>
+              );
+            }
+
+            return filtered.map((section, si) => (
+              <div key={section.title || `sec-${si}`} className={si > 0 ? 'mt-4' : ''}>
+                {section.title && (
+                  <p className="px-3 pb-1 text-[10px] font-semibold text-[#86868b] uppercase tracking-wider">{section.title}</p>
+                )}
+                {section.items.map((item) => (
+                  <button
+                    key={item.id}
+                    onClick={() => { setTab(item.id); setSidebarOpen(false); setNavSearch(''); }}
+                    className={`w-full flex items-center gap-2.5 px-3 py-[7px] text-left rounded-lg transition-all text-[13px] ${
+                      tab === item.id
+                        ? 'bg-[#0071e3] text-white font-medium'
+                        : 'text-[#1d1d1f] hover:bg-[#f5f5f7]'
+                    }`}
+                  >
+                    <span className={tab === item.id ? 'text-white' : 'text-[#86868b]'}>{item.icon}</span>
+                    <span>{item.label}</span>
+                  </button>
+                ))}
+              </div>
+            ));
+          })()}
         </nav>
 
         {/* Logout */}
