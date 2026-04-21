@@ -67,7 +67,7 @@ export function ChestManagement() {
   const [search, setSearch] = useState('');
   const [rarityFilter, setRarityFilter] = useState('all');
   const [sortAsc, setSortAsc] = useState(false);
-  const [activeSection, setActiveSection] = useState<'history' | 'profit' | 'config' | 'droptable' | 'promo'>('history');
+  const [activeSection, setActiveSection] = useState<'history' | 'profit' | 'config' | 'droptable' | 'promo'>('profit');
   // Chest content overrides — stored in config/chest-content-overrides
   // { [chestId]: { disabledRewardIds: string[] } }
   const [contentOverrides, setContentOverrides] = useState<Record<string, { disabledRewardIds?: string[]; extraRewards?: any[] }>>({});
@@ -112,7 +112,7 @@ export function ChestManagement() {
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'chest-config', 'settings'), (snap) => {
       if (snap.exists()) {
-        setConfig({ ...config, ...snap.data() } as ChestConfig);
+        setConfig((prev) => ({ ...prev, ...(snap.data() as any) } as ChestConfig));
       }
     });
     return () => unsub();

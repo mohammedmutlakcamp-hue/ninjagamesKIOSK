@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
-import { CHESTS, RARITY_COLORS, VIP_CONFIG, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { CHESTS, RARITY_COLORS, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { useVipConfig } from '@/lib/usePricingConfig';
 import { useAllSkins } from '@/lib/skins-all';
 import { personalCoinCost } from '@/lib/pricing';
 import { Chest, ChestReward, NinjaSkin } from '@/types';
@@ -393,6 +394,7 @@ function BrandLogo({ logos, alt, className, style }: { logos: string[]; alt: str
 }
 
 export function StoreTab({ player, onClose, initialSubTab }: Props) {
+  const VIP_CONFIG = useVipConfig();
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const flags = useFeatureFlags();

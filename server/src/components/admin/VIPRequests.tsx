@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import {
   collection, onSnapshot, doc, updateDoc, query, where, orderBy, getDocs, getDoc
 } from 'firebase/firestore';
-import { VIP_CONFIG } from '@/lib/constants';
+import { useVipConfig } from '@/lib/usePricingConfig';
 import {
   Crown, Check, X, Clock, Loader2, User, Coins, Calendar, Shield, AlertTriangle
 } from 'lucide-react';
@@ -23,6 +23,7 @@ interface VIPRequest {
 }
 
 export function VIPRequests() {
+  const VIP_CONFIG = useVipConfig();
   const [requests, setRequests] = useState<VIPRequest[]>([]);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState<string | null>(null);

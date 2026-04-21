@@ -4,7 +4,8 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
-import { RARITY_COLORS, VIP_CONFIG, CHESTS } from '@/lib/constants';
+import { RARITY_COLORS, CHESTS } from '@/lib/constants';
+import { useVipConfig } from '@/lib/usePricingConfig';
 import {
   Package, Coins, Zap, Coffee, Cookie, UtensilsCrossed, Trophy,
   Gift, Check, X, Send, Search, Lock, Loader2, Sparkles, Palette,
@@ -82,6 +83,7 @@ const CATEGORIES: { id: Category; label: string; icon: React.ReactNode; color: s
 ];
 
 export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props) {
+  const VIP_CONFIG = useVipConfig();
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const [detailModal, setDetailModal] = useState<InventoryItem | null>(null);

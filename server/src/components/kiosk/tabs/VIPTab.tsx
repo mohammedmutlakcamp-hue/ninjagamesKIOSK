@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, query, where, getDocs, collection, onSnapshot } from 'firebase/firestore';
-import { VIP_CONFIG } from '@/lib/constants';
+import { useVipConfig } from '@/lib/usePricingConfig';
 import {
   Crown, Check, X, Timer, Gift, Star, Sparkles, Shield,
   Coffee, Coins, Lock, Send, Palette, ShoppingBag, Loader2,
@@ -22,6 +22,7 @@ const GOLD_DARK = '#B8860B';
 const AMBER = '#FF8C00';
 
 export function VIPTab({ player }: Props) {
+  const VIP_CONFIG = useVipConfig();
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const isVIP = player.vip?.active === true && (player.vip?.expiresAt || 0) > Date.now();

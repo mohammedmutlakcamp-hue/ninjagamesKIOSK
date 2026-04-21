@@ -6,7 +6,7 @@ import { db } from '@/lib/firebase';
 import { collection, onSnapshot, addDoc, doc, updateDoc, increment, query, where, orderBy, limit } from 'firebase/firestore';
 import { MenuItem } from '@/types';
 import { trackDailyTask } from '@/lib/daily-tasks';
-import { VIP_CONFIG } from '@/lib/constants';
+import { useVipConfig } from '@/lib/usePricingConfig';
 import { personalCoinCost } from '@/lib/pricing';
 import { useFeatureFlags } from '@/lib/feature-flags';
 import { getMenuImage } from '@/lib/menu-images';
@@ -36,6 +36,7 @@ const STATUS_CONFIG: Record<string, { label: string; labelAr: string; color: str
 };
 
 export function FoodTab({ player }: Props) {
+  const VIP_CONFIG = useVipConfig();
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const flags = useFeatureFlags();

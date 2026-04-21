@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, getDoc, setDoc, arrayUnion, onSnapshot } from 'firebase/firestore';
-import { VIP_CONFIG } from '@/lib/constants';
+import { useVipConfig } from '@/lib/usePricingConfig';
 import { useEscapeKey } from '@/lib/useEscapeKey';
 import { trackDailyTask } from '@/lib/daily-tasks';
 import {
@@ -148,6 +148,7 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
 ];
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
+  const VIP_CONFIG = useVipConfig();
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const [claiming, setClaimingId] = useState<string | null>(null);
