@@ -107,15 +107,18 @@ export default function MobileApp() {
     setLoading(true);
     setError('');
     try {
+      // Look up by username only, then verify PIN client-side. Firestore equality
+      // is strict on type, so legacy players with a numeric pin would fail an
+      // x == "123456" filter forever even with the correct PIN.
       const q = query(
         collection(db, 'players'),
         where('username', '==', username.toLowerCase()),
-        where('pin', '==', currentPin)
       );
       const snap = await getDocs(q);
       if (snap.empty) { setError(t(lang, 'invalid_credentials')); setLoading(false); return; }
 
-      const playerDoc = snap.docs[0];
+      const playerDoc = snap.docs.find(d => String((d.data() as any)?.pin ?? '') === currentPin);
+      if (!playerDoc) { setError(t(lang, 'invalid_credentials')); setLoading(false); return; }
       const playerData = { uid: playerDoc.id, ...playerDoc.data() };
 
       if ((playerData as any).banned) { setError(t(lang, 'account_banned')); setLoading(false); return; }

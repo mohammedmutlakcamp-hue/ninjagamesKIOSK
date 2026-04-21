@@ -476,22 +476,16 @@ export default function KioskPage() {
         return;
       }
 
-      // Username exists, now check PIN
-      const q = query(
-        collection(db, 'players'),
-        where('username', '==', username.trim().toLowerCase()),
-        where('pin', '==', pin)
-      );
-      const snap = await getDocs(q);
-
-      if (snap.empty) {
+      // Username exists — verify PIN client-side. Firestore where('pin', '==', x)
+      // only matches exact-type, so a legacy doc with a numeric pin would fail
+      // a string comparison and the player would be locked out forever.
+      if (String(userDoc.pin ?? '') !== pin) {
         setError(lang === 'ar' ? 'رمز PIN غير صحيح' : 'Incorrect PIN');
         setLoading(false);
         return;
       }
 
-      const playerDoc = snap.docs[0];
-      const playerData = { uid: playerDoc.id, ...playerDoc.data() };
+      const playerData = userDoc;
 
       if ((playerData as any).banned) {
         setError(t(lang, 'account_banned'));
@@ -540,13 +534,13 @@ export default function KioskPage() {
               });
             }
           }
-          await updateDoc(doc(db, 'players', playerDoc.id), { activeBookingId: null }).catch(() => {});
+          await updateDoc(doc(db, 'players', playerData.uid), { activeBookingId: null }).catch(() => {});
         } catch { /* non-fatal */ }
       }
 
       setPlayer({ ...playerData, coinsAtLogin: (playerData as any).coins, loginTime: Date.now() });
       // Don't block login on lastLogin or PC status update
-      updateDoc(doc(db, 'players', playerDoc.id), {
+      updateDoc(doc(db, 'players', playerData.uid), {
         lastLogin: Date.now(),
         lastPcUsed: pcNameDisplay || 'unknown',
         lastPcId: pcDocId || null,

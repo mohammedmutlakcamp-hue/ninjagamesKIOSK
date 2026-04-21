@@ -252,7 +252,9 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
         rarity: won.rarity,
         value: won.value || 0,
         used: false,
-        tradeable: false, // voucher must be redeemed at the desk, not sold
+        // Tradeable so players can gift it. Sell-for-tokens is blocked by the
+        // voucher type guard in the Sell modal — same model as the kiosk side.
+        tradeable: true,
         earnedAt: Date.now(),
       });
     } else if (won.type === 'skin' && won.skinId) {
