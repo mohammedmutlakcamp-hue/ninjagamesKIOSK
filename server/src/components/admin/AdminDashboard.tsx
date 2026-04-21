@@ -248,6 +248,11 @@ function AdminDashboardInner({ admin }: Props) {
   const socialVerifSeenIds = useRef<Set<string>>(new Set());
   const [guestRegTopUp, setGuestRegTopUp] = useState<{ id: string; playerName: string; coins: number; priceJOD: number } | null>(null);
   const [guestRegApproving, setGuestRegApproving] = useState(false);
+  // Gift card requests — coins already deducted by the kiosk; admin
+  // approves (deliver code via WhatsApp) or rejects (refund coins).
+  const [giftCardNotification, setGiftCardNotification] = useState<{ id: string; playerId: string; playerName: string; brandName: string; amountUSD: number; coinsCost: number } | null>(null);
+  const [giftCardActioning, setGiftCardActioning] = useState(false);
+  const giftCardSeenIds = useRef<Set<string>>(new Set());
   const [notifQueue, setNotifQueue] = useState<any[]>([]);
   const notifAudioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -639,6 +644,69 @@ function AdminDashboardInner({ admin }: Props) {
     await updateDoc(doc(db, 'guest-register-requests', regNotification.id), { status: 'dismissed', dismissedAt: Date.now() });
     setRegNotification(null);
     setGeneratedCode(null);
+  };
+
+  // Listen for gift-card requests. Coins were already deducted by the
+  // kiosk when the player tapped Redeem; admin approves (delivers code via
+  // WhatsApp/email) or rejects (refunds coinsCost back to the player).
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'giftcard-requests'), (snap) => {
+      const pending = snap.docs
+        .map(d => ({ id: d.id, ...d.data() } as any))
+        .filter((r: any) => r.status === 'pending')
+        .sort((a: any, b: any) => (b.createdAt || 0) - (a.createdAt || 0));
+      const unseen = pending.find((r: any) => !giftCardSeenIds.current.has(r.id));
+      if (unseen) {
+        setGiftCardNotification({
+          id: unseen.id,
+          playerId: unseen.playerId || '',
+          playerName: unseen.playerName || 'Unknown',
+          brandName: unseen.brandName || 'Gift Card',
+          amountUSD: unseen.amountUSD || 0,
+          coinsCost: unseen.coinsCost || 0,
+        });
+        playNotifSound();
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  const approveGiftCard = async () => {
+    if (!giftCardNotification) return;
+    setGiftCardActioning(true);
+    try {
+      await updateDoc(doc(db, 'giftcard-requests', giftCardNotification.id), {
+        status: 'approved',
+        approvedAt: Date.now(),
+      });
+    } catch (err) {
+      console.error('Gift card approve failed:', err);
+    }
+    giftCardSeenIds.current.add(giftCardNotification.id);
+    setGiftCardActioning(false);
+    setGiftCardNotification(null);
+  };
+
+  const rejectGiftCard = async () => {
+    if (!giftCardNotification) return;
+    setGiftCardActioning(true);
+    try {
+      // Refund coins — the kiosk already reserved them when the request fired.
+      if (giftCardNotification.playerId && giftCardNotification.coinsCost > 0) {
+        await updateDoc(doc(db, 'players', giftCardNotification.playerId), {
+          coins: increment(giftCardNotification.coinsCost),
+        });
+      }
+      await updateDoc(doc(db, 'giftcard-requests', giftCardNotification.id), {
+        status: 'rejected',
+        rejectedAt: Date.now(),
+      });
+    } catch (err) {
+      console.error('Gift card reject failed:', err);
+    }
+    giftCardSeenIds.current.add(giftCardNotification.id);
+    setGiftCardActioning(false);
+    setGiftCardNotification(null);
   };
 
   const generateRegistrationCode = async () => {
@@ -1352,6 +1420,58 @@ function AdminDashboardInner({ admin }: Props) {
                   className="flex-1 py-3.5 bg-[#af52de] text-white rounded-xl font-medium hover:bg-[#a347d4] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
                 >
                   {guestRegApproving ? <Loader2 size={18} className="animate-spin" /> : <Coins size={18} />} Approve
+                </button>
+              </div>
+            </div>
+          </ModalOverlay>
+        )}
+      </AnimatePresence>
+
+      {/* Gift Card Request */}
+      <AnimatePresence>
+        {giftCardNotification && !activeNotification && !guestNotification && !regNotification && !topUpNotification && !guestRegTopUp && (
+          <ModalOverlay>
+            <div className="w-[440px] max-w-[90vw] bg-white rounded-2xl p-6 md:p-8 shadow-[0_20px_60px_rgba(0,0,0,0.15)] text-center">
+              <div className="w-14 h-14 mx-auto mb-5 rounded-full bg-[#0071e3]/10 flex items-center justify-center">
+                <Gift size={28} className="text-[#0071e3]" />
+              </div>
+
+              <h1 className="text-base font-semibold text-[#1d1d1f] tracking-tight leading-tight">Gift Card Request</h1>
+              <p className="text-[#86868b] text-sm mb-5">Player paid with coins — deliver the code via WhatsApp</p>
+
+              <div className="bg-[#f5f5f7] rounded-xl p-5 mb-5 text-left space-y-3">
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Player</span>
+                  <span className="text-[#1d1d1f] font-semibold">{giftCardNotification.playerName?.toUpperCase()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Brand</span>
+                  <span className="text-[#0071e3] font-semibold">{giftCardNotification.brandName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Amount</span>
+                  <span className="text-[#1d1d1f] font-semibold text-lg">${giftCardNotification.amountUSD}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-[#86868b] text-sm">Cost</span>
+                  <span className="text-[#ff9500] font-semibold">{giftCardNotification.coinsCost.toLocaleString()} coins</span>
+                </div>
+              </div>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={rejectGiftCard}
+                  disabled={giftCardActioning}
+                  className="flex-1 py-3.5 border border-[#d2d2d7] rounded-xl text-[#ff3b30] font-medium hover:bg-[#fff5f5] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  <XIcon size={18} /> Reject &amp; Refund
+                </button>
+                <button
+                  onClick={approveGiftCard}
+                  disabled={giftCardActioning}
+                  className="flex-1 py-3.5 bg-[#0071e3] text-white rounded-xl font-medium hover:bg-[#0063cc] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {giftCardActioning ? <Loader2 size={18} className="animate-spin" /> : <Check size={18} />} Approve
                 </button>
               </div>
             </div>
