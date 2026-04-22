@@ -549,7 +549,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
     <div className="h-screen flex overflow-hidden bg-[#060810]">
 
       {/* ═══════════ MAIN CONTENT ═══════════ */}
-      <div className="flex-1 flex flex-col min-w-0 h-screen pl-3 pr-3 pb-2"
+      <div className="flex-1 flex flex-col min-w-0 h-screen pr-3 pb-2"
         onClick={(e) => {
           // Resume auto-scroll when clicking outside the suggested games strip
           if (scrollRef.current && !scrollRef.current.contains(e.target as Node)) {
