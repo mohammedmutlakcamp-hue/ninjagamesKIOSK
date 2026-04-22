@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { RARITY_COLORS, CHESTS } from '@/lib/constants';
+import { useChestPrices, getChestCost } from '@/lib/chest-prices';
 import { useVipConfig } from '@/lib/usePricingConfig';
 import {
   Package, Coins, Zap, Coffee, Cookie, UtensilsCrossed, Trophy,
@@ -84,6 +85,7 @@ const CATEGORIES: { id: Category; label: string; icon: React.ReactNode; color: s
 
 export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props) {
   const VIP_CONFIG = useVipConfig();
+  const chestPrices = useChestPrices();
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const [detailModal, setDetailModal] = useState<InventoryItem | null>(null);
@@ -248,7 +250,7 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
     if (item.type === 'chest') {
       const tier = (item as any).chestTier || (item as any).tier;
       const chest = CHESTS.find(c => c.tier === tier || c.id === tier);
-      const cost = chest?.cost ?? 0;
+      const cost = chest ? getChestCost(chest, chestPrices) : 0;
       return Math.floor(cost * 0.50);
     }
     if (item.type === 'consumable' || item.type === 'coins') {
@@ -1032,7 +1034,11 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
                 {(() => {
                   const recv = getSellValue(sellModal);
                   const refRaw = sellModal.type === 'chest'
-                    ? (CHESTS.find(c => c.tier === ((sellModal as any).chestTier || (sellModal as any).tier) || c.id === ((sellModal as any).chestTier || (sellModal as any).tier))?.cost ?? 0)
+                    ? (() => {
+                        const tier = (sellModal as any).chestTier || (sellModal as any).tier;
+                        const chest = CHESTS.find(c => c.tier === tier || c.id === tier);
+                        return chest ? getChestCost(chest, chestPrices) : 0;
+                      })()
                     : (sellModal.value || 0);
                   const refLabel = sellModal.type === 'chest' ? (ar ? 'سعر الصندوق' : 'Chest cost') : (ar ? 'قيمة العنصر' : 'Item value');
                   const fee = Math.max(0, refRaw - recv);

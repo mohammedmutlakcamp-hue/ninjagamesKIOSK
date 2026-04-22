@@ -157,9 +157,12 @@ export function ChestManagement() {
     try {
       const current = contentOverrides[chestId] || {};
       const updated = { ...contentOverrides };
-      // Clear disabled list; keep extraRewards.
-      if (current.extraRewards && current.extraRewards.length > 0) {
-        updated[chestId] = { extraRewards: current.extraRewards };
+      // Clear disabled list; keep extraRewards + priceOverride.
+      const keep: any = {};
+      if (current.extraRewards && current.extraRewards.length > 0) keep.extraRewards = current.extraRewards;
+      if (typeof (current as any).priceOverride === 'number') keep.priceOverride = (current as any).priceOverride;
+      if (Object.keys(keep).length > 0) {
+        updated[chestId] = keep;
       } else {
         delete updated[chestId];
       }
@@ -167,6 +170,44 @@ export function ChestManagement() {
     } finally {
       setContentSaving(false);
     }
+  };
+
+  // Write an admin-entered price to config/chest-content-overrides. Passing
+  // null clears the override so the hardcoded default from constants.ts
+  // takes over again.
+  const savePriceOverride = async (chestId: string, price: number | null) => {
+    setContentSaving(true);
+    try {
+      const current = (contentOverrides[chestId] || {}) as any;
+      const next: any = { ...current };
+      if (price === null) {
+        delete next.priceOverride;
+      } else {
+        next.priceOverride = Math.max(0, Math.floor(price));
+      }
+      const updated: any = { ...contentOverrides };
+      if (Object.keys(next).length === 0) {
+        delete updated[chestId];
+      } else {
+        updated[chestId] = next;
+      }
+      await setDoc(doc(db, 'config', 'chest-content-overrides'), updated);
+    } catch (err) {
+      console.error('save price failed', err);
+      alert('Price save failed.');
+    } finally {
+      setContentSaving(false);
+    }
+  };
+
+  // Effective price helper — admin override wins, falls back to hardcoded cost.
+  const effectivePrice = (chestId: string, fallback: number): number => {
+    const ov = (contentOverrides[chestId] as any)?.priceOverride;
+    return typeof ov === 'number' && ov >= 0 ? ov : fallback;
+  };
+  const hasPriceOverride = (chestId: string): boolean => {
+    const ov = (contentOverrides[chestId] as any)?.priceOverride;
+    return typeof ov === 'number' && ov >= 0;
   };
 
   const openAddReward = (chestId: string) => {
@@ -293,7 +334,10 @@ export function ChestManagement() {
   // Profit calculations
   const profitStats = useMemo(() => {
     const chestCosts: Record<string, number> = {};
-    CHESTS.forEach(c => { chestCosts[c.tier] = c.cost; });
+    CHESTS.forEach(c => {
+      const ov = (contentOverrides[c.id] as any)?.priceOverride;
+      chestCosts[c.tier] = typeof ov === 'number' && ov >= 0 ? ov : c.cost;
+    });
 
     let totalSpentTokens = 0;
     let totalGivenTokens = 0;
@@ -322,7 +366,7 @@ export function ChestManagement() {
     const houseEdge = totalSpentTokens > 0 ? ((netProfit / totalSpentTokens) * 100).toFixed(1) : '0';
 
     return { totalSpentTokens, totalGivenTokens, totalSpentJOD, totalGivenJOD, netProfit, netProfitJOD, houseEdge, perChest };
-  }, [drops]);
+  }, [drops, contentOverrides]);
 
   // Stats
   const stats = useMemo(() => {
@@ -506,9 +550,34 @@ export function ChestManagement() {
                     <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${chest.color}10`, border: `1px solid ${chest.color}25` }}>
                       <Package size={20} style={{ color: chest.color }} />
                     </div>
-                    <div>
+                    <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-semibold text-[#1d1d1f]">{chest.name.toUpperCase()}</h3>
-                      <p className="text-xs text-[#86868b]">Cost: {chest.cost} tokens</p>
+                      <div className="flex items-center gap-1.5 mt-1">
+                        <span className="text-[10px] uppercase tracking-wider text-[#86868b]">Cost</span>
+                        <input
+                          type="number"
+                          min={0}
+                          defaultValue={effectivePrice(chest.id, chest.cost)}
+                          disabled={contentSaving}
+                          onBlur={(e) => {
+                            const raw = e.target.value.trim();
+                            const n = raw === '' ? chest.cost : parseInt(raw, 10);
+                            if (!Number.isFinite(n) || n < 0) { e.target.value = String(effectivePrice(chest.id, chest.cost)); return; }
+                            if (n === chest.cost) savePriceOverride(chest.id, null);
+                            else if (n !== effectivePrice(chest.id, chest.cost)) savePriceOverride(chest.id, n);
+                          }}
+                          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+                          className="w-20 bg-[#f5f5f7] border border-[#d2d2d7] rounded-md px-2 py-0.5 text-xs font-medium text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                        />
+                        <span className="text-[10px] text-[#86868b]">tokens</span>
+                        {hasPriceOverride(chest.id) && (
+                          <button
+                            onClick={() => savePriceOverride(chest.id, null)}
+                            disabled={contentSaving}
+                            title={`Reset to default (${chest.cost})`}
+                            className="text-[10px] text-[#ff9500] hover:text-[#ff3b30] underline">reset</button>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -711,7 +780,10 @@ export function ChestManagement() {
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-3 h-3 rounded" style={{ background: chest.color }} />
                   <span className="text-xs font-medium" style={{ color: chest.color }}>{chest.name.toUpperCase()}</span>
-                  <span className="text-[10px] text-[#86868b] ml-auto">Cost: {chest.cost} tokens</span>
+                  <span className="text-[10px] text-[#86868b] ml-auto">
+                    Cost: <span className={hasPriceOverride(chest.id) ? 'font-semibold text-[#0071e3]' : ''}>{effectivePrice(chest.id, chest.cost)}</span> tokens
+                    {hasPriceOverride(chest.id) && <span className="ml-1 text-[9px] text-[#86868b] line-through">{chest.cost}</span>}
+                  </span>
                 </div>
                 <div className="space-y-1">
                   {chest.rewards.map(r => {
@@ -776,7 +848,7 @@ export function ChestManagement() {
                       <div>
                         <h4 className="font-semibold text-[#1d1d1f]">{chest.name}</h4>
                         <p className="text-[11px] text-[#86868b]">
-                          {enabledBuiltIns}/{chest.rewards.length} built-in · {extras.length} custom · cost {chest.cost} tokens
+                          {enabledBuiltIns}/{chest.rewards.length} built-in · {extras.length} custom · cost {effectivePrice(chest.id, chest.cost)} tokens{hasPriceOverride(chest.id) && <span className="ml-1 text-[#0071e3]">(override)</span>}
                         </p>
                       </div>
                     </div>

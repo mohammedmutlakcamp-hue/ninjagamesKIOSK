@@ -11,7 +11,7 @@ import {
   Coins, CheckCircle2, Sparkles, Calendar, Flame,
   LogIn, Package, Send, UtensilsCrossed, Gamepad2, Target, UserPlus,
   Loader2, ArrowRight, X, Gift, Lock, Instagram, Star, ExternalLink, AtSign, Heart,
-  Camera, MessageCircle,
+  Camera, MessageCircle, Share2,
 } from 'lucide-react';
 
 export type DailyShortcutAction = 'food' | 'chests' | 'send-coins' | 'add-friend';
@@ -103,16 +103,18 @@ const SOCIAL_BONUS_DEFAULTS: SocialBonus[] = [
   {
     id: 'check_socials_bonus',
     title: 'Check Our Instagram',                titleAr: 'تابع إنستغرام',
-    subtitle: 'Like our 3 latest Instagram posts', subtitleAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام',
+    subtitle: 'Like, comment & share our posts', subtitleAr: 'أعجب وعلّق وشارك منشوراتنا',
     icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 10,
     repeatEveryDays: 1,
     primaryUrl: 'https://www.instagram.com/ininjagames',
     primaryUrlLabel: 'Open Instagram',           primaryUrlLabelAr: 'افتح إنستغرام',
     highlightHandle: '@ininjagames',
     steps: [
-      { icon: <Heart size={14} />,        text: 'Like 3 of our most recent Instagram posts',                  textAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام' },
-      { icon: <Camera size={14} />,       text: 'Send a screenshot to admin OR show your phone at the desk', textAr: 'أرسل لقطة شاشة للموظف أو اعرض هاتفك عند الكاشير' },
-      { icon: <CheckCircle2 size={14} />, text: 'Worker confirms — coins arrive instantly',                   textAr: 'يؤكد الموظف — تصلك العملات فوراً' },
+      { icon: <Heart size={14} />,          text: 'Like our 3 most recent Instagram posts',                    textAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام' },
+      { icon: <MessageCircle size={14} />,  text: 'Comment on at least one post',                              textAr: 'علّق على منشور واحد على الأقل' },
+      { icon: <Share2 size={14} />,         text: 'Share a post to your story',                                textAr: 'شارك منشوراً في ستوريك' },
+      { icon: <Camera size={14} />,         text: 'Send a screenshot to admin OR show your phone at the desk', textAr: 'أرسل لقطة شاشة للموظف أو اعرض هاتفك عند الكاشير' },
+      { icon: <CheckCircle2 size={14} />,   text: 'Worker confirms — coins arrive instantly',                  textAr: 'يؤكد الموظف — تصلك العملات فوراً' },
     ],
   },
   {

@@ -6,6 +6,7 @@ import { db } from '@/lib/firebase';
 import { doc, updateDoc, increment, collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { Lang, t } from '@/lib/translations';
 import { CHEST_REWARDS, CHESTS } from '@/lib/constants';
+import { useChestPrices, getChestCost, type ChestPriceMap } from '@/lib/chest-prices';
 import { pickChestReward } from '@/lib/chest-economy';
 import {
   Package, Gem, Palette, Zap, Filter, ChevronRight, Sparkles, Trash2, Check, Coins, X, 
@@ -73,7 +74,7 @@ const cardPop = {
 // ═══════════════════════════════════════════════════════════════
 // BULLETPROOF SELL VALUES — kiosk can never lose money to a buy/sell loop.
 // (Mirrors InventoryTab.getSellValue. See that file for the full reasoning.)
-function getSellValue(item: InventoryItem): number {
+function getSellValue(item: InventoryItem, chestPrices: ChestPriceMap = {}): number {
   if (!item) return 0;
   if (item.tradeable === false) return 0;
   if (item.type === 'skin')   return 0; // permanent cosmetic
@@ -81,7 +82,8 @@ function getSellValue(item: InventoryItem): number {
   if (item.type === 'chest') {
     const tier = (item as any).chestTier || item.tier;
     const chest = CHESTS.find(c => c.tier === tier || c.id === tier);
-    return Math.floor((chest?.cost ?? 0) * 0.50);
+    const cost = chest ? getChestCost(chest, chestPrices) : 0;
+    return Math.floor(cost * 0.50);
   }
   if (item.type === 'consumable') {
     return Math.floor((item.value || 0) * 0.25);
@@ -90,6 +92,7 @@ function getSellValue(item: InventoryItem): number {
 }
 
 export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
+  const chestPrices = useChestPrices();
   const [activeFilter, setActiveFilter] = useState<FilterTab>('all');
   const [selectMode, setSelectMode] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -177,7 +180,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
   const toggleSelect = (id: string) => {
     // Block selection of anything that cannot be sold (sell value would be 0).
     const item = inventory.find(i => i.id === id);
-    if (!item || getSellValue(item) === 0) return;
+    if (!item || getSellValue(item, chestPrices) === 0) return;
     setSelectedIds(prev => {
       const next = new Set(prev);
       if (next.has(id)) next.delete(id); else next.add(id);
@@ -194,7 +197,7 @@ export function InventoryView({ player, lang }: { player: any; lang: Lang }) {
     let total = 0;
     selectedIds.forEach(id => {
       const item = inventory.find(i => i.id === id);
-      if (item) total += getSellValue(item);
+      if (item) total += getSellValue(item, chestPrices);
     });
     return total;
   }, [selectedIds, inventory]);

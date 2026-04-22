@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
 import { CHESTS, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { useChestPrices, getChestCost } from '@/lib/chest-prices';
 import {
   Coins, X, Check, Crown, Star, Package, Clock, CreditCard,
   ChevronDown, Timer, Lock, Info, ShoppingBag, Sparkles,
@@ -59,6 +60,8 @@ type SubTab = 'skins' | 'chests' | 'time' | 'coins';
 export function StoreView({ player, onBack }: Props) {
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('app-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
+  const chestPrices = useChestPrices();
+  const chestBase = (chest: { id: string; cost: number }) => getChestCost(chest, chestPrices);
   const [subTab, setSubTab] = useState<SubTab>('skins');
   const [tierFilter, setTierFilter] = useState<Tier | 'all'>('all');
   const [selectedSkin, setSelectedSkin] = useState<typeof NINJA_SKINS[number] | null>(null);
@@ -305,7 +308,8 @@ export function StoreView({ player, onBack }: Props) {
               <p className="font-body text-gray-500 text-xs mb-4 text-center">Buy chests — win coins, vouchers & more</p>
               <div className="grid grid-cols-2 gap-3">
                 {CHESTS.map((chest, i) => {
-                  const canAfford = player.coins >= chest.cost;
+                  const effectiveCost = chestBase(chest);
+                  const canAfford = player.coins >= effectiveCost;
                   return (
                     <motion.div key={chest.id}
                       initial={{ opacity: 0, y: 16 }}
@@ -325,7 +329,7 @@ export function StoreView({ player, onBack }: Props) {
                         style={{ filter: `drop-shadow(0 0 8px ${chest.glowColor})` }} />
                       <h3 className="font-ninja text-sm relative z-10" style={{ color: chest.color }}>{chest.name}</h3>
                       <p className="font-body text-base text-white mt-1 relative z-10 flex items-center justify-center gap-1">
-                        <Coins size={13} className="text-yellow-400" /> {chest.cost}
+                        <Coins size={13} className="text-yellow-400" /> {effectiveCost}
                       </p>
                     </motion.div>
                   );

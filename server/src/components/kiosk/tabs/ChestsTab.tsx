@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, collection, addDoc, query, orderBy, limit, onSnapshot } from 'firebase/firestore';
 import { CHESTS, RARITY_COLORS } from '@/lib/constants';
+import { useChestPrices, getChestCost } from '@/lib/chest-prices';
 import { personalCoinCost } from '@/lib/pricing';
 import { Chest, ChestReward } from '@/types';
 import { Coins, Sparkles, Star, Zap, Gift, Coffee, Cookie, UtensilsCrossed, Trophy, Percent, X, Clock, Crown, Users, SkipForward, Package, ChevronLeft, Eye, TrendingUp } from 'lucide-react';
@@ -89,10 +90,14 @@ export function ChestsTab({ player }: Props) {
   const totalXP = calculateTotalXP(player);
   const levelInfo = getLevelInfo(totalXP);
   const chestDiscount = levelInfo.chestDiscount;
+  // Admin-editable chest prices (live from Firestore, falls back to CHESTS[].cost).
+  const chestPrices = useChestPrices();
   // Tier chest discount first, then personal coin multiplier so bulk-bought
   // tokens do not cheapen chests beyond the tier reward.
   const getDiscountedCost = (cost: number) =>
     personalCoinCost(Math.floor(cost * (1 - chestDiscount / 100)), player);
+  // Shorthand: effective base cost (override-aware) for a chest.
+  const baseCost = (chest: { id: string; cost: number }) => getChestCost(chest, chestPrices);
 
   // Live listener for recent drops (all players)
   useEffect(() => {
@@ -159,7 +164,7 @@ export function ChestsTab({ player }: Props) {
 
   // Single open with spin
   const openSingle = async (chest: Chest) => {
-    const cost = getDiscountedCost(chest.cost);
+    const cost = getDiscountedCost(baseCost(chest));
     if (player.coins < cost || processing) return;
     setProcessing(true);
     try {
@@ -182,7 +187,7 @@ export function ChestsTab({ player }: Props) {
 
   // Bulk open
   const openBulk = async (chest: Chest, count: number) => {
-    const cost = getDiscountedCost(chest.cost) * count;
+    const cost = getDiscountedCost(baseCost(chest)) * count;
     if (player.coins < cost || processing) return;
     setProcessing(true);
     try {
@@ -334,7 +339,7 @@ export function ChestsTab({ player }: Props) {
           {/* 4 Chest Cards */}
           <div className="flex justify-center gap-6 mb-6">
             {CHESTS.map((chest, i) => {
-              const cost = getDiscountedCost(chest.cost);
+              const cost = getDiscountedCost(baseCost(chest));
               const canAfford = player.coins >= cost;
               return (
                 <motion.div key={chest.id}
@@ -420,7 +425,7 @@ export function ChestsTab({ player }: Props) {
                         <Coins size={14} className="text-yellow-400" style={{ filter: 'drop-shadow(0 0 4px rgba(234,179,8,0.6))' }} />
                       </div>
                       <span className="font-ninja text-lg" style={{ color: canAfford ? chest.color : '#444', textShadow: canAfford ? `0 0 10px ${chest.color}40` : 'none' }}>
-                        {chestDiscount > 0 ? <><span className="line-through text-gray-600 text-sm mr-1.5">{chest.cost}</span>{cost}</> : cost}
+                        {chestDiscount > 0 ? <><span className="line-through text-gray-600 text-sm mr-1.5">{baseCost(chest)}</span>{cost}</> : cost}
                       </span>
                     </div>
                   </div>

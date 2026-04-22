@@ -8,6 +8,7 @@ import {
   where, getDocs, orderBy, limit, increment, addDoc, arrayUnion,
 } from 'firebase/firestore';
 import { COINS_PER_MINUTE, NINJA_TYPES as NINJA_TYPES_CONST, CHESTS, CHEST_REWARDS, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { useChestPrices, getChestCost } from '@/lib/chest-prices';
 import type { Chest, ChestReward } from '@/types';
 import { calculateTotalXP, getLevelInfo } from '@/lib/xp';
 import { Lang, t } from '@/lib/translations';
@@ -272,8 +273,10 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
   const minsLeft    = minutesLeft % 60;
   const ninjaColor  = NINJA_TYPES.find((n) => n.id === (livePlayer.ninjaType || 'neon'))?.color || '#39FF14';
 
-  // Chest discount from level
+  // Chest discount from level + admin price overrides.
   const chestDiscount = levelInfo.chestDiscount || 0;
+  const chestPrices = useChestPrices();
+  const chestBase = (chest: { id: string; cost: number }) => getChestCost(chest, chestPrices);
   const getDiscountedCost = (cost: number) => Math.floor(cost * (1 - chestDiscount / 100));
 
   // Roll a reward from chest's reward pool
@@ -312,7 +315,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
 
   // ─── Chest opening handler ─────────────────────────────────
   async function handleOpenChest(chest: Chest) {
-    const cost = getDiscountedCost(chest.cost);
+    const cost = getDiscountedCost(chestBase(chest));
     if (coins < cost) return;
 
     // Deduct coins and track stat
@@ -351,7 +354,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
 
   // ─── Bundle: open 3 chests at once ─────────────────────────
   async function handleOpenBundle(chest: Chest) {
-    const cost = getDiscountedCost(chest.cost) * 3;
+    const cost = getDiscountedCost(chestBase(chest)) * 3;
     if (coins < cost) return;
 
     // Deduct total cost
@@ -650,7 +653,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
         >
           {CHESTS.map((chest) => {
             const meta = CHEST_META[chest.tier] || CHEST_META.bronze;
-            const cost = getDiscountedCost(chest.cost);
+            const cost = getDiscountedCost(chestBase(chest));
             const canAfford = coins >= cost;
             return (
               <motion.div
@@ -673,7 +676,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
                 <p className="font-ninja text-xs text-white relative z-10">{chest.name}</p>
 
                 {chestDiscount > 0 && (
-                  <p className="text-[10px] text-white/30 line-through font-body relative z-10">{chest.cost}</p>
+                  <p className="text-[10px] text-white/30 line-through font-body relative z-10">{chestBase(chest)}</p>
                 )}
 
                 <button
@@ -717,7 +720,7 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
           </h3>
           <div className="flex flex-col gap-3">
             {CHESTS.map((chest) => {
-              const singleCost = getDiscountedCost(chest.cost);
+              const singleCost = getDiscountedCost(chestBase(chest));
               const bundleCost = singleCost * 3;
               const canAfford = coins >= bundleCost;
               const meta = CHEST_META[chest.tier] || CHEST_META.bronze;

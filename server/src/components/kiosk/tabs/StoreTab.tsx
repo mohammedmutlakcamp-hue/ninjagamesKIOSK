@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
 import { doc, updateDoc, arrayUnion, increment, addDoc, collection } from 'firebase/firestore';
 import { CHESTS, RARITY_COLORS, TIME_PACKAGES as BASE_TIME_PACKAGES } from '@/lib/constants';
+import { useChestPrices, getChestCost } from '@/lib/chest-prices';
 import { useVipConfig } from '@/lib/usePricingConfig';
 import { useAllSkins } from '@/lib/skins-all';
 import { personalCoinCost } from '@/lib/pricing';
@@ -458,6 +459,9 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   const playerLevel = levelInfo.level;
   const chestDiscount = levelInfo.chestDiscount;
 
+  // Admin-editable chest prices (live from Firestore, falls back to CHESTS[].cost).
+  const chestPrices = useChestPrices();
+  const chestBase = (chest: { id: string; cost: number }) => getChestCost(chest, chestPrices);
   // Applies the tier-level chest discount first, then the player's personal-coin
   // multiplier so bulk-bought tokens do not further cheapen chests.
   const getDiscountedCost = (cost: number) =>
@@ -615,7 +619,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
   // ─── Buy chest (adds to inventory, doesn't open) ──────────────────────────
   const buyChestToInventory = async (chest: Chest) => {
-    const cost = getDiscountedCost(chest.cost);
+    const cost = getDiscountedCost(chestBase(chest));
     if (buying) return;
     if (player.coins < cost) return showToast(ar ? 'عملات غير كافية!' : 'Not enough coins!', false);
     setBuying(true);
@@ -720,7 +724,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
   }, []);
 
   const openChest = async (chest: Chest) => {
-    const cost = getDiscountedCost(chest.cost);
+    const cost = getDiscountedCost(chestBase(chest));
     if (player.coins < cost || opening) return;
     setOpening(true); setSelectedChest(chest);
     try {
@@ -1259,7 +1263,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
 
               <div className="grid grid-cols-4 gap-5">
                 {CHESTS.map((chest, i) => {
-                  const cost = getDiscountedCost(chest.cost);
+                  const cost = getDiscountedCost(chestBase(chest));
                   const canAfford = player.coins >= cost;
                   return (
                     <motion.div key={chest.id}
@@ -1293,7 +1297,7 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
                           className="relative w-full flex items-center justify-center gap-1.5 py-2.5 rounded-lg font-ninja text-xs tracking-wider transition-all disabled:opacity-40"
                           style={{ background: `linear-gradient(135deg, ${chest.color}15, ${chest.color}05)`, border: `1px solid ${chest.color}40`, color: chest.color, boxShadow: canAfford ? `0 0 12px ${chest.color}15` : 'none' }}>
                           <Coins size={13} className="text-yellow-400" />
-                          {chestDiscount > 0 ? <><span className="line-through text-gray-600 text-[10px]">{chest.cost}</span> {cost}</> : cost}
+                          {chestDiscount > 0 ? <><span className="line-through text-gray-600 text-[10px]">{chestBase(chest)}</span> {cost}</> : cost}
                         </button>
                       </div>
                     </motion.div>

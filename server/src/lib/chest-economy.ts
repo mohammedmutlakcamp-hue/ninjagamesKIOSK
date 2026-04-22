@@ -99,8 +99,18 @@ function effectiveValue(r: ChestReward): number {
 // disabled set are excluded from both the rotation and jackpot pools.
 // Admin-added `extraRewards` are merged into the base pool and treated
 // the same as built-in rewards by the picker.
+// priceByChest = admin-editable price override per chest id. When unset
+// (or invalid) the module falls back to the hardcoded chest.cost default.
 const disabledByChest: Record<string, Set<string>> = {};
 const extrasByChest: Record<string, ChestReward[]> = {};
+const priceByChest: Record<string, number> = {};
+
+// Resolve the effective cost for a chest — admin override wins, then the
+// static default from the CHESTS constant.
+function effectivePrice(chest: Chest): number {
+  const ov = priceByChest[chest.id];
+  return typeof ov === 'number' && Number.isFinite(ov) && ov >= 0 ? ov : chest.cost;
+}
 
 function isDisabled(chestId: string, rewardId: string): boolean {
   return !!disabledByChest[chestId]?.has(rewardId);
@@ -156,7 +166,7 @@ export async function pickChestReward(
       ? { ...blankLedger(), ...(snap.data() as any) }
       : blankLedger();
 
-    led.paid  += chest.cost;
+    led.paid  += effectivePrice(chest);
     led.opens += 1;
     led.pity  += 1;
 
@@ -264,13 +274,18 @@ export async function loadEconomyOnce(): Promise<void> {
         // Wipe local state — anything not in the new payload reverts to defaults.
         Object.keys(disabledByChest).forEach((k) => delete disabledByChest[k]);
         Object.keys(extrasByChest).forEach((k) => delete extrasByChest[k]);
+        Object.keys(priceByChest).forEach((k) => delete priceByChest[k]);
         if (!snap.exists()) return;
-        const data = snap.data() as Record<string, { disabledRewardIds?: string[]; extraRewards?: ChestReward[] }>;
+        const data = snap.data() as Record<string, { disabledRewardIds?: string[]; extraRewards?: ChestReward[]; priceOverride?: number }>;
         for (const chestId of Object.keys(data)) {
           const ids = data[chestId]?.disabledRewardIds || [];
           disabledByChest[chestId] = new Set(ids);
           const extras = data[chestId]?.extraRewards || [];
           extrasByChest[chestId] = extras;
+          const price = data[chestId]?.priceOverride;
+          if (typeof price === 'number' && Number.isFinite(price) && price >= 0) {
+            priceByChest[chestId] = Math.floor(price);
+          }
         }
       }, (err) => console.error('[chest-economy] overrides listener', err));
     } catch { /* non-fatal */ }
@@ -304,7 +319,7 @@ export function rollChestReward(
   // transaction's result.
   const tier = chest.tier;
   const led: TierLedger = { ...(cache[tier] || blankLedger()) };
-  led.paid  += chest.cost;
+  led.paid  += effectivePrice(chest);
   led.opens += 1;
   led.pity  += 1;
   const budget = led.paid * (1 - HOUSE_RAKE) - led.awarded;
