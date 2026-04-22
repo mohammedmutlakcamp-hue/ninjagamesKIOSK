@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { doc, updateDoc, increment, collection, query, where, getDocs } from 'firebase/firestore';
+import { doc, updateDoc, increment, collection, query, where, getDocs, setDoc } from 'firebase/firestore';
 import { RARITY_COLORS, CHESTS } from '@/lib/constants';
 import { useVipConfig } from '@/lib/usePricingConfig';
 import {
@@ -135,19 +135,35 @@ export function InventoryTab({ player, highlightItemId, onHighlightSeen }: Props
   }, [player?.uid]);
 
   // Listen for "open-daily-chest" — fired from Daily Tasks after All Complete.
-  // Auto-opens the most recent unused daily chest in the player's inventory.
+  // Auto-switches to the Chests category + opens the most recent unused
+  // daily chest. Also marks the chest as handled on today's daily-tasks doc
+  // so the OPEN NOW reminder stops showing.
   useEffect(() => {
-    const handler = () => {
+    const handler = async () => {
+      setCategory('chests');
+      setPage(0);
       const inv = (player.inventory || []) as InventoryItem[];
       const dailyChests = inv
         .filter(i => !i.used && (i.type === 'chest' || (i.name || '').toLowerCase().includes('daily')))
         .sort((a, b) => (b.obtainedAt || 0) - (a.obtainedAt || 0));
-      if (dailyChests.length === 0) return;
-      setUseModal(dailyChests[0]);
+      if (dailyChests.length > 0) setUseModal(dailyChests[0]);
+      if (player?.uid) {
+        const today = new Date();
+        const todayKey = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        try {
+          await setDoc(
+            doc(db, 'daily-tasks', `${player.uid}_${todayKey}`),
+            { dailyChestOpened: true },
+            { merge: true }
+          );
+        } catch (err) {
+          console.error('Failed to mark daily chest opened', err);
+        }
+      }
     };
     window.addEventListener('open-daily-chest', handler);
     return () => window.removeEventListener('open-daily-chest', handler);
-  }, [player.inventory]);
+  }, [player.inventory, player?.uid]);
 
   // When highlightItemId prop changes, queue it up
   useEffect(() => {

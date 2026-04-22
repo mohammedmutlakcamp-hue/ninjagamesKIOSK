@@ -148,33 +148,57 @@ const SOCIAL_BONUS_TASKS: SocialBonus[] = [
 
 export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
   const VIP_CONFIG = useVipConfig();
-  // Admin override: reward / target per task from Firestore config/daily-tasks.
-  // Overrides merge over DAILY_TASKS_DEFAULTS so the UI + claim logic pick up
-  // admin edits without a redeploy.
-  const [taskOverrides, setTaskOverrides] = useState<Record<string, { reward?: number; target?: number; hidden?: boolean }>>({});
+  // Admin overrides from Firestore `config/daily-tasks`:
+  //   - overrides[id] = { reward?, target?, hidden?, title?, titleAr?, description?, descriptionAr? }
+  //   - order = string[] of task ids (reorders the UI)
+  // Everything merges over DAILY_TASKS_DEFAULTS so admin edits apply live.
+  const [taskOverrides, setTaskOverrides] = useState<Record<string, {
+    reward?: number; target?: number; hidden?: boolean;
+    title?: string; titleAr?: string;
+    description?: string; descriptionAr?: string;
+  }>>({});
+  const [taskOrder, setTaskOrder] = useState<string[] | null>(null);
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'daily-tasks'), (snap) => {
       if (snap.exists()) {
         const data = snap.data() as any;
         setTaskOverrides(data.overrides || {});
+        setTaskOrder(Array.isArray(data.order) ? data.order : null);
       } else {
         setTaskOverrides({});
+        setTaskOrder(null);
       }
     });
     return () => unsub();
   }, []);
   const DAILY_TASKS = useMemo<DailyTask[]>(() => {
-    return DAILY_TASKS_DEFAULTS
+    const merged = DAILY_TASKS_DEFAULTS
       .filter((t) => !taskOverrides[t.id]?.hidden)
       .map((t) => {
         const o = taskOverrides[t.id] || {};
         return {
           ...t,
+          title: o.title?.trim() || t.title,
+          titleAr: o.titleAr?.trim() || t.titleAr,
+          description: o.description?.trim() || t.description,
+          descriptionAr: o.descriptionAr?.trim() || t.descriptionAr,
           reward: typeof o.reward === 'number' ? o.reward : t.reward,
           target: typeof o.target === 'number' ? o.target : t.target,
         };
       });
-  }, [taskOverrides]);
+    // Apply admin order. Any tasks not in the saved order keep their default
+    // relative position, appended after the explicitly-ordered ones.
+    if (taskOrder && taskOrder.length > 0) {
+      const indexOf: Record<string, number> = {};
+      taskOrder.forEach((id, i) => { indexOf[id] = i; });
+      merged.sort((a, b) => {
+        const ai = indexOf[a.id] ?? Number.MAX_SAFE_INTEGER;
+        const bi = indexOf[b.id] ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
+    return merged;
+  }, [taskOverrides, taskOrder]);
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const [claiming, setClaimingId] = useState<string | null>(null);
@@ -192,6 +216,10 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
   const [socialSubmitting, setSocialSubmitting] = useState(false);
   const [socialSubmitted, setSocialSubmitted] = useState<string>('');
   const [chestOpening, setChestOpening] = useState(false);
+  // Once the player clicks OPEN NOW (or opens the daily chest from inventory),
+  // this flag hides the OPEN NOW button for the rest of the day so the UI
+  // stops nagging them about a chest they already took care of.
+  const [dailyChestOpened, setDailyChestOpened] = useState(false);
   const todayKey = getDateKey();
   const yesterdayKey = getYesterdayKey();
   const checkin = player?.dailyCheckin || {};
@@ -219,6 +247,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
         const data = snap.data();
         setTaskProgress(data.tasks || {});
         setFullBonusClaimed(!!data.fullBonusClaimed);
+        setDailyChestOpened(!!data.dailyChestOpened);
         setLoaded(true);
         return;
       }
@@ -229,12 +258,13 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
       const initial: Record<string, { progress: number; claimed: boolean }> = {};
       DAILY_TASKS.forEach(t => { initial[t.id] = { progress: t.id === 'daily_login' ? 1 : 0, claimed: false }; });
       try {
-        await setDoc(docRef, { tasks: initial, date: todayKey, playerId: player.uid, fullBonusClaimed: false });
+        await setDoc(docRef, { tasks: initial, date: todayKey, playerId: player.uid, fullBonusClaimed: false, dailyChestOpened: false });
       } catch (err) {
         console.error('Daily tasks init failed', err);
       }
       setTaskProgress(initial);
       setFullBonusClaimed(false);
+      setDailyChestOpened(false);
       setLoaded(true);
     }, (err) => console.error('Daily-tasks snapshot listener failed', err));
 
@@ -1109,12 +1139,24 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   +{DAILY_FULL_BONUS_COINS}
                 </span>
               </div>
-              {fullBonusClaimed ? (
+              {fullBonusClaimed && !dailyChestOpened ? (
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 0 22px rgba(255,215,0,0.55)' }}
                   whileTap={{ scale: 0.92 }}
-                  onClick={() => {
-                    // Jump straight to Inventory and trigger the daily-chest opener.
+                  onClick={async () => {
+                    // Persist the "done" flag first so the button stays gone
+                    // after a refresh, then jump straight to Inventory and
+                    // open the daily chest on the Chests category.
+                    setDailyChestOpened(true);
+                    try {
+                      await setDoc(
+                        doc(db, 'daily-tasks', `${player.uid}_${todayKey}`),
+                        { dailyChestOpened: true },
+                        { merge: true }
+                      );
+                    } catch (err) {
+                      console.error('Failed to mark daily chest opened', err);
+                    }
                     window.dispatchEvent(new CustomEvent('switch-tab', { detail: 'inventory' }));
                     setTimeout(() => window.dispatchEvent(new CustomEvent('open-daily-chest')), 150);
                     if (onClose) onClose();
@@ -1126,6 +1168,17 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                   }}>
                   <Gift size={14} /> {ar ? 'افتح الآن' : 'OPEN NOW'}
                 </motion.button>
+              ) : fullBonusClaimed && dailyChestOpened ? (
+                <div className="h-[42px] px-4 rounded-lg flex items-center gap-1.5 flex-shrink-0"
+                  style={{
+                    background: 'rgba(34,197,94,0.1)',
+                    border: '1px solid rgba(34,197,94,0.3)',
+                  }}>
+                  <CheckCircle2 size={14} className="text-green-400" />
+                  <span className="font-ninja text-sm tracking-wider text-green-400">
+                    {ar ? 'تم' : 'DONE'}
+                  </span>
+                </div>
               ) : (
                 <motion.button
                   whileHover={{ scale: 1.05, boxShadow: '0 0 22px rgba(255,215,0,0.55)' }}

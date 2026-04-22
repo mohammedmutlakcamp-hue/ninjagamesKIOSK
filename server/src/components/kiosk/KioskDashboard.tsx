@@ -1327,29 +1327,29 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
             <>
               {/* Top row: Language — Avatar — Settings */}
               <div className="flex items-center justify-between mb-2">
-                {/* Language switcher — EN / AR text toggle. Tap to swap.
-                    The active side is highlighted, the inactive side dim. */}
+                {/* Language switcher — shows the CURRENT language code only.
+                    Tap to toggle: EN becomes AR (and vice-versa). */}
                 <button onClick={() => { const next = lang === 'en' ? 'ar' : 'en'; setLang(next); if (typeof window !== 'undefined') localStorage.setItem('kiosk-lang', next); }}
-                  className="w-14 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-105 relative font-ninja"
+                  className="w-12 h-12 rounded-full flex items-center justify-center overflow-hidden transition-all hover:scale-110 relative font-ninja"
                   style={{
                     background: 'linear-gradient(135deg, rgba(20,24,36,0.95), rgba(8,12,20,0.95))',
                     boxShadow: '0 4px 12px rgba(0,0,0,0.55), 0 0 10px rgba(168,85,247,0.2), inset 0 -2px 6px rgba(0,0,0,0.4), inset 0 2px 4px rgba(255,255,255,0.08)',
                     border: '1px solid rgba(168,85,247,0.35)',
                   }}
                   title={lang === 'en' ? 'Switch to Arabic' : 'Switch to English'}>
-                  <span className="text-[11px] tracking-wider flex items-center gap-[3px]">
-                    <span style={{
-                      color: lang === 'en' ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
-                      textShadow: lang === 'en' ? '0 0 10px rgba(168,85,247,0.8)' : 'none',
-                      fontWeight: lang === 'en' ? 900 : 500,
-                    }}>EN</span>
-                    <span className="opacity-30 text-[9px]">/</span>
-                    <span style={{
-                      color: lang === 'ar' ? '#FFFFFF' : 'rgba(255,255,255,0.35)',
-                      textShadow: lang === 'ar' ? '0 0 10px rgba(168,85,247,0.8)' : 'none',
-                      fontWeight: lang === 'ar' ? 900 : 500,
-                    }}>AR</span>
-                  </span>
+                  <motion.span
+                    key={lang}
+                    initial={{ opacity: 0, scale: 0.6, rotate: -90 }}
+                    animate={{ opacity: 1, scale: 1, rotate: 0 }}
+                    transition={{ type: 'spring', stiffness: 260, damping: 18 }}
+                    className="text-base font-black tracking-widest"
+                    style={{
+                      color: '#FFFFFF',
+                      textShadow: '0 0 12px rgba(168,85,247,0.85), 0 0 4px rgba(255,255,255,0.4)',
+                    }}
+                  >
+                    {lang === 'en' ? 'EN' : 'AR'}
+                  </motion.span>
                 </button>
                 {/* Center — Big avatar in octagonal sci-fi frame */}
                 <div className="relative cursor-pointer" onClick={() => setActivePopup('profile')}>

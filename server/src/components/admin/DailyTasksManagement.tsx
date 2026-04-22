@@ -8,6 +8,7 @@ import {
   ListChecks, LogIn, Gamepad2, Package, Send, UtensilsCrossed, Star, Target,
   Coins, Flame, Trophy, Users, RefreshCw, TrendingUp, Calendar, CheckCircle2,
   ChevronDown, ChevronUp, Award, Instagram, Save, RotateCcw, Eye, EyeOff, Loader2,
+  ArrowUp, ArrowDown, GripVertical,
 } from 'lucide-react';
 import { HelpTip } from './HelpTip';
 
@@ -29,8 +30,25 @@ const TASK_DEFS: TaskDef[] = [
   { id: 'play_30_min',   title: 'Play 75 Min',              icon: <Target size={18} />,           color: '#34c759', target: 75, reward: 10 },
 ];
 
-interface TaskOverride { reward?: number; target?: number; hidden?: boolean }
+interface TaskOverride {
+  reward?: number;
+  target?: number;
+  hidden?: boolean;
+  title?: string;
+  titleAr?: string;
+  description?: string;
+  descriptionAr?: string;
+}
 type TaskOverrides = Record<string, TaskOverride>;
+
+// Default texts mirror the kiosk's DAILY_TASKS_DEFAULTS.
+const TASK_DEFAULT_TEXT: Record<string, { title: string; titleAr: string; description: string; descriptionAr: string }> = {
+  daily_login:  { title: 'Check-in',                 titleAr: 'تسجيل الدخول',          description: 'Log in to the kiosk today',                    descriptionAr: 'سجّل دخولك إلى الكشك اليوم' },
+  open_chest:   { title: 'Open Chest',               titleAr: 'افتح صندوقاً',          description: 'Open any chest',                               descriptionAr: 'افتح أي صندوق' },
+  send_coins:   { title: 'Send Coins',               titleAr: 'أرسل العملات',          description: 'Send coins to a friend',                       descriptionAr: 'أرسل عملات إلى صديق' },
+  order_food:   { title: 'Order from Food & Snacks', titleAr: 'اطلب من الطعام والوجبات', description: 'Place any order from the Food & Snacks menu', descriptionAr: 'اطلب أي شيء من قائمة الطعام والوجبات' },
+  play_30_min:  { title: 'Play 75 Min',              titleAr: 'العب 75 دقيقة',         description: 'Play for at least 75 minutes',                 descriptionAr: 'العب لمدة 75 دقيقة على الأقل' },
+};
 
 function getTodayKey(): string {
   const d = new Date();
@@ -67,37 +85,53 @@ export function DailyTasksManagement() {
   const [showAllTasks, setShowAllTasks] = useState(false);
   const [showAllStreaks, setShowAllStreaks] = useState(false);
 
-  // ── Admin overrides (reward / target / hidden per task) ──
+  // ── Admin overrides (all task fields editable) + order ──
   const [overrides, setOverrides] = useState<TaskOverrides>({});
+  const [order, setOrder] = useState<string[]>(() => TASK_DEFS.map((t) => t.id));
   const [dirtyOverrides, setDirtyOverrides] = useState<TaskOverrides | null>(null);
+  const [dirtyOrder, setDirtyOrder] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'daily-tasks'), (snap) => {
       if (snap.exists()) {
-        setOverrides((snap.data() as any).overrides || {});
+        const data = snap.data() as any;
+        setOverrides(data.overrides || {});
+        if (Array.isArray(data.order) && data.order.length > 0) {
+          // Include any new defaults that aren't in the saved order yet.
+          const saved = data.order.filter((id: string) => TASK_DEFS.some((t) => t.id === id));
+          const missing = TASK_DEFS.map((t) => t.id).filter((id) => !saved.includes(id));
+          setOrder([...saved, ...missing]);
+        } else {
+          setOrder(TASK_DEFS.map((t) => t.id));
+        }
       } else {
         setOverrides({});
+        setOrder(TASK_DEFS.map((t) => t.id));
       }
     });
     return () => unsub();
   }, []);
 
-  const effective = (taskId: string, field: keyof TaskOverride) =>
-    (dirtyOverrides && dirtyOverrides[taskId]?.[field] !== undefined
-      ? dirtyOverrides[taskId]?.[field]
-      : overrides[taskId]?.[field]) as any;
+  const effectiveOverrides = dirtyOverrides ?? overrides;
+  const effectiveOrder = dirtyOrder ?? order;
+  const isDirty = dirtyOverrides !== null || dirtyOrder !== null;
 
+  const getString = (taskId: string, field: 'title' | 'titleAr' | 'description' | 'descriptionAr') => {
+    const val = effectiveOverrides[taskId]?.[field];
+    if (typeof val === 'string') return val;
+    return TASK_DEFAULT_TEXT[taskId]?.[field] || '';
+  };
   const getReward = (def: TaskDef) => {
-    const o = effective(def.id, 'reward');
+    const o = effectiveOverrides[def.id]?.reward;
     return typeof o === 'number' ? o : def.reward;
   };
   const getTarget = (def: TaskDef) => {
-    const o = effective(def.id, 'target');
+    const o = effectiveOverrides[def.id]?.target;
     return typeof o === 'number' ? o : def.target;
   };
-  const isHidden = (taskId: string) => !!effective(taskId, 'hidden');
+  const isHidden = (taskId: string) => !!effectiveOverrides[taskId]?.hidden;
 
   const patchOverride = (taskId: string, patch: Partial<TaskOverride>) => {
     setDirtyOverrides((prev) => {
@@ -109,21 +143,48 @@ export function DailyTasksManagement() {
     setSaveMsg('');
   };
 
+  const moveTask = (taskId: string, dir: -1 | 1) => {
+    setDirtyOrder(() => {
+      const arr = [...effectiveOrder];
+      const idx = arr.indexOf(taskId);
+      if (idx < 0) return arr;
+      const swap = idx + dir;
+      if (swap < 0 || swap >= arr.length) return arr;
+      [arr[idx], arr[swap]] = [arr[swap], arr[idx]];
+      return arr;
+    });
+    setSaveMsg('');
+  };
+
   const saveOverrides = async () => {
-    if (!dirtyOverrides) return;
+    if (!isDirty) return;
     setSaving(true);
     setSaveMsg('');
     try {
+      // Strip defaults so the Firestore doc stays tiny + debuggable.
       const cleaned: TaskOverrides = {};
-      for (const [id, o] of Object.entries(dirtyOverrides)) {
+      for (const [id, o] of Object.entries(effectiveOverrides)) {
         const entry: TaskOverride = {};
-        if (typeof o.reward === 'number') entry.reward = o.reward;
-        if (typeof o.target === 'number') entry.target = o.target;
+        const def = TASK_DEFAULT_TEXT[id];
+        if (typeof o.reward === 'number') {
+          const baseReward = TASK_DEFS.find((t) => t.id === id)?.reward;
+          if (o.reward !== baseReward) entry.reward = o.reward;
+        }
+        if (typeof o.target === 'number') {
+          const baseTarget = TASK_DEFS.find((t) => t.id === id)?.target;
+          if (o.target !== baseTarget) entry.target = o.target;
+        }
         if (o.hidden) entry.hidden = true;
+        if (typeof o.title === 'string' && o.title.trim() && o.title.trim() !== def?.title) entry.title = o.title.trim();
+        if (typeof o.titleAr === 'string' && o.titleAr.trim() && o.titleAr.trim() !== def?.titleAr) entry.titleAr = o.titleAr.trim();
+        if (typeof o.description === 'string' && o.description.trim() && o.description.trim() !== def?.description) entry.description = o.description.trim();
+        if (typeof o.descriptionAr === 'string' && o.descriptionAr.trim() && o.descriptionAr.trim() !== def?.descriptionAr) entry.descriptionAr = o.descriptionAr.trim();
         if (Object.keys(entry).length > 0) cleaned[id] = entry;
       }
-      await setDoc(doc(db, 'config', 'daily-tasks'), { overrides: cleaned }, { merge: true });
+      const orderToSave = effectiveOrder;
+      await setDoc(doc(db, 'config', 'daily-tasks'), { overrides: cleaned, order: orderToSave });
       setDirtyOverrides(null);
+      setDirtyOrder(null);
       setSaveMsg('Saved — players see new values instantly.');
     } catch (err: any) {
       setSaveMsg(`Save failed: ${err?.message || 'unknown error'}`);
@@ -132,11 +193,12 @@ export function DailyTasksManagement() {
   };
 
   const resetAllOverrides = async () => {
-    if (!confirm('Reset ALL task customizations? Rewards and targets will revert to defaults for every task.')) return;
+    if (!confirm('Reset ALL task customizations? Rewards, targets, texts and order revert to defaults for every task.')) return;
     setSaving(true);
     try {
-      await setDoc(doc(db, 'config', 'daily-tasks'), { overrides: {} });
+      await setDoc(doc(db, 'config', 'daily-tasks'), { overrides: {}, order: TASK_DEFS.map((t) => t.id) });
       setDirtyOverrides(null);
+      setDirtyOrder(null);
       setSaveMsg('All overrides cleared.');
     } catch (err: any) {
       setSaveMsg(`Reset failed: ${err?.message || 'unknown error'}`);
@@ -301,15 +363,15 @@ export function DailyTasksManagement() {
         ))}
       </div>
 
-      {/* ── Task editor (admin overrides) ───────────────────── */}
+      {/* ── Task editor (FULL admin overrides + reorder) ───────────────────── */}
       <div>
-        <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center justify-between mb-3 flex-wrap gap-2">
           <h3 className="text-lg font-semibold text-[#1d1d1f] flex items-center gap-2">
             <Award size={18} className="text-[#0071e3]" />
-            Edit Task Rewards & Targets
+            Edit Daily Tasks
             <HelpTip title={{ en: 'Edit Daily Tasks', ar: 'تعديل المهام اليومية' }}
-              ar={<p>عدّل عدد العملات لكل مهمة، أو عدّل الهدف (مثل الدقائق)، أو اخفِ المهمة كلياً من الواجهة. يطبَّق فوراً على كل الكشوك — لا حاجة لإعادة التشغيل.</p>}>
-              <p>Change how many coins each task rewards, edit its target (e.g. minutes), or hide it completely from the kiosk. Changes apply instantly everywhere — no restart needed.</p>
+              ar={<p>محرر كامل: عدّل اسم المهمة والوصف (عربي + إنجليزي)، غيّر المكافأة والهدف، أخفِ المهمة، وأعد ترتيب الصفوف. يُطبَّق فوراً على كل الكشوك.</p>}>
+              <p>Full editor — rename each task and its description (EN + AR), change the reward and target, hide the task, and reorder the rows. Applies instantly on every kiosk.</p>
             </HelpTip>
           </h3>
           <div className="flex items-center gap-2">
@@ -328,82 +390,146 @@ export function DailyTasksManagement() {
             </button>
             <button
               onClick={saveOverrides}
-              disabled={!dirtyOverrides || saving}
+              disabled={!isDirty || saving}
               className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0071e3] text-white text-xs font-medium hover:bg-[#0077ED] transition-all disabled:opacity-40"
             >
               {saving ? <Loader2 size={13} className="animate-spin" /> : <Save size={13} />}
-              {dirtyOverrides ? 'Save Changes' : 'Saved'}
+              {isDirty ? 'Save Changes' : 'Saved'}
             </button>
           </div>
         </div>
-        <div className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 overflow-hidden">
-          <table className="w-full text-sm">
-            <thead className="bg-[#f5f5f7]">
-              <tr>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#86868b] uppercase tracking-wider">Task</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#86868b] uppercase tracking-wider">Reward (coins)</th>
-                <th className="text-left px-4 py-2.5 text-xs font-semibold text-[#86868b] uppercase tracking-wider">Target</th>
-                <th className="text-right px-4 py-2.5 text-xs font-semibold text-[#86868b] uppercase tracking-wider">Visibility</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#e5e5ea]/60">
-              {TASK_DEFS.map((task) => {
-                const hidden = isHidden(task.id);
-                return (
-                  <tr key={task.id} style={{ opacity: hidden ? 0.55 : 1 }}>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0"
-                          style={{ background: `${task.color}15` }}>
-                          <span style={{ color: task.color }}>{task.icon}</span>
-                        </div>
-                        <div>
-                          <p className="text-[#1d1d1f] font-medium">{task.title}</p>
-                          <p className="text-[10px] text-[#86868b] tracking-wider font-mono">{task.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={0}
-                          value={getReward(task)}
-                          onChange={(e) => patchOverride(task.id, { reward: Number(e.target.value) || 0 })}
-                          className="w-20 bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-2 py-1 text-sm"
-                        />
-                        <span className="text-[10px] text-[#86868b]">default {task.reward}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="number"
-                          min={1}
-                          value={getTarget(task)}
-                          onChange={(e) => patchOverride(task.id, { target: Math.max(1, Number(e.target.value) || 1) })}
-                          className="w-20 bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-2 py-1 text-sm"
-                        />
-                        <span className="text-[10px] text-[#86868b]">default {task.target}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        onClick={() => patchOverride(task.id, { hidden: !hidden })}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                          hidden
-                            ? 'bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/25 hover:bg-[#ff3b30]/20'
-                            : 'bg-[#34c759]/10 text-[#34c759] border-[#34c759]/25 hover:bg-[#34c759]/20'
-                        }`}
-                      >
-                        {hidden ? <><EyeOff size={13} /> Hidden</> : <><Eye size={13} /> Shown</>}
-                      </button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+
+        <div className="space-y-3">
+          {effectiveOrder.map((taskId, idx) => {
+            const task = TASK_DEFS.find((t) => t.id === taskId);
+            if (!task) return null;
+            const hidden = isHidden(task.id);
+            const reward = getReward(task);
+            const target = getTarget(task);
+            return (
+              <motion.div
+                key={task.id}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 p-4"
+                style={{ opacity: hidden ? 0.55 : 1 }}
+              >
+                <div className="flex items-start gap-4">
+                  {/* Reorder column */}
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <span className="text-[#86868b] text-xs font-mono font-semibold w-6 text-center">#{idx + 1}</span>
+                    <button
+                      onClick={() => moveTask(task.id, -1)}
+                      disabled={idx === 0}
+                      title="Move up"
+                      className="w-7 h-7 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#0071e3] hover:bg-[#0071e3]/10 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <GripVertical size={14} className="text-[#c7c7cc]" />
+                    <button
+                      onClick={() => moveTask(task.id, 1)}
+                      disabled={idx === effectiveOrder.length - 1}
+                      title="Move down"
+                      className="w-7 h-7 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#0071e3] hover:bg-[#0071e3]/10 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                  </div>
+
+                  {/* Icon + id */}
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: `${task.color}15` }}>
+                      <span style={{ color: task.color }}>{task.icon}</span>
+                    </div>
+                    <span className="text-[9px] text-[#86868b] font-mono tracking-wider">{task.id}</span>
+                  </div>
+
+                  {/* Fields */}
+                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Title (EN)</span>
+                      <input
+                        type="text"
+                        value={getString(task.id, 'title')}
+                        onChange={(e) => patchOverride(task.id, { title: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Title (AR)</span>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        value={getString(task.id, 'titleAr')}
+                        onChange={(e) => patchOverride(task.id, { titleAr: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                      />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Description (EN)</span>
+                      <input
+                        type="text"
+                        value={getString(task.id, 'description')}
+                        onChange={(e) => patchOverride(task.id, { description: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                      />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Description (AR)</span>
+                      <input
+                        type="text"
+                        dir="rtl"
+                        value={getString(task.id, 'descriptionAr')}
+                        onChange={(e) => patchOverride(task.id, { descriptionAr: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">
+                        Reward (coins) · default {task.reward}
+                      </span>
+                      <input
+                        type="number"
+                        min={0}
+                        value={reward}
+                        onChange={(e) => patchOverride(task.id, { reward: Number(e.target.value) || 0 })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#ff9500] font-semibold focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                      />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">
+                        Target · default {task.target}
+                      </span>
+                      <input
+                        type="number"
+                        min={1}
+                        value={target}
+                        onChange={(e) => patchOverride(task.id, { target: Math.max(1, Number(e.target.value) || 1) })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#0071e3] focus:ring-2 focus:ring-[#0071e3]/20 outline-none"
+                      />
+                    </label>
+                  </div>
+
+                  {/* Visibility */}
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => patchOverride(task.id, { hidden: !hidden })}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                        hidden
+                          ? 'bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/25 hover:bg-[#ff3b30]/20'
+                          : 'bg-[#34c759]/10 text-[#34c759] border-[#34c759]/25 hover:bg-[#34c759]/20'
+                      }`}
+                    >
+                      {hidden ? <><EyeOff size={13} /> Hidden</> : <><Eye size={13} /> Shown</>}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
         </div>
       </div>
 

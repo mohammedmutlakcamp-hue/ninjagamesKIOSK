@@ -18,8 +18,7 @@ export type TaskAction =
   | 'launch_game'    // launched a game
   | 'play_minigame'  // played a mini game
   | 'get_headshot'   // got headshots in aim trainer
-  | 'earn_coins'     // earned coins from mini games
-  | 'check_socials'; // opened social-bonus verification popup
+  | 'earn_coins';    // earned coins from mini games
 
 // Task IDs must match DAILY_TASKS in DailyTasksTab.tsx
 const ACTION_TO_TASKS: Record<TaskAction, string[]> = {
@@ -32,7 +31,6 @@ const ACTION_TO_TASKS: Record<TaskAction, string[]> = {
   play_minigame: ['play_minigame'],
   get_headshot:  ['get_headshot'],
   earn_coins:    ['earn_coins'],
-  check_socials: ['check_socials'],
 };
 
 // Mirrors DAILY_TASKS in DailyTasksTab.tsx — keep IDs in sync. Used to
@@ -41,7 +39,7 @@ const ACTION_TO_TASKS: Record<TaskAction, string[]> = {
 const DEFAULT_TASK_IDS = [
   'daily_login', 'play_30_min', 'open_chest', 'send_coins',
   'order_food', 'play_minigame', 'get_headshot', 'earn_coins',
-  'add_friend', 'launch_game', 'check_socials',
+  'add_friend', 'launch_game',
 ];
 
 /**

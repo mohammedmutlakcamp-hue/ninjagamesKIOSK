@@ -371,13 +371,13 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       const data = snap.data();
       const tasks = data.tasks || {};
       let count = 0;
-      // Only count the 6 tasks shown in the DailyTasksTab UI. The Firestore
-      // doc is seeded with 11 task IDs (trackDailyTask's DEFAULT_TASK_IDS),
-      // but 5 of those are hidden / not claimable in the UI. Iterating all
-      // of them broke the "all claimed" check and inflated the badge count.
+      // Only count the tasks actually shown in the DailyTasksTab UI. The
+      // Firestore doc seeds several more IDs via trackDailyTask's
+      // DEFAULT_TASK_IDS, but hidden/removed tasks must not inflate the
+      // badge — a phantom badge with nothing to claim is very frustrating.
       const TASK_TARGETS: Record<string, number> = {
         daily_login: 1, open_chest: 1, send_coins: 1,
-        order_food: 1, check_socials: 1, play_30_min: 75,
+        order_food: 1, play_30_min: 75,
       };
       const UI_TASK_IDS = Object.keys(TASK_TARGETS);
       let totalTasks = 0;
@@ -390,8 +390,10 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
         if (tp.claimed) claimedTasks++;
         if (tp.progress >= target && !tp.claimed) count++;
       }
-      // All tasks claimed but full-completion bonus not yet claimed → show another dot
+      // All tasks claimed but full-completion bonus not yet claimed → show another dot.
+      // Once `dailyChestOpened` flips the reminder is cleared for the day.
       if (totalTasks > 0 && claimedTasks === totalTasks && !data.fullBonusClaimed) count++;
+      else if (totalTasks > 0 && claimedTasks === totalTasks && data.fullBonusClaimed && !data.dailyChestOpened) count++;
       // Also check free chest (daily chest not claimed yet)
       const FREE_CHEST_COOLDOWN = 24 * 60 * 60 * 1000;
       const lastClaim = player?.lastFreeChest || 0;
