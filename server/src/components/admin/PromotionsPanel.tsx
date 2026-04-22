@@ -104,6 +104,7 @@ export function PromotionsPanel() {
   const [promos, setPromos] = useState<Promotion[]>([]);
   const [editing, setEditing] = useState<Promotion | null>(null);
   const [saving, setSaving] = useState(false);
+  const [deletingIds, setDeletingIds] = useState<Set<string>>(new Set());
   // Menu items pulled from Firestore — used as a quick-pick list in the bundle editor.
   const [menuItems, setMenuItems] = useState<{ id: string; name: string; priceJOD: number; category?: string }[]>([]);
   const [hubblyFlavors, setHubblyFlavors] = useState<{ id: string; name: string; price: number }[]>([]);
@@ -151,12 +152,35 @@ export function PromotionsPanel() {
   };
 
   const remove = async (id: string) => {
+    if (!id) { alert('Cannot delete: this promotion has no id yet. Close and reopen the page.'); return; }
     if (!confirm('Delete this promotion permanently?')) return;
-    await deleteDoc(doc(db, 'promotions', id));
+    // Optimistic: drop from local list immediately so the UI reflects the action even
+    // before the Firestore snapshot catches up. If the delete fails we restore it.
+    const snapshot = promos;
+    setDeletingIds((s) => new Set(s).add(id));
+    setPromos((list) => list.filter((p) => p.id !== id));
+    try {
+      await deleteDoc(doc(db, 'promotions', id));
+    } catch (err) {
+      console.error('delete promotion failed', err);
+      alert(`Delete failed: ${(err as Error).message || 'unknown error'}`);
+      setPromos(snapshot);
+    } finally {
+      setDeletingIds((s) => { const next = new Set(s); next.delete(id); return next; });
+    }
   };
 
   const toggleActive = async (p: Promotion) => {
-    await setDoc(doc(db, 'promotions', p.id), { active: !p.active }, { merge: true });
+    if (!p.id) return;
+    // Optimistic local flip — listener will reconcile when Firestore confirms.
+    setPromos((list) => list.map((x) => x.id === p.id ? { ...x, active: !p.active } : x));
+    try {
+      await setDoc(doc(db, 'promotions', p.id), { active: !p.active }, { merge: true });
+    } catch (err) {
+      console.error('toggle active failed', err);
+      alert(`Toggle failed: ${(err as Error).message || 'unknown error'}`);
+      setPromos((list) => list.map((x) => x.id === p.id ? { ...x, active: p.active } : x));
+    }
   };
 
   return (
@@ -237,10 +261,21 @@ export function PromotionsPanel() {
                   </div>
                   <p className="text-[11px] text-[#86868b]">{p.description || '—'}</p>
                 </div>
-                <div className="flex items-center gap-1">
-                  <button onClick={() => toggleActive(p)} title={p.active ? 'Disable' : 'Enable'}
-                    className={`w-7 h-7 rounded-lg flex items-center justify-center text-xs ${p.active ? 'bg-[#34c759]/10 text-[#34c759]' : 'bg-[#86868b]/10 text-[#86868b]'}`}>
+                <div className="flex items-center gap-2">
+                  <span className={`text-[10px] font-semibold tracking-wider ${p.active ? 'text-[#34c759]' : 'text-[#86868b]'}`}>
                     {p.active ? 'ON' : 'OFF'}
+                  </span>
+                  {/* Real click-to-toggle iOS switch */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={p.active}
+                    onClick={() => toggleActive(p)}
+                    title={p.active ? 'Click to disable' : 'Click to enable'}
+                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${p.active ? 'bg-[#34c759]' : 'bg-[#d1d1d6]'}`}>
+                    <span
+                      className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all ${p.active ? 'left-[22px]' : 'left-0.5'}`}
+                    />
                   </button>
                 </div>
               </div>
@@ -281,9 +316,11 @@ export function PromotionsPanel() {
                   className="flex-1 py-2 bg-[#f5f5f7] hover:bg-[#e5e5ea] rounded-xl text-xs font-medium text-[#1d1d1f]">
                   Edit
                 </button>
-                <button onClick={() => remove(p.id)}
-                  className="px-4 py-2 bg-[#ff3b30]/10 hover:bg-[#ff3b30]/20 rounded-xl text-xs font-medium text-[#ff3b30]">
-                  <Trash2 size={13} />
+                <button
+                  onClick={() => remove(p.id)}
+                  disabled={deletingIds.has(p.id)}
+                  className="px-4 py-2 bg-[#ff3b30]/10 hover:bg-[#ff3b30]/20 rounded-xl text-xs font-medium text-[#ff3b30] disabled:opacity-40 disabled:cursor-wait">
+                  {deletingIds.has(p.id) ? <Loader2 size={13} className="animate-spin" /> : <Trash2 size={13} />}
                 </button>
               </div>
             </motion.div>
