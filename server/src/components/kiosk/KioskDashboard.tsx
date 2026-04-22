@@ -26,6 +26,7 @@ import { VIPTab } from './tabs/VIPTab';
 import { ChatBubble } from './ChatBubble';
 import { OrderBubble } from './OrderBubble';
 import { RafflePopup } from './RafflePopup';
+import { RaffleWinnerBanner } from './RaffleWinnerBanner';
 import { BookingPopup } from './BookingPopup';
 import { BookingWatcher } from './BookingWatcher';
 import { SupportBubble } from './SupportBubble';
@@ -3685,6 +3686,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       {showLottery && !isGuest && (
         <RafflePopup player={player} onClose={() => setShowLottery(false)} />
       )}
+      {/* Global winner banner — announces on every kiosk when admin draws */}
+      {!isGuest && <RaffleWinnerBanner playerUid={player?.uid} />}
 
       {/* Booking popup */}
       {showBooking && !isGuest && (

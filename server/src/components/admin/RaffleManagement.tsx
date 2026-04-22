@@ -96,20 +96,27 @@ export function RaffleManagement() {
       // Credit the reward first so the kiosk reveal can promise the coins are in.
       await applyReward(winner.uid, raffle.reward);
 
+      const drawnAt = Date.now();
+      // Flip active=false immediately so the sidebar stops glowing on every
+      // kiosk the moment the draw fires. The RafflePopup keeps showing the
+      // winner reveal based on `status === 'drawn'`, and the global winner
+      // banner fires for everyone from the same snapshot.
       await updateDoc(RAFFLE_DOC, {
+        active: false,
         status: 'drawn',
         winnerUid: winner.uid,
         winnerIndex,
-        drawnAt: Date.now(),
+        drawnAt,
       });
 
       // Archive a copy.
       await addDoc(collection(db, 'raffle-history'), {
         ...raffle,
+        active: false,
         status: 'drawn',
         winnerUid: winner.uid,
         winnerIndex,
-        drawnAt: Date.now(),
+        drawnAt,
       });
     } catch (e: any) {
       setErr(e?.message || 'Draw failed');
@@ -184,7 +191,7 @@ export function RaffleManagement() {
             A single-winner group raffle — one reward, many entrants, live drawn.
           </p>
         </div>
-        {raffle?.active && (
+        {raffle && (raffle.active || isDrawn) && (
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl border"
             style={{
               background: isDrawn ? 'rgba(34,197,94,0.1)' : 'rgba(255,153,0,0.1)',
@@ -193,13 +200,13 @@ export function RaffleManagement() {
             }}
           >
             <motion.span
-              animate={{ opacity: [1, 0.4, 1] }}
-              transition={{ duration: 1.4, repeat: Infinity }}
+              animate={{ opacity: isDrawn ? 1 : [1, 0.4, 1] }}
+              transition={{ duration: 1.4, repeat: isDrawn ? 0 : Infinity }}
               className="w-2 h-2 rounded-full"
               style={{ background: isDrawn ? '#22c55e' : '#ff9500' }}
             />
             <span className="text-xs font-medium tracking-wider">
-              {isDrawn ? 'DRAWN' : 'LIVE'}
+              {isDrawn ? 'DRAWN — RAFFLE ENDED' : 'LIVE'}
             </span>
           </div>
         )}
@@ -329,21 +336,21 @@ export function RaffleManagement() {
             </>
           )}
 
-          {raffle?.active && (
+          {raffle?.active && !isDrawn && (
             <button
               onClick={endRaffle}
               disabled={busy === 'end'}
               className="ml-auto flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#ff3b30]/10 text-[#ff3b30] border border-[#ff3b30]/25 text-sm font-medium hover:bg-[#ff3b30]/20 disabled:opacity-50"
             >
               {busy === 'end' ? <Loader2 size={14} className="animate-spin" /> : <Square size={14} />}
-              {isDrawn ? 'End & Reset' : 'Cancel Raffle'}
+              Cancel Raffle
             </button>
           )}
         </div>
       </section>
 
-      {/* ───── Live Entrants ───── */}
-      {raffle?.active && (
+      {/* ───── Live Entrants ───── (show for active OR recently drawn raffles) */}
+      {raffle && (raffle.active || isDrawn) && (
         <section className="bg-white rounded-2xl p-6 shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-semibold text-[#86868b] uppercase tracking-wider flex items-center gap-2">

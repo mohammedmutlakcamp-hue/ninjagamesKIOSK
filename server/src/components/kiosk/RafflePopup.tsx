@@ -141,13 +141,19 @@ export function RafflePopup({ player, onClose }: Props) {
     );
   }
 
-  if (!raffle || !raffle.active) {
+  // Keep showing the winner reveal even after the raffle is auto-ended by
+  // the admin's Draw action — otherwise the moment `active` flips to false
+  // the popup shows "NO ACTIVE RAFFLE" and hides the result that was just
+  // picked. Only fall through to the empty state for truly absent/cancelled
+  // raffles.
+  const isActiveOrDrawn = !!raffle && (raffle.active || raffle.status === 'drawn');
+  if (!raffle || !isActiveOrDrawn) {
     return (
       <Shell close={close}>
         <div className="py-12 text-center px-6">
           <Ticket size={48} className="text-yellow-400/70 mx-auto mb-4" />
           <p className="font-ninja text-xl tracking-wider text-yellow-400 mb-2">
-            {ar ? 'لا يوجد يانصيب الآن' : 'NO ACTIVE RAFFLE'}
+            {ar ? 'لا يوجد يانصيب الآن' : 'NO ACTIVE LOTTERY'}
           </p>
           <p className="font-body text-sm text-gray-400 mb-6">
             {ar ? 'تابع الشاشة — سيبدأ قريباً!' : 'Keep an eye out — the next one starts soon!'}
