@@ -539,9 +539,15 @@ export function TournamentTab({ player }: Props) {
                 <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 30% 100%, rgba(255,111,0,0.25) 0%, transparent 50%), linear-gradient(135deg, rgba(255,111,0,0.12) 0%, transparent 45%)' }} />
                 {/* Banner bottom accent line */}
                 <div className="absolute bottom-0 left-0 right-0 h-[2px]" style={{ background: 'linear-gradient(90deg, transparent, #FF6F00, rgba(255,69,0,0.6), transparent)', boxShadow: '0 0 12px rgba(255,111,0,0.4)' }} />
+                {/* Corner shield — banner art stops behind it */}
+                <div className="absolute top-0 right-0 z-[5] pointer-events-none"
+                  style={{
+                    width: 104, height: 80,
+                    background: 'linear-gradient(225deg, rgba(6,8,12,0.95) 55%, rgba(6,8,12,0.8) 78%, transparent 100%)',
+                  }} />
                 <button onClick={() => { setSelectedTournament(null); setJoinError(''); }}
-                  className="absolute top-4 right-4 w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:rotate-90 transition-all z-[6]"
-                  style={{ background: 'rgba(0,0,0,0.6)', border: '1px solid rgba(255,111,0,0.3)', backdropFilter: 'blur(8px)', boxShadow: '0 0 10px rgba(255,111,0,0.15)' }}>
+                  className="absolute top-4 right-4 w-10 h-10 rounded-xl flex items-center justify-center text-gray-400 hover:text-white hover:rotate-90 transition-all z-[10]"
+                  style={{ background: 'rgba(0,0,0,0.85)', border: '1px solid rgba(255,111,0,0.4)', backdropFilter: 'blur(8px)', boxShadow: '0 0 10px rgba(255,111,0,0.2)' }}>
                   <X size={18} />
                 </button>
                 <div className="absolute bottom-4 left-6">

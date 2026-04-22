@@ -257,14 +257,17 @@ export function LeaderboardTab({ onClose }: Props = {}) {
       <div className="absolute top-0 left-0 bottom-0 w-[2px] pointer-events-none z-[1]" style={{ background: 'linear-gradient(180deg, #FFD700, #00c8ff, #a855f7, #00c8ff, #FFD700)', boxShadow: '0 0 8px rgba(255,215,0,0.35)' }} />
       <div className="absolute top-0 right-0 bottom-0 w-[1px] pointer-events-none z-[1]" style={{ background: 'linear-gradient(180deg, rgba(0,200,255,0.3), rgba(168,85,247,0.2), transparent)' }} />
 
-      {/* Close button */}
+      {/* Close button + corner shield so no leaderboard row sits under the X */}
       {onClose && (
-        <button onClick={onClose}
-          className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:text-yellow-400 transition-all hover:rotate-90"
-          style={{ background: 'rgba(255,215,0,0.06)', border: '1px solid rgba(255,215,0,0.25)', boxShadow: '0 0 10px rgba(255,215,0,0.1)' }}
-        >
-          <X size={22} />
-        </button>
+        <>
+          <div className="popup-close-shield gold" />
+          <button onClick={onClose}
+            className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:text-yellow-400 transition-all hover:rotate-90"
+            style={{ background: 'rgba(12,10,4,0.96)', border: '1px solid rgba(255,215,0,0.4)', boxShadow: '0 0 10px rgba(255,215,0,0.2)' }}
+          >
+            <X size={22} />
+          </button>
+        </>
       )}
 
       {/* Content */}

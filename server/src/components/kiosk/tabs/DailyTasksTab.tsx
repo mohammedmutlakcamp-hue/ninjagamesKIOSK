@@ -99,7 +99,7 @@ interface SocialBonus {
   highlightHandle?: string;
 }
 
-const SOCIAL_BONUS_TASKS: SocialBonus[] = [
+const SOCIAL_BONUS_DEFAULTS: SocialBonus[] = [
   {
     id: 'check_socials_bonus',
     title: 'Check Our Instagram',                titleAr: 'تابع إنستغرام',
@@ -158,15 +158,30 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
     description?: string; descriptionAr?: string;
   }>>({});
   const [taskOrder, setTaskOrder] = useState<string[] | null>(null);
+  // Overrides for the EARN MORE COINS (social bonus) row.
+  const [socialOverrides, setSocialOverrides] = useState<Record<string, {
+    title?: string; titleAr?: string;
+    subtitle?: string; subtitleAr?: string;
+    reward?: number;
+    repeatEveryDays?: number | null; // null = one-time
+    primaryUrl?: string;
+    primaryUrlLabel?: string; primaryUrlLabelAr?: string;
+    hidden?: boolean;
+  }>>({});
+  const [socialOrder, setSocialOrder] = useState<string[] | null>(null);
   useEffect(() => {
     const unsub = onSnapshot(doc(db, 'config', 'daily-tasks'), (snap) => {
       if (snap.exists()) {
         const data = snap.data() as any;
         setTaskOverrides(data.overrides || {});
         setTaskOrder(Array.isArray(data.order) ? data.order : null);
+        setSocialOverrides(data.socialOverrides || {});
+        setSocialOrder(Array.isArray(data.socialOrder) ? data.socialOrder : null);
       } else {
         setTaskOverrides({});
         setTaskOrder(null);
+        setSocialOverrides({});
+        setSocialOrder(null);
       }
     });
     return () => unsub();
@@ -199,6 +214,37 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
     }
     return merged;
   }, [taskOverrides, taskOrder]);
+
+  // Merge + order social bonuses using admin overrides.
+  const SOCIAL_BONUS_TASKS = useMemo<SocialBonus[]>(() => {
+    const merged = SOCIAL_BONUS_DEFAULTS
+      .filter((b) => !socialOverrides[b.id]?.hidden)
+      .map((b) => {
+        const o = socialOverrides[b.id] || {};
+        return {
+          ...b,
+          title: o.title?.trim() || b.title,
+          titleAr: o.titleAr?.trim() || b.titleAr,
+          subtitle: o.subtitle?.trim() || b.subtitle,
+          subtitleAr: o.subtitleAr?.trim() || b.subtitleAr,
+          reward: typeof o.reward === 'number' ? o.reward : b.reward,
+          repeatEveryDays: o.repeatEveryDays === null ? undefined : (typeof o.repeatEveryDays === 'number' ? o.repeatEveryDays : b.repeatEveryDays),
+          primaryUrl: o.primaryUrl?.trim() || b.primaryUrl,
+          primaryUrlLabel: o.primaryUrlLabel?.trim() || b.primaryUrlLabel,
+          primaryUrlLabelAr: o.primaryUrlLabelAr?.trim() || b.primaryUrlLabelAr,
+        };
+      });
+    if (socialOrder && socialOrder.length > 0) {
+      const indexOf: Record<string, number> = {};
+      socialOrder.forEach((id, i) => { indexOf[id] = i; });
+      merged.sort((a, b) => {
+        const ai = indexOf[a.id] ?? Number.MAX_SAFE_INTEGER;
+        const bi = indexOf[b.id] ?? Number.MAX_SAFE_INTEGER;
+        return ai - bi;
+      });
+    }
+    return merged;
+  }, [socialOverrides, socialOrder]);
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
   const ar = lang === 'ar';
   const [claiming, setClaimingId] = useState<string | null>(null);

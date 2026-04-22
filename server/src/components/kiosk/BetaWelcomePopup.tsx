@@ -76,11 +76,12 @@ export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
 
             {/* Close control. While the countdown is running the X is
                 replaced by the remaining seconds and is non-interactive. */}
+            <div className="popup-close-shield" style={{ width: 84, height: 60 }} />
             <button
               onClick={close}
               disabled={!canClose}
               aria-label={canClose ? 'close' : `wait ${secondsLeft}s`}
-              className="absolute top-3 right-3 z-10 w-10 h-10 rounded-full flex items-center justify-center transition"
+              className="absolute top-3 right-3 z-[95] w-10 h-10 rounded-full flex items-center justify-center transition"
               style={{
                 background: canClose ? 'transparent' : 'rgba(57,255,20,0.08)',
                 border: canClose ? 'none' : '1px solid rgba(57,255,20,0.35)',

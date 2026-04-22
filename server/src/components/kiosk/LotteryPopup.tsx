@@ -204,11 +204,12 @@ export function LotteryPopup({ player, onClose }: Props) {
 
         {/* Close */}
         {!spinning && (
+          <><div className="popup-close-shield gold" />
           <button onClick={close}
-            className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+            className="absolute top-4 right-4 z-[95] w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
             style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
             <X size={18} className="text-gray-300" />
-          </button>
+          </button></>
         )}
 
         <div className="p-8">

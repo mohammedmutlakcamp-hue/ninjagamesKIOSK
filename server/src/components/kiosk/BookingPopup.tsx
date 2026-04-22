@@ -139,9 +139,10 @@ export function BookingPopup({ player, onClose, onBooked }: Props) {
         <div className="absolute top-0 left-0 w-4 h-4 z-10" style={{ borderTop: '2px solid #00c8ff', borderLeft: '2px solid #00c8ff' }} />
         <div className="absolute bottom-0 right-0 w-4 h-4 z-10" style={{ borderBottom: '2px solid #00c8ff', borderRight: '2px solid #00c8ff' }} />
 
+        <div className="popup-close-shield" />
         <button onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          className="absolute top-4 right-4 z-[95] w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+          style={{ background: 'rgba(8,10,14,0.96)', border: '1px solid rgba(0,200,255,0.4)' }}>
           <X size={18} className="text-gray-300" />
         </button>
 

@@ -1437,8 +1437,11 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
               <div className="relative h-48 overflow-hidden">
                 <Image src={activeGame.bannerImage || activeGame.coverImage} alt={activeGame.name} fill className="object-cover object-top" />
                 <div className="absolute inset-0 bg-gradient-to-t from-[rgba(11,12,16,0.97)] via-black/40 to-transparent" />
+                <div className="absolute top-0 right-0 z-[5] pointer-events-none"
+                  style={{ width: 92, height: 68,
+                    background: 'linear-gradient(225deg, rgba(11,12,16,0.95) 55%, rgba(11,12,16,0.75) 78%, transparent 100%)' }} />
                 <button onClick={() => setShowGameDetails(false)}
-                  className="ninja-btn ninja-btn-ghost absolute top-3 right-3 w-9 h-9 flex items-center justify-center backdrop-blur-sm">
+                  className="ninja-btn ninja-btn-ghost absolute top-3 right-3 w-9 h-9 flex items-center justify-center backdrop-blur-sm z-[10]">
                   <X size={20} />
                 </button>
                 <div className="absolute bottom-4 left-5">

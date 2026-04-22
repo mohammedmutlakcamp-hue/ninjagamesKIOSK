@@ -1808,10 +1808,11 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
               <div className="absolute bottom-0 right-0 w-4 h-4 z-[2]" style={{ borderBottom: `2px solid ${gcModal.accent}80`, borderRight: `2px solid ${gcModal.accent}80` }} />
               {/* Top accent */}
               <div className="absolute top-0 left-0 right-0 h-[2px] z-[2]" style={{ background: `linear-gradient(90deg, transparent, ${gcModal.accent}, transparent)`, boxShadow: `0 0 10px ${gcModal.accent}` }} />
-              {/* Close */}
+              {/* Close + corner shield */}
+              <div className="popup-close-shield" style={{ width: 88, height: 60 }} />
               <button onClick={() => { setGcModal(null); setGcAmount(null); setGcRequestSent(false); }}
-                className="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center z-20 transition-colors hover:bg-white/10"
-                style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+                className="absolute top-3 right-3 w-8 h-8 rounded-lg flex items-center justify-center z-[95] transition-colors hover:bg-white/10"
+                style={{ background: 'rgba(8,10,14,0.96)', border: `1px solid ${gcModal.accent}55` }}>
                 <X size={14} className="text-gray-400" />
               </button>
 
@@ -1964,7 +1965,8 @@ export function StoreTab({ player, onClose, initialSubTab }: Props) {
               <div className="absolute top-0 left-0 w-4 h-4 pointer-events-none z-[2]" style={{ borderTop: '2px solid rgba(57,255,20,0.4)', borderLeft: '2px solid rgba(57,255,20,0.4)' }} />
               <div className="absolute bottom-0 right-0 w-4 h-4 pointer-events-none z-[2]" style={{ borderBottom: '2px solid rgba(0,200,255,0.25)', borderRight: '2px solid rgba(0,200,255,0.25)' }} />
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, rgba(57,255,20,0.4), rgba(0,200,255,0.2), transparent)' }} />
-              <button onClick={() => setSelectedSkin(null)} className="absolute top-4 right-4 z-20 w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10" style={{ background: 'rgba(255,255,255,0.06)' }}>
+              <div className="popup-close-shield" style={{ width: 88, height: 68 }} />
+              <button onClick={() => setSelectedSkin(null)} className="absolute top-4 right-4 z-[95] w-8 h-8 rounded-full flex items-center justify-center transition-colors hover:bg-white/10" style={{ background: 'rgba(8,10,14,0.96)', border: '1px solid rgba(57,255,20,0.35)' }}>
                 <X size={16} className="text-gray-400" />
               </button>
               <div className="p-6">

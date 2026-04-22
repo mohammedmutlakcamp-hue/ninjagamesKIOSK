@@ -1476,6 +1476,25 @@ button, a, input, [class*="border"] {
   max-height: calc(100vh - 80px);
 }
 
+/* ═══ Close-button corner shield ═══
+   Apply to any popup so content can never visually sit under the X button.
+   Usage:  <div class="popup-close-shield" />  (pin with absolute top-0 right-0)
+   The shield is rendered behind the button (z ≤ 90) but above tab content. */
+.popup-close-shield {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 104px;
+  height: 80px;
+  z-index: 90;
+  pointer-events: none;
+  background: linear-gradient(225deg, rgba(6, 8, 12, 0.98) 55%, rgba(6, 8, 12, 0.85) 78%, transparent 100%);
+  border-top-right-radius: 16px;
+}
+.popup-close-shield.gold {
+  background: linear-gradient(225deg, rgba(12, 10, 4, 0.98) 55%, rgba(12, 10, 4, 0.85) 78%, transparent 100%);
+}
+
 /* Compact popup (Daily Tasks) — narrow vertical list, no scroll */
 .kiosk-popup-compact {
   width: 720px;

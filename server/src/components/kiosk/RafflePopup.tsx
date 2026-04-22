@@ -81,13 +81,18 @@ export function RafflePopup({ player, onClose }: Props) {
     setJoining(true);
     setError(null);
     try {
+      // Firestore rejects `undefined` inside arrayUnion payloads — the old
+      // `profilePhoto: player.profilePhoto || undefined` shape caused every
+      // join to fail with "invalid data" on accounts without a custom photo.
+      // Build the entrant with only the fields that actually have values.
       const entrant: RaffleEntrant = {
         uid: player.uid,
         username: player.username || 'Player',
-        profilePhoto: player.profilePhoto || undefined,
-        ninjaType: player.ninjaType || undefined,
         joinedAt: Date.now(),
       };
+      if (player.profilePhoto) entrant.profilePhoto = player.profilePhoto;
+      if (player.ninjaType) entrant.ninjaType = player.ninjaType;
+
       // Deduct entry cost from player, then add to entrants.
       await updateDoc(doc(db, 'players', player.uid), {
         coins: increment(-raffle.entryCost),
@@ -98,7 +103,7 @@ export function RafflePopup({ player, onClose }: Props) {
       });
     } catch (err: any) {
       console.error('raffle join failed', err);
-      setError(ar ? 'فشل الانضمام' : 'Join failed');
+      setError(ar ? `فشل الانضمام: ${err?.message || ''}` : `Join failed: ${err?.message || 'unknown error'}`);
     }
     setJoining(false);
   };
@@ -177,7 +182,7 @@ export function RafflePopup({ player, onClose }: Props) {
               background: 'linear-gradient(90deg, #FFD700, #FFA500, #FFD700)',
               WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
             }}>
-            {ar ? 'صندوق اليانصيب' : 'RAFFLE CHEST'}
+            {ar ? 'صندوق اليانصيب' : 'LOTTERY CHEST'}
           </h2>
           <p className="font-body text-xs text-gray-400 mt-1">
             {ar
@@ -366,7 +371,7 @@ export function RafflePopup({ player, onClose }: Props) {
               ) : (
                 <>
                   <Ticket size={18} />{' '}
-                  {ar ? `ادخل اليانصيب — ${raffle.entryCost} توكن` : `JOIN RAFFLE — ${raffle.entryCost} COINS`}
+                  {ar ? `ادخل اليانصيب — ${raffle.entryCost} توكن` : `ENTER LOTTERY — ${raffle.entryCost} COINS`}
                 </>
               )}
             </motion.button>
@@ -447,9 +452,10 @@ function Shell({ children, close, wide }: { children: React.ReactNode; close: ()
       >
         <div className="absolute top-0 left-0 w-4 h-4 z-10" style={{ borderTop: '2px solid #FFD700', borderLeft: '2px solid #FFD700' }} />
         <div className="absolute bottom-0 right-0 w-4 h-4 z-10" style={{ borderBottom: '2px solid #FFD700', borderRight: '2px solid #FFD700' }} />
+        <div className="popup-close-shield gold" />
         <button onClick={close}
-          className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
-          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)' }}>
+          className="absolute top-4 right-4 z-[95] w-10 h-10 rounded-full flex items-center justify-center hover:bg-white/10 transition-colors"
+          style={{ background: 'rgba(18,14,4,0.96)', border: '1px solid rgba(255,215,0,0.4)' }}>
           <X size={18} className="text-gray-300" />
         </button>
         {children}

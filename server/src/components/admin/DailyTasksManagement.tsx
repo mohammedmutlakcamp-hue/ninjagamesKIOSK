@@ -50,6 +50,58 @@ const TASK_DEFAULT_TEXT: Record<string, { title: string; titleAr: string; descri
   play_30_min:  { title: 'Play 75 Min',              titleAr: 'العب 75 دقيقة',         description: 'Play for at least 75 minutes',                 descriptionAr: 'العب لمدة 75 دقيقة على الأقل' },
 };
 
+// ── EARN MORE COINS (social bonuses) — mirror kiosk's SOCIAL_BONUS_DEFAULTS ──
+interface SocialBonusDef {
+  id: string;
+  title: string; titleAr: string;
+  subtitle: string; subtitleAr: string;
+  reward: number;
+  repeatEveryDays: number | null;
+  primaryUrl: string;
+  primaryUrlLabel: string; primaryUrlLabelAr: string;
+  color: string;
+}
+interface SocialBonusOverride {
+  title?: string; titleAr?: string;
+  subtitle?: string; subtitleAr?: string;
+  reward?: number;
+  repeatEveryDays?: number | null;
+  primaryUrl?: string;
+  primaryUrlLabel?: string; primaryUrlLabelAr?: string;
+  hidden?: boolean;
+}
+type SocialBonusOverrides = Record<string, SocialBonusOverride>;
+
+const SOCIAL_BONUS_DEFS: SocialBonusDef[] = [
+  {
+    id: 'check_socials_bonus',
+    title: 'Check Our Instagram', titleAr: 'تابع إنستغرام',
+    subtitle: 'Like our 3 latest Instagram posts', subtitleAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام',
+    reward: 10, repeatEveryDays: 10,
+    primaryUrl: 'https://www.instagram.com/ininjagames',
+    primaryUrlLabel: 'Open Instagram', primaryUrlLabelAr: 'افتح إنستغرام',
+    color: '#E879F9',
+  },
+  {
+    id: 'google_review',
+    title: 'Leave Google Review', titleAr: 'اترك تقييم على جوجل',
+    subtitle: 'Rate us 5 stars on Google Maps', subtitleAr: 'قيّمنا 5 نجوم على خرائط جوجل',
+    reward: 10, repeatEveryDays: 10,
+    primaryUrl: 'https://share.google/CW0iX87oFRlrr7Qn0',
+    primaryUrlLabel: 'Open Google Review', primaryUrlLabelAr: 'افتح تقييم جوجل',
+    color: '#FBBF24',
+  },
+  {
+    id: 'instagram_bio',
+    title: 'Add Us to Your Bio', titleAr: 'أضفنا إلى سيرتك الذاتية',
+    subtitle: 'Put @ininjagames in your Instagram bio', subtitleAr: 'ضع @ininjagames في سيرتك على إنستغرام',
+    reward: 10, repeatEveryDays: null,
+    primaryUrl: 'https://www.instagram.com/ininjagames',
+    primaryUrlLabel: 'Open Instagram', primaryUrlLabelAr: 'افتح إنستغرام',
+    color: '#00BFFF',
+  },
+];
+
 function getTodayKey(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -88,8 +140,12 @@ export function DailyTasksManagement() {
   // ── Admin overrides (all task fields editable) + order ──
   const [overrides, setOverrides] = useState<TaskOverrides>({});
   const [order, setOrder] = useState<string[]>(() => TASK_DEFS.map((t) => t.id));
+  const [socialOverrides, setSocialOverrides] = useState<SocialBonusOverrides>({});
+  const [socialOrder, setSocialOrder] = useState<string[]>(() => SOCIAL_BONUS_DEFS.map((b) => b.id));
   const [dirtyOverrides, setDirtyOverrides] = useState<TaskOverrides | null>(null);
   const [dirtyOrder, setDirtyOrder] = useState<string[] | null>(null);
+  const [dirtySocial, setDirtySocial] = useState<SocialBonusOverrides | null>(null);
+  const [dirtySocialOrder, setDirtySocialOrder] = useState<string[] | null>(null);
   const [saving, setSaving] = useState(false);
   const [saveMsg, setSaveMsg] = useState('');
 
@@ -106,9 +162,19 @@ export function DailyTasksManagement() {
         } else {
           setOrder(TASK_DEFS.map((t) => t.id));
         }
+        setSocialOverrides(data.socialOverrides || {});
+        if (Array.isArray(data.socialOrder) && data.socialOrder.length > 0) {
+          const savedSocial = data.socialOrder.filter((id: string) => SOCIAL_BONUS_DEFS.some((b) => b.id === id));
+          const missingSocial = SOCIAL_BONUS_DEFS.map((b) => b.id).filter((id) => !savedSocial.includes(id));
+          setSocialOrder([...savedSocial, ...missingSocial]);
+        } else {
+          setSocialOrder(SOCIAL_BONUS_DEFS.map((b) => b.id));
+        }
       } else {
         setOverrides({});
         setOrder(TASK_DEFS.map((t) => t.id));
+        setSocialOverrides({});
+        setSocialOrder(SOCIAL_BONUS_DEFS.map((b) => b.id));
       }
     });
     return () => unsub();
@@ -116,7 +182,53 @@ export function DailyTasksManagement() {
 
   const effectiveOverrides = dirtyOverrides ?? overrides;
   const effectiveOrder = dirtyOrder ?? order;
-  const isDirty = dirtyOverrides !== null || dirtyOrder !== null;
+  const effectiveSocial = dirtySocial ?? socialOverrides;
+  const effectiveSocialOrder = dirtySocialOrder ?? socialOrder;
+  const isDirty =
+    dirtyOverrides !== null ||
+    dirtyOrder !== null ||
+    dirtySocial !== null ||
+    dirtySocialOrder !== null;
+
+  // ── Social bonus helpers ─────────────────────────────────────
+  const getSocialString = (id: string, field: 'title' | 'titleAr' | 'subtitle' | 'subtitleAr' | 'primaryUrl' | 'primaryUrlLabel' | 'primaryUrlLabelAr') => {
+    const val = effectiveSocial[id]?.[field];
+    if (typeof val === 'string') return val;
+    const def = SOCIAL_BONUS_DEFS.find((b) => b.id === id);
+    return def ? (def[field] as string) : '';
+  };
+  const getSocialReward = (def: SocialBonusDef) => {
+    const o = effectiveSocial[def.id]?.reward;
+    return typeof o === 'number' ? o : def.reward;
+  };
+  const getSocialRepeat = (def: SocialBonusDef): number | null => {
+    if (effectiveSocial[def.id] && 'repeatEveryDays' in effectiveSocial[def.id]) {
+      return effectiveSocial[def.id].repeatEveryDays ?? null;
+    }
+    return def.repeatEveryDays;
+  };
+  const isSocialHidden = (id: string) => !!effectiveSocial[id]?.hidden;
+  const patchSocial = (id: string, patch: Partial<SocialBonusOverride>) => {
+    setDirtySocial((prev) => {
+      const base = prev ?? JSON.parse(JSON.stringify(socialOverrides));
+      const next: SocialBonusOverrides = { ...base };
+      next[id] = { ...(next[id] || {}), ...patch };
+      return next;
+    });
+    setSaveMsg('');
+  };
+  const moveSocial = (id: string, dir: -1 | 1) => {
+    setDirtySocialOrder(() => {
+      const arr = [...effectiveSocialOrder];
+      const idx = arr.indexOf(id);
+      if (idx < 0) return arr;
+      const swap = idx + dir;
+      if (swap < 0 || swap >= arr.length) return arr;
+      [arr[idx], arr[swap]] = [arr[swap], arr[idx]];
+      return arr;
+    });
+    setSaveMsg('');
+  };
 
   const getString = (taskId: string, field: 'title' | 'titleAr' | 'description' | 'descriptionAr') => {
     const val = effectiveOverrides[taskId]?.[field];
@@ -181,10 +293,34 @@ export function DailyTasksManagement() {
         if (typeof o.descriptionAr === 'string' && o.descriptionAr.trim() && o.descriptionAr.trim() !== def?.descriptionAr) entry.descriptionAr = o.descriptionAr.trim();
         if (Object.keys(entry).length > 0) cleaned[id] = entry;
       }
-      const orderToSave = effectiveOrder;
-      await setDoc(doc(db, 'config', 'daily-tasks'), { overrides: cleaned, order: orderToSave });
+      // Clean social bonus overrides the same way.
+      const cleanedSocial: SocialBonusOverrides = {};
+      for (const [id, o] of Object.entries(effectiveSocial)) {
+        const def = SOCIAL_BONUS_DEFS.find((b) => b.id === id);
+        if (!def) continue;
+        const entry: SocialBonusOverride = {};
+        if (typeof o.title === 'string' && o.title.trim() && o.title.trim() !== def.title) entry.title = o.title.trim();
+        if (typeof o.titleAr === 'string' && o.titleAr.trim() && o.titleAr.trim() !== def.titleAr) entry.titleAr = o.titleAr.trim();
+        if (typeof o.subtitle === 'string' && o.subtitle.trim() && o.subtitle.trim() !== def.subtitle) entry.subtitle = o.subtitle.trim();
+        if (typeof o.subtitleAr === 'string' && o.subtitleAr.trim() && o.subtitleAr.trim() !== def.subtitleAr) entry.subtitleAr = o.subtitleAr.trim();
+        if (typeof o.reward === 'number' && o.reward !== def.reward) entry.reward = o.reward;
+        if ('repeatEveryDays' in o && o.repeatEveryDays !== def.repeatEveryDays) entry.repeatEveryDays = o.repeatEveryDays ?? null;
+        if (typeof o.primaryUrl === 'string' && o.primaryUrl.trim() && o.primaryUrl.trim() !== def.primaryUrl) entry.primaryUrl = o.primaryUrl.trim();
+        if (typeof o.primaryUrlLabel === 'string' && o.primaryUrlLabel.trim() && o.primaryUrlLabel.trim() !== def.primaryUrlLabel) entry.primaryUrlLabel = o.primaryUrlLabel.trim();
+        if (typeof o.primaryUrlLabelAr === 'string' && o.primaryUrlLabelAr.trim() && o.primaryUrlLabelAr.trim() !== def.primaryUrlLabelAr) entry.primaryUrlLabelAr = o.primaryUrlLabelAr.trim();
+        if (o.hidden) entry.hidden = true;
+        if (Object.keys(entry).length > 0) cleanedSocial[id] = entry;
+      }
+      await setDoc(doc(db, 'config', 'daily-tasks'), {
+        overrides: cleaned,
+        order: effectiveOrder,
+        socialOverrides: cleanedSocial,
+        socialOrder: effectiveSocialOrder,
+      });
       setDirtyOverrides(null);
       setDirtyOrder(null);
+      setDirtySocial(null);
+      setDirtySocialOrder(null);
       setSaveMsg('Saved — players see new values instantly.');
     } catch (err: any) {
       setSaveMsg(`Save failed: ${err?.message || 'unknown error'}`);
@@ -193,12 +329,19 @@ export function DailyTasksManagement() {
   };
 
   const resetAllOverrides = async () => {
-    if (!confirm('Reset ALL task customizations? Rewards, targets, texts and order revert to defaults for every task.')) return;
+    if (!confirm('Reset ALL task customizations? Rewards, targets, texts and order revert to defaults for every task AND social bonus.')) return;
     setSaving(true);
     try {
-      await setDoc(doc(db, 'config', 'daily-tasks'), { overrides: {}, order: TASK_DEFS.map((t) => t.id) });
+      await setDoc(doc(db, 'config', 'daily-tasks'), {
+        overrides: {},
+        order: TASK_DEFS.map((t) => t.id),
+        socialOverrides: {},
+        socialOrder: SOCIAL_BONUS_DEFS.map((b) => b.id),
+      });
       setDirtyOverrides(null);
       setDirtyOrder(null);
+      setDirtySocial(null);
+      setDirtySocialOrder(null);
       setSaveMsg('All overrides cleared.');
     } catch (err: any) {
       setSaveMsg(`Reset failed: ${err?.message || 'unknown error'}`);
@@ -517,6 +660,152 @@ export function DailyTasksManagement() {
                   <div className="flex-shrink-0">
                     <button
                       onClick={() => patchOverride(task.id, { hidden: !hidden })}
+                      className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
+                        hidden
+                          ? 'bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/25 hover:bg-[#ff3b30]/20'
+                          : 'bg-[#34c759]/10 text-[#34c759] border-[#34c759]/25 hover:bg-[#34c759]/20'
+                      }`}
+                    >
+                      {hidden ? <><EyeOff size={13} /> Hidden</> : <><Eye size={13} /> Shown</>}
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Earn More Coins editor (social bonus tasks) ─────── */}
+      <div>
+        <h3 className="text-lg font-semibold text-[#1d1d1f] mb-3 flex items-center gap-2">
+          <Instagram size={18} className="text-[#E879F9]" />
+          Edit "Earn More Coins" Bonuses
+          <HelpTip title={{ en: 'Edit Social Bonuses', ar: 'تعديل مكافآت التواصل' }}
+            ar={<p>تعديل كامل لبطاقات "اكسب المزيد" — العنوان (عربي + إنجليزي)، الوصف، المكافأة، الرابط، إعادة التفعيل كل X يوم، الإخفاء، وإعادة الترتيب. يطبَّق فوراً على كل الكشوك.</p>}>
+            <p>Full editor for the "Earn More Coins" cards: title (EN + AR), subtitle, reward, external link, repeat-every-days cooldown, hide and reorder. Live on every kiosk.</p>
+          </HelpTip>
+        </h3>
+        <div className="space-y-3">
+          {effectiveSocialOrder.map((id, idx) => {
+            const def = SOCIAL_BONUS_DEFS.find((b) => b.id === id);
+            if (!def) return null;
+            const hidden = isSocialHidden(def.id);
+            const repeat = getSocialRepeat(def);
+            return (
+              <motion.div
+                key={def.id}
+                layout
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="bg-white rounded-2xl shadow-[0_1px_3px_rgba(0,0,0,0.04)] border border-[#e5e5ea]/60 p-4"
+                style={{ opacity: hidden ? 0.55 : 1 }}
+              >
+                <div className="flex items-start gap-4">
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <span className="text-[#86868b] text-xs font-mono font-semibold w-6 text-center">#{idx + 1}</span>
+                    <button
+                      onClick={() => moveSocial(def.id, -1)}
+                      disabled={idx === 0}
+                      title="Move up"
+                      className="w-7 h-7 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#E879F9] hover:bg-[#E879F9]/10 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                    >
+                      <ArrowUp size={14} />
+                    </button>
+                    <GripVertical size={14} className="text-[#c7c7cc]" />
+                    <button
+                      onClick={() => moveSocial(def.id, 1)}
+                      disabled={idx === effectiveSocialOrder.length - 1}
+                      title="Move down"
+                      className="w-7 h-7 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:text-[#E879F9] hover:bg-[#E879F9]/10 disabled:opacity-30 disabled:cursor-not-allowed flex items-center justify-center transition-all"
+                    >
+                      <ArrowDown size={14} />
+                    </button>
+                  </div>
+                  <div className="flex flex-col items-center gap-1 pt-1">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center"
+                      style={{ background: `${def.color}15` }}>
+                      <span style={{ color: def.color }}>
+                        {def.id === 'google_review' ? <Star size={18} /> : def.id === 'instagram_bio' ? <Award size={18} /> : <Instagram size={18} />}
+                      </span>
+                    </div>
+                    <span className="text-[9px] text-[#86868b] font-mono tracking-wider">{def.id}</span>
+                  </div>
+                  <div className="flex-1 min-w-0 grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Title (EN)</span>
+                      <input type="text"
+                        value={getSocialString(def.id, 'title')}
+                        onChange={(e) => patchSocial(def.id, { title: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Title (AR)</span>
+                      <input type="text" dir="rtl"
+                        value={getSocialString(def.id, 'titleAr')}
+                        onChange={(e) => patchSocial(def.id, { titleAr: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Subtitle (EN)</span>
+                      <input type="text"
+                        value={getSocialString(def.id, 'subtitle')}
+                        onChange={(e) => patchSocial(def.id, { subtitle: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Subtitle (AR)</span>
+                      <input type="text" dir="rtl"
+                        value={getSocialString(def.id, 'subtitleAr')}
+                        onChange={(e) => patchSocial(def.id, { subtitleAr: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block md:col-span-2">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">External link (Instagram / Review URL)</span>
+                      <input type="url"
+                        value={getSocialString(def.id, 'primaryUrl')}
+                        onChange={(e) => patchSocial(def.id, { primaryUrl: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Link button (EN)</span>
+                      <input type="text"
+                        value={getSocialString(def.id, 'primaryUrlLabel')}
+                        onChange={(e) => patchSocial(def.id, { primaryUrlLabel: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">Link button (AR)</span>
+                      <input type="text" dir="rtl"
+                        value={getSocialString(def.id, 'primaryUrlLabelAr')}
+                        onChange={(e) => patchSocial(def.id, { primaryUrlLabelAr: e.target.value })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">
+                        Reward (coins) · default {def.reward}
+                      </span>
+                      <input type="number" min={0}
+                        value={getSocialReward(def)}
+                        onChange={(e) => patchSocial(def.id, { reward: Number(e.target.value) || 0 })}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#ff9500] font-semibold focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                    <label className="block">
+                      <span className="text-[10px] font-medium text-[#86868b] uppercase tracking-wider block mb-1">
+                        Repeat every (days) · 0 or empty = one-time only
+                      </span>
+                      <input type="number" min={0}
+                        value={repeat ?? 0}
+                        onChange={(e) => {
+                          const n = Number(e.target.value);
+                          patchSocial(def.id, { repeatEveryDays: n > 0 ? n : null });
+                        }}
+                        className="w-full bg-[#f5f5f7] border border-[#d2d2d7] rounded-lg px-3 py-2 text-sm text-[#1d1d1f] focus:border-[#E879F9] focus:ring-2 focus:ring-[#E879F9]/20 outline-none" />
+                    </label>
+                  </div>
+                  <div className="flex-shrink-0">
+                    <button
+                      onClick={() => patchSocial(def.id, { hidden: !hidden })}
                       className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all whitespace-nowrap ${
                         hidden
                           ? 'bg-[#ff3b30]/10 text-[#ff3b30] border-[#ff3b30]/25 hover:bg-[#ff3b30]/20'

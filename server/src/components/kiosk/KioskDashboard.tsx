@@ -1068,9 +1068,10 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               border: '1px solid rgba(34,197,94,0.4)',
               boxShadow: '0 0 50px rgba(34,197,94,0.15), 0 20px 60px rgba(0,0,0,0.7)',
             }}>
-            {/* Close */}
+            {/* Close + corner shield */}
+            <div className="popup-close-shield" style={{ width: 88, height: 64 }} />
             <button onClick={() => !promoOrderBusy && setPromoOrderOpen(false)}
-              className="absolute top-3 right-3 w-10 h-10 rounded-xl flex items-center justify-center bg-black/80 border border-white/10 text-gray-200 hover:rotate-90 transition-all z-[100]">
+              className="absolute top-3 right-3 w-10 h-10 rounded-xl flex items-center justify-center bg-black/90 border border-white/20 text-gray-200 hover:rotate-90 transition-all z-[100]">
               <X size={20} strokeWidth={2.4} />
             </button>
 
@@ -1919,7 +1920,7 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               </motion.div>
               {!sidebarCollapsed && (
                 <span className="relative z-10 flex-1 text-left tracking-widest" style={{ textShadow: '0 0 10px rgba(255,215,0,0.6)' }}>
-                  {lang === 'ar' ? 'يانصيب مباشر' : 'LIVE RAFFLE'}
+                  {lang === 'ar' ? 'يانصيب' : 'LOTTERY'}
                 </span>
               )}
               {!sidebarCollapsed && raffleEntrantCount > 0 && (
@@ -2084,6 +2085,24 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     <div className="absolute bottom-0 right-0 w-5 h-5 z-[2] pointer-events-none" style={{ borderBottom: `2px solid ${accentC}`, borderRight: `2px solid ${accentC}` }} />
                     {/* Bottom neon accent line */}
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] z-[2] pointer-events-none" style={{ background: isVipPopup ? 'linear-gradient(90deg, transparent, rgba(255,215,0,0.3), rgba(255,140,0,0.25), transparent)' : 'linear-gradient(90deg, transparent, rgba(0,200,255,0.25), rgba(168,85,247,0.2), transparent)' }} />
+                    {/* ── Close-button safe zone ─────────────────────────────
+                       Opaque rectangle pinned to the top-right corner so NO
+                       tab content (counters, chips, timers, backgrounds) is
+                       ever visible directly under the X button. Sits beneath
+                       the button itself (z-[90]) but above every tab's own
+                       absolute-positioned content. */}
+                    <div
+                      className="absolute top-0 right-0 z-[90] pointer-events-none"
+                      style={{
+                        width: 104,
+                        height: 80,
+                        background: `linear-gradient(225deg,
+                          ${isVipPopup ? 'rgba(12,10,4,0.98)' : 'rgba(6,8,12,0.98)'} 55%,
+                          ${isVipPopup ? 'rgba(12,10,4,0.85)' : 'rgba(6,8,12,0.85)'} 78%,
+                          transparent 100%)`,
+                        borderTopRightRadius: 16,
+                      }}
+                    />
                     {/* Close button — opaque backdrop so no tab content (coins, timers,
                         balance chips) ever bleeds through underneath it. */}
                     <button
