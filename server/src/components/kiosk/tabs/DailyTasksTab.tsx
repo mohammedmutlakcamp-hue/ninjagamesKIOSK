@@ -105,7 +105,7 @@ const SOCIAL_BONUS_DEFAULTS: SocialBonus[] = [
     title: 'Check Our Instagram',                titleAr: 'تابع إنستغرام',
     subtitle: 'Like our 3 latest Instagram posts', subtitleAr: 'أعجب بآخر 3 منشورات لنا على إنستغرام',
     icon: <Instagram size={28} />, color: '#E879F9', glow: '232,121,249', reward: 10,
-    repeatEveryDays: 10,
+    repeatEveryDays: 1,
     primaryUrl: 'https://www.instagram.com/ininjagames',
     primaryUrlLabel: 'Open Instagram',           primaryUrlLabelAr: 'افتح إنستغرام',
     highlightHandle: '@ininjagames',
@@ -120,7 +120,7 @@ const SOCIAL_BONUS_DEFAULTS: SocialBonus[] = [
     title: 'Leave Google Review',                titleAr: 'اترك تقييم على جوجل',
     subtitle: 'Rate us 5 stars on Google Maps',  subtitleAr: 'قيّمنا 5 نجوم على خرائط جوجل',
     icon: <Star size={28} />, color: '#FBBF24', glow: '251,191,36', reward: 10,
-    repeatEveryDays: 10,
+    repeatEveryDays: 3,
     primaryUrl: 'https://share.google/CW0iX87oFRlrr7Qn0',
     primaryUrlLabel: 'Open Google Review',       primaryUrlLabelAr: 'افتح تقييم جوجل',
     steps: [
@@ -134,7 +134,7 @@ const SOCIAL_BONUS_DEFAULTS: SocialBonus[] = [
     title: 'Add Us to Your Bio',                 titleAr: 'أضفنا إلى سيرتك الذاتية',
     subtitle: 'Put @ininjagames in your Instagram bio', subtitleAr: 'ضع @ininjagames في سيرتك على إنستغرام',
     icon: <AtSign size={28} />, color: '#00BFFF', glow: '0,191,255', reward: 10,
-    // no repeatEveryDays → one-time bonus
+    repeatEveryDays: 7,
     primaryUrl: 'https://www.instagram.com/ininjagames',
     primaryUrlLabel: 'Open Instagram',           primaryUrlLabelAr: 'افتح إنستغرام',
     highlightHandle: '@ininjagames',
@@ -1042,101 +1042,7 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
           })}
         </div>
 
-        {/* ═══ EARN MORE COINS ═══ One-time bonus tasks, manual admin verification */}
-        <div className="mt-6">
-          <div className="flex items-center gap-2 mb-3">
-            <div className="h-[2px] flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4))' }} />
-            <span className="font-ninja text-sm tracking-[0.25em] text-yellow-400" style={{ textShadow: '0 0 10px rgba(251,191,36,0.5)' }}>
-              ⚡ EARN MORE COINS
-            </span>
-            <div className="h-[2px] flex-1" style={{ background: 'linear-gradient(90deg, rgba(251,191,36,0.4), transparent)' }} />
-          </div>
-          <p className="text-center font-body text-xs text-gray-500 mb-3">
-            One-time bonuses · admin verifies and pays out
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
-            {SOCIAL_BONUS_TASKS.map((b, i) => {
-              const sb = (player.socialBonus && player.socialBonus[b.id]) || {};
-              const cooldownMs = b.repeatEveryDays ? b.repeatEveryDays * 24 * 60 * 60 * 1000 : null;
-              const claimedAt: number = sb.claimedAt || 0;
-              const requestedAt: number = sb.requestedAt || 0;
-              const cooldownActive = cooldownMs !== null && claimedAt > 0 && (Date.now() - claimedAt) < cooldownMs;
-              const claimed = cooldownMs === null
-                ? !!sb.claimed                         // one-time bonus
-                : cooldownActive;                       // repeatable: cooldown still running
-              // "Pending" only if the most-recent request happened AFTER the most-recent claim.
-              // This prevents a stale `requested:true` from a previous cycle from sticking.
-              const requested = !claimed && (socialSubmitted === b.id || (!!sb.requested && requestedAt > claimedAt));
-              const daysRemaining = cooldownActive ? Math.max(1, Math.ceil((cooldownMs! - (Date.now() - claimedAt)) / (24 * 60 * 60 * 1000))) : 0;
-              return (
-                <motion.button key={b.id}
-                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.06 }}
-                  whileHover={!claimed ? { scale: 1.02, boxShadow: `0 0 22px rgba(${b.glow},0.35)` } : undefined}
-                  whileTap={!claimed ? { scale: 0.98 } : undefined}
-                  disabled={claimed}
-                  onClick={() => setSocialOpen(b)}
-                  className="relative rounded-xl overflow-hidden text-left p-4 transition-all"
-                  style={{
-                    background: claimed
-                      ? 'linear-gradient(135deg, rgba(57,255,20,0.04), rgba(0,0,0,0.4))'
-                      : `linear-gradient(135deg, rgba(${b.glow},0.10), rgba(${b.glow},0.02) 60%, rgba(0,0,0,0.4))`,
-                    border: `1.5px solid rgba(${b.glow},${claimed ? '0.15' : '0.45'})`,
-                    boxShadow: claimed ? 'none' : `inset 0 0 18px rgba(${b.glow},0.05)`,
-                    opacity: claimed ? 0.55 : 1,
-                  }}>
-                  {/* HUD corners */}
-                  {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, ci) => (
-                    <div key={ci} className={`absolute ${pos} w-3 h-3 z-10`} style={{
-                      ...(pos.includes('top') ? { borderTop: `1.5px solid ${b.color}` } : { borderBottom: `1.5px solid ${b.color}` }),
-                      ...(pos.includes('left') ? { borderLeft: `1.5px solid ${b.color}` } : { borderRight: `1.5px solid ${b.color}` }),
-                      opacity: claimed ? 0.3 : 0.7,
-                    }} />
-                  ))}
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
-                      style={{
-                        background: `linear-gradient(135deg, rgba(${b.glow},0.2), rgba(${b.glow},0.06))`,
-                        border: `1.5px solid rgba(${b.glow},0.4)`,
-                        color: b.color,
-                        boxShadow: `0 0 10px rgba(${b.glow},0.2)`,
-                      }}>{b.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-ninja text-base text-white truncate" style={{ textShadow: `0 0 8px rgba(${b.glow},0.4)` }}>
-                        {b.title}
-                      </p>
-                      <p className="font-body text-[11px] text-gray-500 truncate">{b.subtitle}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-3">
-                    <div className="flex items-center gap-1">
-                      <Coins size={14} className="text-yellow-400" />
-                      <span className="font-ninja text-sm text-yellow-400" style={{ textShadow: '0 0 6px rgba(234,179,8,0.4)' }}>
-                        +{b.reward}
-                      </span>
-                    </div>
-                    {claimed ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
-                        style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
-                        <CheckCircle2 size={10} /> {b.repeatEveryDays ? (ar ? `بعد ${daysRemaining} ي` : `${daysRemaining}D LEFT`) : (ar ? 'تم' : 'CLAIMED')}
-                      </span>
-                    ) : requested ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
-                        style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#FBBF24' }}>
-                        <Loader2 size={10} className="animate-spin" /> PENDING
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-1 text-[10px] font-ninja tracking-wider" style={{ color: b.color }}>
-                        OPEN <ArrowRight size={10} />
-                      </span>
-                    )}
-                  </div>
-                </motion.button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* All complete — claimable 10-coin bonus */}
+        {/* All complete — claimable 10-coin bonus (shown above EARN MORE COINS) */}
         {allClaimed && (
           <motion.div initial={{ opacity: 0, y: 12, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: 'spring', stiffness: 120, damping: 14 }}
@@ -1244,6 +1150,100 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
             </div>
           </motion.div>
         )}
+
+        {/* ═══ EARN MORE COINS ═══ One-time bonus tasks, manual admin verification */}
+        <div className="mt-6">
+          <div className="flex items-center gap-2 mb-3">
+            <div className="h-[2px] flex-1" style={{ background: 'linear-gradient(90deg, transparent, rgba(251,191,36,0.4))' }} />
+            <span className="font-ninja text-sm tracking-[0.25em] text-yellow-400" style={{ textShadow: '0 0 10px rgba(251,191,36,0.5)' }}>
+              ⚡ EARN MORE COINS
+            </span>
+            <div className="h-[2px] flex-1" style={{ background: 'linear-gradient(90deg, rgba(251,191,36,0.4), transparent)' }} />
+          </div>
+          <p className="text-center font-body text-xs text-gray-500 mb-3">
+            One-time bonuses · admin verifies and pays out
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5">
+            {SOCIAL_BONUS_TASKS.map((b, i) => {
+              const sb = (player.socialBonus && player.socialBonus[b.id]) || {};
+              const cooldownMs = b.repeatEveryDays ? b.repeatEveryDays * 24 * 60 * 60 * 1000 : null;
+              const claimedAt: number = sb.claimedAt || 0;
+              const requestedAt: number = sb.requestedAt || 0;
+              const cooldownActive = cooldownMs !== null && claimedAt > 0 && (Date.now() - claimedAt) < cooldownMs;
+              const claimed = cooldownMs === null
+                ? !!sb.claimed                         // one-time bonus
+                : cooldownActive;                       // repeatable: cooldown still running
+              // "Pending" only if the most-recent request happened AFTER the most-recent claim.
+              // This prevents a stale `requested:true` from a previous cycle from sticking.
+              const requested = !claimed && (socialSubmitted === b.id || (!!sb.requested && requestedAt > claimedAt));
+              const daysRemaining = cooldownActive ? Math.max(1, Math.ceil((cooldownMs! - (Date.now() - claimedAt)) / (24 * 60 * 60 * 1000))) : 0;
+              return (
+                <motion.button key={b.id}
+                  initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 + i * 0.06 }}
+                  whileHover={!claimed ? { scale: 1.02, boxShadow: `0 0 22px rgba(${b.glow},0.35)` } : undefined}
+                  whileTap={!claimed ? { scale: 0.98 } : undefined}
+                  disabled={claimed}
+                  onClick={() => setSocialOpen(b)}
+                  className="relative rounded-xl overflow-hidden text-left p-4 transition-all"
+                  style={{
+                    background: claimed
+                      ? 'linear-gradient(135deg, rgba(57,255,20,0.04), rgba(0,0,0,0.4))'
+                      : `linear-gradient(135deg, rgba(${b.glow},0.10), rgba(${b.glow},0.02) 60%, rgba(0,0,0,0.4))`,
+                    border: `1.5px solid rgba(${b.glow},${claimed ? '0.15' : '0.45'})`,
+                    boxShadow: claimed ? 'none' : `inset 0 0 18px rgba(${b.glow},0.05)`,
+                    opacity: claimed ? 0.55 : 1,
+                  }}>
+                  {/* HUD corners */}
+                  {['top-0 left-0', 'top-0 right-0', 'bottom-0 left-0', 'bottom-0 right-0'].map((pos, ci) => (
+                    <div key={ci} className={`absolute ${pos} w-3 h-3 z-10`} style={{
+                      ...(pos.includes('top') ? { borderTop: `1.5px solid ${b.color}` } : { borderBottom: `1.5px solid ${b.color}` }),
+                      ...(pos.includes('left') ? { borderLeft: `1.5px solid ${b.color}` } : { borderRight: `1.5px solid ${b.color}` }),
+                      opacity: claimed ? 0.3 : 0.7,
+                    }} />
+                  ))}
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-11 h-11 rounded-lg flex items-center justify-center flex-shrink-0"
+                      style={{
+                        background: `linear-gradient(135deg, rgba(${b.glow},0.2), rgba(${b.glow},0.06))`,
+                        border: `1.5px solid rgba(${b.glow},0.4)`,
+                        color: b.color,
+                        boxShadow: `0 0 10px rgba(${b.glow},0.2)`,
+                      }}>{b.icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-ninja text-base text-white truncate" style={{ textShadow: `0 0 8px rgba(${b.glow},0.4)` }}>
+                        {b.title}
+                      </p>
+                      <p className="font-body text-[11px] text-gray-500 truncate">{b.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-3">
+                    <div className="flex items-center gap-1">
+                      <Coins size={14} className="text-yellow-400" />
+                      <span className="font-ninja text-sm text-yellow-400" style={{ textShadow: '0 0 6px rgba(234,179,8,0.4)' }}>
+                        +{b.reward}
+                      </span>
+                    </div>
+                    {claimed ? (
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
+                        style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
+                        <CheckCircle2 size={10} /> {b.repeatEveryDays ? (ar ? `بعد ${daysRemaining} ي` : `${daysRemaining}D LEFT`) : (ar ? 'تم' : 'CLAIMED')}
+                      </span>
+                    ) : requested ? (
+                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
+                        style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#FBBF24' }}>
+                        <Loader2 size={10} className="animate-spin" /> PENDING
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-[10px] font-ninja tracking-wider" style={{ color: b.color }}>
+                        OPEN <ArrowRight size={10} />
+                      </span>
+                    )}
+                  </div>
+                </motion.button>
+              );
+            })}
+          </div>
+        </div>
       </div>
 
       {/* Social verification popup */}
