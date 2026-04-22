@@ -111,7 +111,9 @@ export function PromotionsPanel() {
 
   useEffect(() => {
     const unsub = onSnapshot(query(collection(db, 'promotions'), orderBy('createdAt', 'desc')), (snap) => {
-      setPromos(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) } as Promotion)));
+      // Spread first, then override id with the real Firestore doc id. Otherwise a stale
+      // `id` field saved inside the doc (from earlier buggy writes) will clobber the real id.
+      setPromos(snap.docs.map((d) => ({ ...(d.data() as any), id: d.id } as Promotion)));
     });
     return () => unsub();
   }, []);
@@ -137,8 +139,11 @@ export function PromotionsPanel() {
     setSaving(true);
     try {
       const id = editing.id || editing.name.trim().toLowerCase().replace(/\s+/g, '-') + '-' + Date.now().toString(36);
+      // Never write `id` as a field inside the doc — the Firestore doc path IS the id.
+      // Writing it as a field caused the "orphaned id" bug where delete couldn't find the doc.
+      const { id: _omit, ...rest } = editing;
       await setDoc(doc(db, 'promotions', id), {
-        ...editing,
+        ...rest,
         bundle: editing.bundle.filter((b) => b.name.trim()),
         createdAt: editing.createdAt || Date.now(),
       }, { merge: true });
