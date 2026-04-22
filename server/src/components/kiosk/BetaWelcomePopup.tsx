@@ -76,7 +76,7 @@ export function BetaWelcomePopup({ playerId }: { playerId?: string }) {
 
             {/* Close control. While the countdown is running the X is
                 replaced by the remaining seconds and is non-interactive. */}
-            <div className="popup-close-shield" style={{ width: 84, height: 60 }} />
+            <div className="popup-close-shield" />
             <button
               onClick={close}
               disabled={!canClose}

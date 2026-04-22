@@ -1479,20 +1479,25 @@ button, a, input, [class*="border"] {
 /* ═══ Close-button corner shield ═══
    Apply to any popup so content can never visually sit under the X button.
    Usage:  <div class="popup-close-shield" />  (pin with absolute top-0 right-0)
-   The shield is rendered behind the button (z ≤ 90) but above tab content. */
+   Solid block with an inset shadow on the inner edge so it dissolves into
+   the popup body cleanly. A gradient-to-transparent was previously used,
+   which let coin/time chips bleed through the faded edges and created a
+   visible halo around the X button — both bugs removed. */
 .popup-close-shield {
   position: absolute;
   top: 0;
   right: 0;
-  width: 104px;
-  height: 80px;
+  width: 128px;
+  height: 96px;
   z-index: 90;
   pointer-events: none;
-  background: linear-gradient(225deg, rgba(6, 8, 12, 0.98) 55%, rgba(6, 8, 12, 0.85) 78%, transparent 100%);
+  background: #060810;
   border-top-right-radius: 16px;
+  box-shadow: inset 24px -24px 28px -18px rgba(6, 8, 12, 0.95);
 }
 .popup-close-shield.gold {
-  background: linear-gradient(225deg, rgba(12, 10, 4, 0.98) 55%, rgba(12, 10, 4, 0.85) 78%, transparent 100%);
+  background: #0c0a04;
+  box-shadow: inset 24px -24px 28px -18px rgba(12, 10, 4, 0.95);
 }
 
 /* Compact popup (Daily Tasks) — narrow vertical list, no scroll */

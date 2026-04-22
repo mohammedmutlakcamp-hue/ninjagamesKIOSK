@@ -1070,10 +1070,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               boxShadow: '0 0 50px rgba(34,197,94,0.15), 0 20px 60px rgba(0,0,0,0.7)',
             }}>
             {/* Close + corner shield */}
-            <div className="popup-close-shield" style={{ width: 88, height: 64 }} />
+            <div className="popup-close-shield" />
             <button onClick={() => !promoOrderBusy && setPromoOrderOpen(false)}
-              className="absolute top-3 right-3 w-10 h-10 rounded-xl flex items-center justify-center bg-black/90 border border-white/20 text-gray-200 hover:rotate-90 transition-all z-[100]">
-              <X size={20} strokeWidth={2.4} />
+              className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:rotate-90 transition-all z-[100]"
+              style={{ background: 'transparent' }}>
+              <X size={22} strokeWidth={2.6} />
             </button>
 
             {/* Header */}
@@ -2087,40 +2088,34 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                     {/* Bottom neon accent line */}
                     <div className="absolute bottom-0 left-0 right-0 h-[2px] z-[2] pointer-events-none" style={{ background: isVipPopup ? 'linear-gradient(90deg, transparent, rgba(255,215,0,0.3), rgba(255,140,0,0.25), transparent)' : 'linear-gradient(90deg, transparent, rgba(0,200,255,0.25), rgba(168,85,247,0.2), transparent)' }} />
                     {/* ── Close-button safe zone ─────────────────────────────
-                       Opaque rectangle pinned to the top-right corner so NO
-                       tab content (counters, chips, timers, backgrounds) is
-                       ever visible directly under the X button. Sits beneath
-                       the button itself (z-[90]) but above every tab's own
-                       absolute-positioned content. */}
+                       Fully opaque corner backdrop so tab content (coins,
+                       timers, balance chips) can never be seen behind or
+                       around the X button. Previously used a 225° gradient
+                       that faded to transparent at its edges — content at
+                       those edges bled through. Now a solid block with a
+                       hard cutoff, sized generously around the button. */}
                     <div
                       className="absolute top-0 right-0 z-[90] pointer-events-none"
                       style={{
-                        width: 104,
-                        height: 80,
-                        background: `linear-gradient(225deg,
-                          ${isVipPopup ? 'rgba(12,10,4,0.98)' : 'rgba(6,8,12,0.98)'} 55%,
-                          ${isVipPopup ? 'rgba(12,10,4,0.85)' : 'rgba(6,8,12,0.85)'} 78%,
-                          transparent 100%)`,
+                        width: 128,
+                        height: 96,
+                        background: isVipPopup ? '#0c0a04' : '#060810',
                         borderTopRightRadius: 16,
+                        // Soft inner shadow on the bottom-left edge so the block
+                        // dissolves into the popup instead of showing a hard square.
+                        boxShadow: `inset 24px -24px 28px -18px ${isVipPopup ? 'rgba(12,10,4,0.95)' : 'rgba(6,8,12,0.95)'}`,
                       }}
                     />
-                    {/* Close button — opaque backdrop so no tab content (coins, timers,
-                        balance chips) ever bleeds through underneath it. */}
                     <button
                       onClick={() => setActivePopup(null)}
                       title={lang === 'ar' ? 'إغلاق' : 'Close'}
-                      className={`absolute top-4 right-4 z-[100] w-12 h-12 flex items-center justify-center rounded-xl text-gray-300 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
+                      className={`absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-full text-gray-400 transition-all hover:rotate-90 ${isVipPopup ? 'hover:text-yellow-400' : 'hover:text-ninja-green'}`}
                       style={{
-                        background: isVipPopup
-                          ? 'linear-gradient(135deg, rgba(12,10,4,0.96), rgba(18,14,4,0.96))'
-                          : 'linear-gradient(135deg, rgba(8,10,12,0.96), rgba(12,16,20,0.96))',
-                        border: `1px solid ${isVipPopup ? 'rgba(255,215,0,0.4)' : 'rgba(57,255,20,0.35)'}`,
-                        boxShadow: `0 0 12px ${isVipPopup ? 'rgba(255,215,0,0.2)' : 'rgba(57,255,20,0.18)'}, 0 6px 16px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(0,0,0,0.4)`,
-                        backdropFilter: 'blur(6px)',
-                        transition: 'all 0.3s',
+                        background: 'transparent',
+                        transition: 'transform 0.3s, color 0.2s',
                       }}
                     >
-                      <X size={22} strokeWidth={2.4} />
+                      <X size={24} strokeWidth={2.6} />
                     </button>
                   </>
                   );

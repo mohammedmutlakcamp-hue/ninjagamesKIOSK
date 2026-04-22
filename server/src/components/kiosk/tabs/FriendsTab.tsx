@@ -1010,11 +1010,11 @@ export function FriendsTab({ player }: Props) {
               ))}
               <div className="absolute top-0 left-0 right-0 h-[2px] pointer-events-none z-[2]" style={{ background: 'linear-gradient(90deg, transparent, rgba(57,255,20,0.5), rgba(0,200,255,0.3), transparent)', boxShadow: '0 0 10px rgba(57,255,20,0.3)' }} />
 
-              <div className="popup-close-shield" style={{ width: 88, height: 60 }} />
+              <div className="popup-close-shield" />
               <button onClick={() => setActionFriend(null)}
-                className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-lg text-gray-400 hover:text-ninja-green transition-all z-[95]"
-                style={{ background: 'rgba(8,10,14,0.96)', border: '1px solid rgba(57,255,20,0.35)' }}>
-                <X size={16} />
+                className="absolute top-4 right-4 w-11 h-11 flex items-center justify-center rounded-full text-gray-400 hover:text-ninja-green transition-all hover:rotate-90 z-[100]"
+                style={{ background: 'transparent' }}>
+                <X size={22} strokeWidth={2.6} />
               </button>
 
               <div className="relative z-[3]">

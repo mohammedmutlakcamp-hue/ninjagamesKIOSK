@@ -528,13 +528,16 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
 
       {/* Close button (top-right, only when rendered as standalone popup) */}
       {onClose && (
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:text-ninja-green transition-all hover:rotate-90"
-          style={{ background: 'rgba(57,255,20,0.05)', border: '1px solid rgba(57,255,20,0.15)', boxShadow: '0 0 10px rgba(57,255,20,0.05)' }}
-        >
-          <X size={22} />
-        </button>
+        <>
+          <div className="popup-close-shield" />
+          <button
+            onClick={onClose}
+            className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-full text-gray-400 hover:text-ninja-green transition-all hover:rotate-90"
+            style={{ background: 'transparent' }}
+          >
+            <X size={24} strokeWidth={2.6} />
+          </button>
+        </>
       )}
 
       <div className="relative z-10 px-4 pt-3 pb-4">
@@ -1224,10 +1227,22 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
                       </span>
                     </div>
                     {claimed ? (
-                      <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
-                        style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
-                        <CheckCircle2 size={10} /> {b.repeatEveryDays ? (ar ? `بعد ${daysRemaining} ي` : `${daysRemaining}D LEFT`) : (ar ? 'تم' : 'CLAIMED')}
-                      </span>
+                      b.repeatEveryDays ? (
+                        // Cooldown — locked, amber. Spell out DAY/DAYS so the unit
+                        // can never be misread as a digit ("2D LEFT" looked like "20 LEFT").
+                        <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
+                          style={{ background: 'rgba(251,191,36,0.12)', border: '1px solid rgba(251,191,36,0.35)', color: '#FBBF24' }}>
+                          <Lock size={10} />
+                          {ar
+                            ? (daysRemaining === 1 ? 'بعد يوم' : daysRemaining === 2 ? 'بعد يومين' : `بعد ${daysRemaining} أيام`)
+                            : (daysRemaining === 1 ? '1 DAY LEFT' : `${daysRemaining} DAYS LEFT`)}
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
+                          style={{ background: 'rgba(57,255,20,0.1)', border: '1px solid rgba(57,255,20,0.3)', color: '#39FF14' }}>
+                          <CheckCircle2 size={10} /> {ar ? 'تم' : 'CLAIMED'}
+                        </span>
+                      )
                     ) : requested ? (
                       <span className="flex items-center gap-1 px-2 py-1 rounded text-[10px] font-ninja tracking-wider"
                         style={{ background: 'rgba(251,191,36,0.1)', border: '1px solid rgba(251,191,36,0.3)', color: '#FBBF24' }}>

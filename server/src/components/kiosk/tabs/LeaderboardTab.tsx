@@ -262,10 +262,10 @@ export function LeaderboardTab({ onClose }: Props = {}) {
         <>
           <div className="popup-close-shield gold" />
           <button onClick={onClose}
-            className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-lg text-gray-400 hover:text-yellow-400 transition-all hover:rotate-90"
-            style={{ background: 'rgba(12,10,4,0.96)', border: '1px solid rgba(255,215,0,0.4)', boxShadow: '0 0 10px rgba(255,215,0,0.2)' }}
+            className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-full text-gray-400 hover:text-yellow-400 transition-all hover:rotate-90"
+            style={{ background: 'transparent' }}
           >
-            <X size={22} />
+            <X size={24} strokeWidth={2.6} />
           </button>
         </>
       )}
