@@ -40,32 +40,10 @@ function qrImageUrl(url: string, size = 320): string {
 
 function handleBackToKiosk() {
   if (typeof window === 'undefined') return;
-
-  // 1) Native bridge when running inside the C# kiosk WebView2
-  try {
-    const api = (window as any).electronAPI;
-    if (api?.returnToKiosk) { api.returnToKiosk(); return; }
-  } catch {}
-
-  // 2) If we were opened in a popup window (target="_blank"), close it
-  try {
-    if (window.opener && window.opener !== window) {
-      window.close();
-      return;
-    }
-  } catch {}
-
-  // 3) If we came from /kiosk or /app in the same tab, go back in history
-  try {
-    const ref = document.referrer || '';
-    const sameOrigin = ref && new URL(ref).origin === window.location.origin;
-    if (sameOrigin && /\/(kiosk|app)(\?|$|\/)/.test(ref)) {
-      window.history.back();
-      return;
-    }
-  } catch {}
-
-  // 4) Last resort — hard-navigate to /kiosk in the current window
+  // The C# electronAPI.returnToKiosk only brings the window to front — it does
+  // NOT change the WebView URL, so we'd still be stuck on /infokiosk. Just
+  // navigate the WebView directly; this works identically on LAN, cloud, and
+  // inside the C# kiosk shell.
   window.location.replace('/kiosk');
 }
 
