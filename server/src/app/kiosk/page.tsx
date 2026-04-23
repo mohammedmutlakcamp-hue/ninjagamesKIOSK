@@ -725,15 +725,16 @@ export default function KioskPage() {
       <>
         <ParticleBackground />
         <RegisterScreen onBack={() => setScreen('login')} onRegistered={(p) => {
-          // New player has 0 coins — route to login screen with TopUp overlay open.
-          // After admin approves the top-up, the player can sign in normally with their PIN.
+          // New player has 0 coins — route to login screen with TopUp overlay open
+          // immediately so the first thing they see is the token top-up request flow.
+          // After admin approves, they sign in normally with their PIN.
           setLastUser(p.username);
           try { localStorage.setItem('kiosk-last-user', p.username); } catch {}
           setUsername(p.username);
           setPin('');
           setZeroCoinsPlayer(p);
+          setShowLoginTopUp(true);
           setScreen('login');
-          setTimeout(() => setShowLoginTopUp(true), 400);
         }} lang={lang} />
       </>
     );
