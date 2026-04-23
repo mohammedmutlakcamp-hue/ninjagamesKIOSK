@@ -18,7 +18,7 @@ import {
   LayoutGrid, List, Loader2, Camera,
   Trash2, ArrowRight, Settings2, History,
   Moon, ExternalLink, Play, Square, ChevronDown,
-  Globe, Server, Zap, Hash, Network, Info, Gamepad2
+  Globe, Server, Zap, Hash, Network, Info, Gamepad2, Pencil, Check
 } from 'lucide-react';
 
 // ═══════════════════════════════════════════
@@ -315,6 +315,24 @@ export function PCManagement() {
   const [systemInfo, setSystemInfo] = useState<Record<string, string> | null>(null);
   const [systemInfoLoading, setSystemInfoLoading] = useState(false);
 
+  const [renamingPc, setRenamingPc] = useState(false);
+  const [renameDraft, setRenameDraft] = useState('');
+  const [renameSaving, setRenameSaving] = useState(false);
+
+  const saveRename = async (pc: PC) => {
+    const trimmed = renameDraft.trim();
+    if (!trimmed || trimmed === pc.name) { setRenamingPc(false); return; }
+    setRenameSaving(true);
+    try {
+      await updateDoc(doc(db, 'pcs', pc.id), { name: trimmed });
+      setRenamingPc(false);
+    } catch (e) {
+      console.error('Failed to rename PC', e);
+    } finally {
+      setRenameSaving(false);
+    }
+  };
+
   const lastResponseTsRef = useRef<number>(0);
 
   useEffect(() => {
@@ -378,6 +396,8 @@ export function PCManagement() {
       return () => { sendCommand(selectedPC.id, 'live-off'); };
     }
   }, [detailTab, selectedPC?.id]);
+
+  useEffect(() => { setRenamingPc(false); }, [selectedPC?.id]);
 
   useEffect(() => {
     if (!selectedPC) {
@@ -688,7 +708,38 @@ export function PCManagement() {
                       <Monitor size={22} className={isOnline(selectedPC) ? 'text-[#0071e3]' : 'text-[#86868b]'} />
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-[#1d1d1f]">{selectedPC.name}</h3>
+                      {renamingPc ? (
+                        <div className="flex items-center gap-1">
+                          <input
+                            autoFocus
+                            value={renameDraft}
+                            onChange={(e) => setRenameDraft(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') saveRename(selectedPC);
+                              if (e.key === 'Escape') setRenamingPc(false);
+                            }}
+                            disabled={renameSaving}
+                            className="text-xl font-semibold text-[#1d1d1f] bg-white border border-[#0071e3] rounded-lg px-2 py-0.5 w-[200px] focus:outline-none focus:ring-2 focus:ring-[#0071e3]/20"
+                          />
+                          <button onClick={() => saveRename(selectedPC)} disabled={renameSaving}
+                            className="p-1.5 rounded-lg bg-[#34c759]/10 text-[#34c759] hover:bg-[#34c759]/20 transition-all">
+                            {renameSaving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+                          </button>
+                          <button onClick={() => setRenamingPc(false)} disabled={renameSaving}
+                            className="p-1.5 rounded-lg bg-[#f5f5f7] text-[#86868b] hover:bg-[#e5e5ea] transition-all">
+                            <X size={14} />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 group">
+                          <h3 className="text-xl font-semibold text-[#1d1d1f]">{selectedPC.name}</h3>
+                          <button onClick={() => { setRenameDraft(selectedPC.name || ''); setRenamingPc(true); }}
+                            className="p-1 rounded-md text-[#86868b] opacity-0 group-hover:opacity-100 hover:text-[#0071e3] hover:bg-[#0071e3]/10 transition-all"
+                            title="Rename PC">
+                            <Pencil size={12} />
+                          </button>
+                        </div>
+                      )}
                       <div className="flex items-center gap-2 mt-0.5">
                         <StatusBadge status={selectedPC.status} online={isOnline(selectedPC)} />
                         <span className="text-[10px] text-[#86868b]">{timeAgo((selectedPC as any).lastSeen || selectedPC.lastHeartbeat)}</span>

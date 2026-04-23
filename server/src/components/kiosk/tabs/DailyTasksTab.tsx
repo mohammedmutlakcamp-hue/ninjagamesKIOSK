@@ -528,18 +528,14 @@ export function DailyTasksTab({ player, onClose, onShortcut }: Props) {
       {/* Right neon edge */}
       <div className="absolute top-0 right-0 bottom-0 w-[1px] pointer-events-none z-[1]" style={{ background: 'linear-gradient(180deg, rgba(0,200,255,0.3), rgba(168,85,247,0.2), transparent)' }} />
 
-      {/* Close button (top-right, only when rendered as standalone popup) */}
       {onClose && (
-        <>
-          <div className="popup-close-shield" />
-          <button
-            onClick={onClose}
-            className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-full text-gray-400 hover:text-ninja-green transition-all hover:rotate-90"
-            style={{ background: 'transparent' }}
-          >
-            <X size={24} strokeWidth={2.6} />
-          </button>
-        </>
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 z-[100] w-11 h-11 flex items-center justify-center rounded-full text-gray-400 hover:text-ninja-green transition-all hover:rotate-90"
+          style={{ background: 'transparent' }}
+        >
+          <X size={24} strokeWidth={2.6} />
+        </button>
       )}
 
       <div className="relative z-10 px-4 pt-3 pb-4">

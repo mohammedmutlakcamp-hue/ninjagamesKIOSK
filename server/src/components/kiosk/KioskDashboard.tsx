@@ -1069,8 +1069,6 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
               border: '1px solid rgba(34,197,94,0.4)',
               boxShadow: '0 0 50px rgba(34,197,94,0.15), 0 20px 60px rgba(0,0,0,0.7)',
             }}>
-            {/* Close + corner shield */}
-            <div className="popup-close-shield" />
             <button onClick={() => !promoOrderBusy && setPromoOrderOpen(false)}
               className="absolute top-4 right-4 w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:rotate-90 transition-all z-[100]"
               style={{ background: 'transparent' }}>

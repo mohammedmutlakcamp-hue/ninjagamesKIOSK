@@ -319,8 +319,6 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
           }} />
         ))}
 
-        {/* Close + corner shield (no profile content can bleed under the X) */}
-        <div className="popup-close-shield" />
         <button onClick={onClose}
           className="absolute top-4 right-4 z-[100] w-11 h-11 rounded-full flex items-center justify-center text-gray-400 hover:text-white hover:rotate-90 transition-all"
           style={{ background: 'transparent' }}>
