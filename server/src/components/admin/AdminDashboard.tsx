@@ -56,6 +56,7 @@ import { HubblyHub } from './HubblyHub';
 import { DarkModeProvider, useDarkMode } from './DarkModeProvider';
 import { CommandPalette } from './CommandPalette';
 import { ResetPanel } from './ResetPanel';
+import { PCAlertsListener } from './PCAlertsListener';
 import { Moon, Sun } from 'lucide-react';
 import {
   LayoutDashboard, Monitor, Users, UtensilsCrossed, ClipboardList,
@@ -860,6 +861,10 @@ function AdminDashboardInner({ admin }: Props) {
     <div className="admin-apple min-h-screen bg-[#f5f5f7] flex">
       {/* Cmd+K / Ctrl+K command palette — global. */}
       <CommandPalette onNavigate={(t) => setTab(t as Tab)} />
+      {/* Floating toast stack — surfaces "Inform admin" alerts from kiosk
+          clients with a one-click "Install on PC" remediation. */}
+      <PCAlertsListener />
+
       {/* Mobile Header Bar */}
       <div className="fixed top-0 left-0 right-0 z-[60] flex items-center justify-between px-4 py-3 bg-white/90 border-b border-[#e5e5ea] md:hidden"
         style={{ backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)' }}

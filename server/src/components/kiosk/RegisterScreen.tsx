@@ -431,6 +431,21 @@ export function RegisterScreen({ onBack, onRegistered, lang = 'en' }: Props) {
         setLoading(false);
         return;
       }
+
+      // Validate referral code up front — if wrong, fail BEFORE we bother
+      // the admin with an approval request. The same check still runs at
+      // final submit (defence-in-depth in case the referrer's code was
+      // revoked between this step and admin approval).
+      if (referralCode.trim()) {
+        const refQ = query(collection(db, 'players'), where('referralCode', '==', referralCode.trim().toUpperCase()));
+        const refSnap = await getDocs(refQ);
+        if (refSnap.empty) {
+          setError(currentLang === 'ar' ? 'كود الإحالة غير صحيح' : 'Invalid referral code');
+          setLoading(false);
+          return;
+        }
+      }
+
       setStep(2);
     } catch (err) {
       setError(t(currentLang, 'connection_error'));

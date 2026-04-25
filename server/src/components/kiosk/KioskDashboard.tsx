@@ -396,7 +396,11 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
 
   const isGuest = !!initialPlayer.isGuest;
 
-  // Set online status on mount, clear on unmount
+  // Set online status on mount, clear on unmount, and tick a heartbeat
+  // every 30s while the kiosk is in use. The heartbeat is what keeps the
+  // friends list seeing this player as online — without it, lastSeen
+  // grows stale and friends would correctly mark this player offline
+  // (the read-side staleness check has a 2-min window).
   useEffect(() => {
     if (isGuest) return; // Skip Firestore for guests
     const playerRef = doc(db, 'players', initialPlayer.uid);
@@ -421,7 +425,25 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
       }).catch(() => {});
     }
 
+    // Heartbeat — touches lastSeen so the friends list keeps seeing
+    // us as online even if we're idle in the lobby. Suspends when the
+    // browser tab is hidden (kiosk minimized while a game is fullscreen)
+    // because we already maintain currentActivity='Playing X' through
+    // game-launch and don't want extra writes burning Firestore quota.
+    const beat = () => {
+      if (document.hidden) return;
+      updateDoc(playerRef, { 'onlineStatus.lastSeen': Date.now() }).catch(() => {});
+    };
+    const heartbeatId = setInterval(beat, 30_000);
+    // Also beat when the player tabs back in so friends see them sooner.
+    const onVis = () => { if (!document.hidden) beat(); };
+    document.addEventListener('visibilitychange', onVis);
+
     return () => {
+      clearInterval(heartbeatId);
+      document.removeEventListener('visibilitychange', onVis);
+      // Best-effort clean exit. Won't run on power-cut / crash — that's
+      // why the read side does its own staleness check.
       updateDoc(playerRef, {
         'onlineStatus.isOnline': false,
         'onlineStatus.currentActivity': '',

@@ -11,8 +11,9 @@ import {
   CheckSquare, Gamepad2, Tv, Video, Power, Timer,
   Settings, Globe, Monitor, ExternalLink, MessageSquare, Phone, Check,
   UtensilsCrossed, Trophy, ClipboardCheck, Package, Backpack, Users, Loader2, Clock, Calendar,
-  Shield, Swords, UserPlus, UserMinus, Lock
+  Shield, Swords, UserPlus, UserMinus, Lock, Download, AlertTriangle, Wrench
 } from 'lucide-react';
+import { INSTALL_SOURCES } from '@/lib/install-sources';
 import { db } from '@/lib/firebase';
 import { doc, getDoc, getDocs, addDoc, collection, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, increment } from 'firebase/firestore';
 import { notifyFriendsGameStart } from '@/lib/notifications';
@@ -22,11 +23,12 @@ import { launchOnPc } from '@/lib/launch';
 interface FriendData {
   uid: string;
   username: string;
-  isOnline: boolean;
+  isOnline: boolean;        // post-staleness-check: true ONLY if heartbeat is fresh
   currentActivity?: string;
   ninjaType?: string;
   profilePhoto?: string;
 }
+import { isLivePlayer } from '@/lib/pc-status';
 import { NinjaInput } from '@/components/kiosk/NinjaInput';
 import { Lang, t } from '@/lib/translations';
 import { ProfileTab } from './ProfileTab';
@@ -104,6 +106,19 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
   const [userInteracted, setUserInteracted] = useState(false);
   const [launchingGame, setLaunchingGame] = useState<any | null>(null);
   const [launchStatus, setLaunchStatus] = useState<'launching' | 'success' | 'failed'>('launching');
+  // Detailed failure info forwarded from the C# client. `kind` lets us pick
+  // the right copy ("not installed" vs "launcher unavailable" vs generic),
+  // `error` is the raw message from Windows for the diagnostic line.
+  const [launchFailure, setLaunchFailure] = useState<{ kind: string; error: string } | null>(null);
+  // After the player taps "Install Game" we lock the buttons and show
+  // the install progress strip. Cleared when the install-result event fires.
+  const [installState, setInstallState] = useState<'idle' | 'starting' | 'started' | 'failed'>('idle');
+  // C# sends a stable status code (installing_steam | installing_epic |
+  // installing_url | error | bad_source). We localize from the code; the
+  // free-form `installDetail` is only shown for unknown errors.
+  const [installStatus, setInstallStatus] = useState<string>('');
+  const [installDetail, setInstallDetail] = useState('');
+  const [adminNotified, setAdminNotified] = useState(false);
   const launchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const interactionTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const dragStartXRef = useRef(0);
@@ -281,10 +296,17 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       if (launchTimeoutRef.current) { clearTimeout(launchTimeoutRef.current); launchTimeoutRef.current = null; }
       if (detail.success) {
         setLaunchStatus('success');
+        setLaunchFailure(null);
         setTimeout(() => setLaunchingGame(null), 1500);
       } else {
         setLaunchStatus('failed');
-        setTimeout(() => setLaunchingGame(null), 4000);
+        // Carry the structured failure (kind = 'not_installed' | 'error' | 'no-method' …)
+        // through to the popup so we can render the right CTA. NOT auto-dismissed
+        // — the player may want to read the message and tap a button.
+        setLaunchFailure({
+          kind: String(detail.method || detail.kind || 'error'),
+          error: String(detail.error || ''),
+        });
         // Launch failed — revert activity so friends don't see a ghost game
         if (player?.uid) {
           updateDoc(doc(db, 'players', player.uid), {
@@ -295,8 +317,19 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
         }
       }
     };
+    const installHandler = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (!detail) return;
+      setInstallStatus(String(detail.status || ''));
+      setInstallDetail(String(detail.detail || ''));
+      setInstallState(detail.success ? 'started' : 'failed');
+    };
     window.addEventListener('game-launch-result', handler);
-    return () => window.removeEventListener('game-launch-result', handler);
+    window.addEventListener('game-install-result', installHandler);
+    return () => {
+      window.removeEventListener('game-launch-result', handler);
+      window.removeEventListener('game-install-result', installHandler);
+    };
   }, [player?.uid]);
 
   // Fetch friend data from Firestore
@@ -312,11 +345,16 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
           const snap = await getDoc(doc(db, 'players', uid));
           if (snap.exists()) {
             const data = snap.data();
+            // Liveness: trust the boolean ONLY if the heartbeat is fresh
+            // (within 2 min). Stale heartbeat → treat as offline regardless,
+            // and clear the "Playing X" / "In lobby" activity so the friend
+            // card doesn't show a ghost game. Fixes power-cut/crash ghosts.
+            const live = isLivePlayer(data.onlineStatus?.isOnline, data.onlineStatus?.lastSeen);
             results.push({
               uid,
               username: data.username || 'Unknown',
-              isOnline: data.onlineStatus?.isOnline || false,
-              currentActivity: data.onlineStatus?.currentActivity || undefined,
+              isOnline: live,
+              currentActivity: live ? (data.onlineStatus?.currentActivity || undefined) : undefined,
               ninjaType: data.ninjaType || data.character?.ninjaType || 'neon',
               profilePhoto: data.profilePhoto || undefined,
             });
@@ -328,6 +366,8 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       if (!cancelled) setFriends(results);
     };
     fetchFriends();
+    // 30s poll matches the ONLINE_WINDOW so a friend who logged out
+    // disappears from the list within ~3 polls (≤90s worst case).
     const interval = setInterval(fetchFriends, 30000);
     return () => { cancelled = true; clearInterval(interval); };
   }, [player?.friends]);
@@ -512,12 +552,19 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
   const launchGame = (game: any) => {
     setLaunchingGame(game);
     setLaunchStatus('launching');
+    // Reset all per-launch UI state so a previous failure popup doesn't bleed
+    // through into the next attempt.
+    setLaunchFailure(null);
+    setInstallState('idle');
+    setInstallStatus('');
+    setInstallDetail('');
+    setAdminNotified(false);
     // Clear any previous timeout
     if (launchTimeoutRef.current) clearTimeout(launchTimeoutRef.current);
     // Timeout: if no response from C# within 20s, show failure
     launchTimeoutRef.current = setTimeout(() => {
       setLaunchStatus('failed');
-      setTimeout(() => setLaunchingGame(null), 4000);
+      setLaunchFailure({ kind: 'timeout', error: 'No response from kiosk client.' });
     }, 20000);
     launchApp(game.id, game.defaultExePath);
     notifyFriendsGameStart(player, game);
@@ -1732,21 +1779,83 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
       </AnimatePresence>
       {/* ═══════════ LAUNCHING GAME POPUP ═══════════ */}
       <AnimatePresence>
-        {launchingGame && (
+        {launchingGame && (() => {
+          const failed = launchStatus === 'failed';
+          // Map structured failure → human copy (bilingual). The `kind` comes from
+          // the C# client (not_installed | error | timeout | no-method).
+          const failKind = launchFailure?.kind || 'error';
+          const isMissing = failKind === 'not_installed' || failKind === 'no-method';
+          const headline = ar
+            ? (isMissing ? 'اللعبة غير مثبتة على هذا الجهاز' : 'تعذر فتح اللعبة')
+            : (isMissing ? "This game isn't installed on this PC"  : 'Could not open the game');
+          const installSrc = INSTALL_SOURCES[launchingGame.id];
+          const canInstall = isMissing && !!installSrc;
+
+          const installNow = () => {
+            if (!installSrc) return;
+            setInstallState('starting');
+            setInstallStatus('');
+            setInstallDetail('');
+            try {
+              (window as any).electronAPI?.installGame?.(launchingGame.id, installSrc);
+            } catch { /* bridge not available */ }
+            // Fallback: if no result event arrives in 6s, call it started — Steam/Epic
+            // launchers don't always echo back, but the install dialog is in front of the user.
+            setTimeout(() => {
+              setInstallState((s) => s === 'starting' ? 'started' : s);
+            }, 6000);
+          };
+
+          // Localized copy for install-state messages. C# only sends the
+          // status code; we render the right language here.
+          const installStartedText = (() => {
+            if (installStatus === 'installing_steam') {
+              return ar ? 'Steam يقوم بتثبيت اللعبة الآن' : 'Steam is installing the game';
+            }
+            if (installStatus === 'installing_epic') {
+              return ar ? 'يفتح متجر Epic Games' : 'Opening Epic Games Launcher';
+            }
+            if (installStatus === 'installing_url') {
+              return ar ? 'يفتح صفحة التحميل في المتصفح' : 'Opening download page in browser';
+            }
+            return ar ? 'بدأ التثبيت — راقب نافذة المُثبِّت' : 'Install started — watch the installer window';
+          })();
+          const installFailedText = (() => {
+            if (installStatus === 'bad_source') {
+              return ar ? 'لا يمكن تثبيت هذه اللعبة من هنا' : 'This game cannot be installed from the kiosk';
+            }
+            return ar ? 'فشل بدء التثبيت' : 'Could not start the installer';
+          })();
+
+          const informAdmin = () => {
+            try {
+              (window as any).electronAPI?.informAdmin?.({
+                kind: 'launch_failed',
+                gameId: launchingGame.id,
+                gameName: launchingGame.name,
+                failureKind: failKind,
+                error: launchFailure?.error || '',
+              });
+            } catch { /* bridge not available */ }
+            setAdminNotified(true);
+          };
+
+          return (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             className="fixed inset-0 z-[300] flex items-center justify-center bg-black/70 backdrop-blur-sm"
-            onClick={() => { if (launchStatus === 'failed') setLaunchingGame(null); }}>
+            onClick={() => { if (failed) setLaunchingGame(null); }}>
             <motion.div initial={{ scale: 0.8, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.8, opacity: 0 }}
               transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-              className={`flex flex-col items-center gap-5 px-12 py-10 rounded-2xl border ${
-                launchStatus === 'failed' ? 'border-red-500/30' : launchStatus === 'success' ? 'border-ninja-green/50' : 'border-ninja-green/30'
+              onClick={(e) => e.stopPropagation()}
+              className={`flex flex-col items-center gap-5 px-10 py-9 rounded-2xl border max-w-md ${
+                failed ? 'border-red-500/30' : launchStatus === 'success' ? 'border-ninja-green/50' : 'border-ninja-green/30'
               }`}
-              style={{ background: launchStatus === 'failed'
+              style={{ background: failed
                 ? 'linear-gradient(135deg, rgba(20,5,5,0.95), rgba(15,5,5,0.98))'
                 : 'linear-gradient(135deg, rgba(10,15,10,0.95), rgba(5,10,5,0.98))' }}>
               <div className="relative">
                 <div className={`w-24 h-24 rounded-2xl overflow-hidden border-2 shadow-lg ${
-                  launchStatus === 'failed' ? 'border-red-500/40 shadow-red-500/20' : 'border-ninja-green/40 shadow-ninja-green/20'
+                  failed ? 'border-red-500/40 shadow-red-500/20' : 'border-ninja-green/40 shadow-ninja-green/20'
                 }`}>
                   <Image src={launchingGame.coverImage} alt={launchingGame.name} fill className="object-cover" sizes="96px" />
                 </div>
@@ -1758,7 +1867,7 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
               </div>
               <div className="text-center">
                 <p className={`font-ninja text-xl tracking-wider mb-1 ${
-                  launchStatus === 'failed' ? 'text-red-400' : 'text-ninja-green'
+                  failed ? 'text-red-400' : 'text-ninja-green'
                 }`}>
                   {launchingGame.name.toUpperCase()}
                 </p>
@@ -1775,20 +1884,95 @@ export function GamesTab({ player, lang = 'en', onAddCredit, onSendCoins, onLogo
                       <p className="font-body text-sm text-ninja-green">{ar ? 'تم تشغيل اللعبة!' : 'Game launched!'}</p>
                     </>
                   )}
-                  {launchStatus === 'failed' && (
+                  {failed && (
                     <>
-                      <X size={14} className="text-red-400" />
-                      <p className="font-body text-sm text-red-400">{ar ? 'فشل التشغيل' : 'Failed to launch'}</p>
+                      <AlertTriangle size={16} className="text-red-400" />
+                      <p className="font-body text-sm text-red-400">{headline}</p>
                     </>
                   )}
                 </div>
-                {launchStatus === 'failed' && (
-                  <p className="font-body text-xs text-gray-500 mt-2">{ar ? 'اضغط للإغلاق' : 'Tap to dismiss'}</p>
-                )}
+                {/* Friendly explanation in player's language. The raw Windows error
+                    is hidden — staff can read the full text in admin via Inform admin. */}
+                {failed && installState !== 'started' && (() => {
+                  if (isMissing) {
+                    return (
+                      <p className="font-body text-xs text-gray-400 mt-2 max-w-xs mx-auto">
+                        {ar
+                          ? 'يمكنك تثبيتها الآن أو إبلاغ الإدارة لتثبيتها لك.'
+                          : 'You can install it yourself or ask admin to install it for you.'}
+                      </p>
+                    );
+                  }
+                  if (failKind === 'timeout') {
+                    return (
+                      <p className="font-body text-xs text-gray-400 mt-2 max-w-xs mx-auto">
+                        {ar
+                          ? 'لم يستجب نظام الكشك. حاول مرة أخرى أو أبلغ الإدارة.'
+                          : 'No response from the kiosk client. Try again or inform admin.'}
+                      </p>
+                    );
+                  }
+                  return (
+                    <p className="font-body text-xs text-gray-400 mt-2 max-w-xs mx-auto">
+                      {ar
+                        ? 'حدث خطأ أثناء فتح اللعبة. أبلغ الإدارة للمساعدة.'
+                        : 'Something went wrong opening the game. Inform admin for help.'}
+                    </p>
+                  );
+                })()}
               </div>
+
+              {/* Action buttons (failure only) */}
+              {failed && (
+                <div className="flex flex-col gap-2 w-full mt-1">
+                  {canInstall && installState === 'idle' && (
+                    <button
+                      onClick={installNow}
+                      className="w-full px-4 py-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-400 hover:to-cyan-400 text-white font-body text-sm font-semibold flex items-center justify-center gap-2 transition-all">
+                      <Download size={16} />
+                      {ar ? 'تثبيت اللعبة الآن' : 'Install game now'}
+                    </button>
+                  )}
+                  {installState === 'starting' && (
+                    <div className="w-full px-4 py-3 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-300 font-body text-sm flex items-center justify-center gap-2">
+                      <Loader2 size={14} className="animate-spin" />
+                      {ar ? 'يبدأ التثبيت...' : 'Starting installer…'}
+                    </div>
+                  )}
+                  {installState === 'started' && (
+                    <div className="w-full px-4 py-3 rounded-xl bg-blue-500/20 border border-blue-500/40 text-blue-200 font-body text-xs text-center">
+                      {installStartedText}
+                    </div>
+                  )}
+                  {installState === 'failed' && (
+                    <div className="w-full px-4 py-2 rounded-xl bg-red-500/15 border border-red-500/30 text-red-300 font-body text-xs text-center">
+                      {installFailedText}
+                    </div>
+                  )}
+                  <button
+                    onClick={informAdmin}
+                    disabled={adminNotified}
+                    className={`w-full px-4 py-2.5 rounded-xl font-body text-sm font-medium flex items-center justify-center gap-2 transition-all ${
+                      adminNotified
+                        ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                        : 'bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-200'
+                    }`}>
+                    {adminNotified ? <Check size={14} /> : <Wrench size={14} />}
+                    {adminNotified
+                      ? (ar ? 'تم إبلاغ الإدارة' : 'Admin notified')
+                      : (ar ? 'إبلاغ الإدارة' : 'Inform admin')}
+                  </button>
+                  <button
+                    onClick={() => setLaunchingGame(null)}
+                    className="w-full px-4 py-2 rounded-xl text-gray-400 hover:text-gray-200 font-body text-xs">
+                    {ar ? 'إغلاق' : 'Close'}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
-        )}
+          );
+        })()}
       </AnimatePresence>
 
       {/* Club panel */}
