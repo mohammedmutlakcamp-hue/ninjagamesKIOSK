@@ -48,13 +48,9 @@ set /p PCNAME="  Enter PC name (e.g. PC-01, VIP-01): "
 if "%PCNAME%"=="" set PCNAME=PC-01
 
 echo.
-echo  Boot the PC straight into the kiosk?
-echo    [Y] Yes - kiosk replaces explorer.exe at boot (recommended)
-echo             Players still get a normal taskbar + Start menu, but
-echo             the kiosk window cannot be killed except by typing
-echo             "ghanemexit" on the keyboard.
-echo    [N] No  - kiosk autostarts as a normal app; user can close it
-echo             from the X button (admin/test mode only).
+echo  Full kiosk lockdown? (replaces desktop)
+echo    [Y] Yes - boots into kiosk (recommended for clients)
+echo    [N] No  - runs as normal app
 echo.
 set /p LOCKDOWN="  Enter Y or N: "
 if "%LOCKDOWN%"=="" set LOCKDOWN=Y
@@ -211,21 +207,13 @@ if %errorlevel% equ 0 (
 
 :STEP5
 :: ============================================
-:: STEP 5: Permissive mode - clear any old lockdown policies
+:: STEP 5: Lock down the PC
 :: ============================================
-:: We no longer disable Task Manager / Ctrl+Alt+Del / Workstation lock.
-:: Players need full access for PlayStation controller pairing, Bluetooth,
-:: Control Panel, etc.  The kiosk process protects itself in code via
-:: ProcessProtection.cs (DACL deny PROCESS_TERMINATE), so Task Manager's
-:: "End Task" returns access denied without us needing the registry lock.
-echo  [5/9] Clearing legacy lockdown policies...
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /f >nul 2>&1
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableLockWorkstation /f >nul 2>&1
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableChangePassword /f >nul 2>&1
-reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoLogoff /f >nul 2>&1
-:: Make sure HID services are running so DualShock/DualSense controllers pair
-sc config bthserv start= auto >nul 2>&1
-sc start bthserv >nul 2>&1
+echo  [5/9] Locking Task Manager + Ctrl+Alt+Del...
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableLockWorkstation /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableChangePassword /t REG_DWORD /d 1 /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoLogoff /t REG_DWORD /d 1 /f >nul 2>&1
 echo          DONE
 
 :: ============================================
@@ -330,13 +318,12 @@ if "%MODE%"=="1" (
     echo   Mode:           SERVER
     echo   Player Share:   \\%COMPUTERNAME%\NinjaKioskPlayers
 )
-echo   Task Manager:   ENABLED (kiosk is unkillable via DACL)
+echo   Task Manager:   DISABLED
 if /i "%LOCKDOWN%"=="Y" (
-    echo   Boot mode:      KIOSK IS THE SHELL (boots straight in)
+    echo   Lockdown:       FULL (shell replacement^)
 ) else (
-    echo   Boot mode:      Normal app autostart
+    echo   Lockdown:       Normal app autostart
 )
-echo   Player access:  PS controllers, Settings, taskbar, Alt+Tab — ALL ALLOWED
 echo   Exit kiosk:     type "ghanemexit" on keyboard
 echo.
 echo   IMPORTANT:

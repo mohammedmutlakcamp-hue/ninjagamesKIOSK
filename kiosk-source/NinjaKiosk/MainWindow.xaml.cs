@@ -20,15 +20,6 @@ public partial class MainWindow : Window
     private const string KillPhrase = "ghanemexit";
     private string _kioskUrl = CloudUrl;
 
-    // Permissive shell: when true (default), the kiosk does NOT hide the
-    // taskbar, block Ctrl+Alt+Del, intercept Win/Alt+Tab, or disable Task
-    // Manager — players can plug in PS controllers via Settings, browse
-    // Control Panel, alt-tab between apps, etc. The only hard guarantee is
-    // that the kiosk process itself can't be killed (ProcessProtection +
-    // shell-replacement) except by typing `ghanemexit`. Set to false in
-    // SetupWindow to revert to the old strict-lockdown behavior.
-    private const bool PermissiveShell = true;
-
     // ── Win32 ──
     private delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
@@ -113,41 +104,12 @@ public partial class MainWindow : Window
 
         App.Log($"STARTUP station={_stationId} name={_stationName}");
 
-        // ── Self-protection: deny PROCESS_TERMINATE on the kiosk process ──
-        // This makes Task Manager / taskkill / Stop-Process fail with access
-        // denied for any non-SYSTEM caller. Only the in-process ghanemexit
-        // path (which calls Application.Shutdown directly) can stop us.
-        ProcessProtection.ApplyAntiKill();
-
-        // ── Shell replacement: kiosk becomes the Windows desktop ──
-        // Persists across reboots — Winlogon launches NinjaKiosk instead of
-        // explorer.exe at login. EnsureAutostart writes BOTH the shell key
-        // and a Run-key fallback every launch, self-healing if Windows
-        // Update or another app overwrites either.
-        ShellHost.EnsureAutostart();
-        // Kill the running desktop so the kiosk window is the only thing on
-        // screen — no wallpaper, no taskbar, no desktop icons. Players can
-        // still open Settings via Win+I, Run via Win+R, etc.
-        ShellHost.HideDesktop();
-
-        // Keyboard hook (kept — only intercepts the ghanemexit phrase in
-        // permissive mode, blocks shortcuts in strict mode).
+        // Keyboard hook
         InstallHook();
 
-        // Strict-mode lockdown: only run if PermissiveShell is false.
-        // In permissive mode the user can use Alt+Tab, Win key, Task Manager,
-        // Control Panel, Bluetooth pairing for PS controllers, etc.
-        if (!PermissiveShell)
-        {
-            HideTaskbar();
-            DisableCtrlAltDel();
-        }
-        else
-        {
-            _taskbarHidden = false;
-            _allowAltTab = true;
-            App.Log("PERMISSIVE_SHELL: Tinasoft-style — taskbar visible, all shortcuts allowed");
-        }
+        // Hide taskbar & lock Ctrl+Alt+Del
+        HideTaskbar();
+        DisableCtrlAltDel();
 
         // Guard timer
         _guardTimer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(500) };
@@ -181,15 +143,6 @@ public partial class MainWindow : Window
         // previous session that didn't shut down cleanly. Safe to call always.
         try { PlayerSession.RestoreToBlank(); }
         catch (Exception ex) { App.Log($"BOOT_CLEANUP_FAIL: {ex.Message}"); }
-
-        // Boot-time AppData wipe — catches the case where the previous session
-        // crashed/power-cut before the logout wipe ran. Background thread so
-        // it doesn't delay the kiosk window from showing up.
-        Task.Run(() =>
-        {
-            try { LocalAppDataCleaner.Wipe("boot"); }
-            catch (Exception ex) { App.Log($"LOCALAPPDATA_WIPE_BOOT_FAIL: {ex.Message}"); }
-        });
 
         // System tray icon (shows remaining coins/time when player is in a game)
         InitTrayIcon();
@@ -320,9 +273,7 @@ public partial class MainWindow : Window
 
     private void GuardTick(object? s, EventArgs e)
     {
-        // Strict mode only: re-hide taskbar if Windows decided to put it back.
-        // Permissive mode leaves the taskbar alone.
-        if (!PermissiveShell && _taskbarHidden) HideTaskbar();
+        if (_taskbarHidden) HideTaskbar();
 
         // Re-install keyboard hook if Windows silently removed it
         if (_hookId == IntPtr.Zero || !IsHookValid())
@@ -379,17 +330,14 @@ public partial class MainWindow : Window
     private void DoLock()
     {
         _isLocked = true;
-        _allowAltTab = PermissiveShell;          // permissive: keep alt-tab usable
-        _taskbarHidden = !PermissiveShell;
+        _allowAltTab = false;
+        _taskbarHidden = true;
         _timeRemaining = 0;
         _currentPlayerName = null;
         _coinsRemaining = 0;
         UpdateTrayTooltip();
-        if (!PermissiveShell)
-        {
-            HideTaskbar();
-            DisableCtrlAltDel();
-        }
+        HideTaskbar();
+        DisableCtrlAltDel();
 
         // ── Per-player session save ──
         // If a player was logged in, save their per-app state (Steam junctions, etc)
@@ -412,17 +360,6 @@ public partial class MainWindow : Window
 
         // Kill all processes launched during the session
         KillSessionProcesses();
-
-        // Wipe %LOCALAPPDATA% so the next player gets a fresh slate (fixes
-        // "Riot Client already running for another user", anti-cheat token
-        // bleed-through, FiveM cache corruption, browser session leaks, etc.).
-        // Runs on a background thread so the lock-screen UI doesn't freeze
-        // for the 5–15s the wipe takes on a busy disk.
-        Task.Run(() =>
-        {
-            try { LocalAppDataCleaner.Wipe("logout"); }
-            catch (Exception ex) { App.Log($"LOCALAPPDATA_WIPE_LOGOUT_FAIL: {ex.Message}"); }
-        });
 
         Topmost = true;
         WindowState = WindowState.Maximized;
@@ -465,18 +402,6 @@ public partial class MainWindow : Window
             _sessionStartedAt = DateTime.UtcNow;
 
             App.Log($"PLAYER_LOGIN: uid={uid} username={username}");
-
-            // Wipe %LOCALAPPDATA% BEFORE pulling the player's roamed data so
-            // we don't accidentally erase what we just synced. Runs on a
-            // background thread so login UI stays responsive — the network
-            // pull below races with the wipe but only touches preserved
-            // ninja-games-kiosk dirs and per-player junctions, so they don't
-            // collide.
-            Task.Run(() =>
-            {
-                try { LocalAppDataCleaner.Wipe("login"); }
-                catch (Exception ex) { App.Log($"LOCALAPPDATA_WIPE_LOGIN_FAIL: {ex.Message}"); }
-            });
 
             // Pull player's data from the LAN server share (cross-PC roaming).
             // If the share isn't available, this is a no-op and the player gets
@@ -893,8 +818,6 @@ public partial class MainWindow : Window
         _isLocked = false;
         _allowAltTab = true;
         _taskbarHidden = false;
-        // Always make sure the taskbar is visible on unlock — even if we
-        // were running in strict mode and just toggled to permissive.
         ShowTaskbar();
         Topmost = false;
         // Snapshot current processes so we know what to keep on logout
@@ -938,9 +861,7 @@ public partial class MainWindow : Window
             bool alt = (flags & 0x20) != 0;
             bool keyDown = (int)wParam == 0x0100 || (int)wParam == 0x0104;
 
-            // Kill phrase — always active, in every mode. Letters A-Z buffer
-            // up to 50 chars; on match we exit. Even Task Manager being open
-            // (Ctrl+Shift+Esc) can't stop the keyboard hook from firing here.
+            // Kill phrase
             if (keyDown && vk >= 0x41 && vk <= 0x5A)
             {
                 _killBuffer += (char)(vk + 32);
@@ -954,17 +875,6 @@ public partial class MainWindow : Window
                 }
             }
 
-            // ── Permissive mode: pass everything through after the killphrase ──
-            // The user can Alt+Tab, hit the Win key, open Task Manager, open
-            // Control Panel via Win+I, pair a PS controller via Settings, etc.
-            // The kiosk window stays visible because it reasserts focus when
-            // locked (see Deactivated handler) — but it doesn't BLOCK anything.
-            if (PermissiveShell)
-            {
-                return CallNextHookEx(_hookId, nCode, wParam, lParam);
-            }
-
-            // ── Strict mode: legacy blocking behaviour ──
             // Block Windows keys
             if (vk == 0x5B || vk == 0x5C) return (IntPtr)1;
             // Block Ctrl+Esc (Start menu)
@@ -1192,27 +1102,6 @@ public partial class MainWindow : Window
                 window.chrome.webview.postMessage(JSON.stringify({action:'launch-game', gameId:gameId, exePath:exePath}));
                 return Promise.resolve({success:true});
             },
-            // One-click install on the local PC. Source is { type, appid|slug|url }
-            // - same shape as INSTALL_SOURCES on the server. C# runs the
-            // matching shell command and emits game-install-result.
-            installGame: function(gameId, source) {
-                window.chrome.webview.postMessage(JSON.stringify({action:'install-game', gameId:gameId, source:source||null}));
-                return Promise.resolve({success:true});
-            },
-            // Player escalates a problem to admin via the launch-failure popup.
-            // Writes a doc to pc-alerts that surfaces as a toast in the admin UI.
-            informAdmin: function(payload) {
-                window.chrome.webview.postMessage(JSON.stringify({action:'inform-admin', payload:payload||{}}));
-                return Promise.resolve({success:true});
-            },
-            // Shell-execute any URI: ms-settings:bluetooth, ms-settings:display,
-            // https://..., file:///..., even mailto:. Used by the System
-            // Settings cards so players can open Bluetooth pairing etc without
-            // a taskbar.
-            openUri: function(uri) {
-                window.chrome.webview.postMessage(JSON.stringify({action:'open-uri', uri:String(uri||'')}));
-                return Promise.resolve({success:true});
-            },
             returnToKiosk: function() {
                 window.chrome.webview.postMessage(JSON.stringify({action:'return-to-kiosk'}));
                 return Promise.resolve({success:true});
@@ -1301,26 +1190,6 @@ public partial class MainWindow : Window
                 case "launch-game":
                     if (_isLocked) DoUnlock();
                     LaunchGame(root);
-                    break;
-                case "install-game":
-                    InstallGameLocal(root);
-                    break;
-                case "inform-admin":
-                    InformAdmin(root);
-                    break;
-                case "open-uri":
-                    {
-                        var uri = root.TryGetProperty("uri", out var u) ? u.GetString() ?? "" : "";
-                        if (!string.IsNullOrEmpty(uri))
-                        {
-                            try
-                            {
-                                Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
-                                App.Log($"OPEN_URI: {uri}");
-                            }
-                            catch (Exception ex) { App.Log($"OPEN_URI_FAIL: {uri} {ex.Message}"); }
-                        }
-                    }
                     break;
                 case "return-to-kiosk":
                     // Bring kiosk back to front temporarily
@@ -1502,16 +1371,6 @@ public partial class MainWindow : Window
             // 3. Direct exe — split arguments if present, resolve path
             SplitExeAndArgs(exePath, out var exeOnly, out var exeArgs);
             var resolvedPath = ResolveExePath(exeOnly);
-            // No exe path was given AND no Steam/Epic/launcher/local-override
-            // matched: this game has no launch method on this PC. Tell the
-            // web UI explicitly so it can offer "Install" and "Inform Admin".
-            if (string.IsNullOrEmpty(exePath) && string.IsNullOrEmpty(resolvedPath))
-            {
-                App.Log($"LAUNCH_FAIL: no install/method for gameId={gameId}");
-                NotifyLaunchResult(gameId, false, "not_installed",
-                    "This game isn't installed on this PC.");
-                return;
-            }
             if (!string.IsNullOrEmpty(resolvedPath))
             {
                 // ── PER-PLAYER SESSION (Method A): if this app supports
@@ -1543,12 +1402,8 @@ public partial class MainWindow : Window
             }
             else
             {
-                App.Log($"LAUNCH_FAIL: exe not found gameId={gameId}, exePath={exePath}");
-                // The catalog provided a path but the file doesn't exist on
-                // disk → most likely the game was uninstalled / never
-                // installed on this PC. Web UI can now show "install" CTA.
-                NotifyLaunchResult(gameId, false, "not_installed",
-                    $"Game executable not found: {exePath}");
+                App.Log($"LAUNCH_FAIL: no valid launch method for gameId={gameId}, exePath={exePath}");
+                NotifyLaunchResult(gameId, false, "no-method", $"No valid launch method found. Path: {exePath}");
             }
         }
         catch (Exception ex)
@@ -1556,138 +1411,6 @@ public partial class MainWindow : Window
             App.Log($"LAUNCH_ERROR: {ex}");
             NotifyLaunchResult(gameId, false, "error", ex.Message);
         }
-    }
-
-    // ──────────────────────────────────────────────────────────────────
-    //  ONE-CLICK INSTALL (local PC, triggered from the kiosk web UI)
-    // ──────────────────────────────────────────────────────────────────
-    // The web-side `install-sources.ts` defines the install shell command
-    // for every catalog game. We accept a JSON payload like
-    //     { gameId: 'csgo', source: { type: 'steam', appid: 730 } }
-    // and run the matching launcher protocol. Steam/Epic install pages
-    // will pop up; the player can confirm.
-    private void InstallGameLocal(JsonElement root)
-    {
-        var gameId = root.TryGetProperty("gameId", out var g) ? g.GetString() ?? "" : "";
-        if (!root.TryGetProperty("source", out var src) || src.ValueKind != JsonValueKind.Object)
-        {
-            App.Log($"INSTALL_FAIL: no source for gameId={gameId}");
-            NotifyInstallResult(gameId, false, "bad_source", "Missing install source.");
-            return;
-        }
-
-        var type = src.TryGetProperty("type", out var t) ? t.GetString() ?? "" : "";
-        try
-        {
-            string? uri = null;
-            switch (type)
-            {
-                case "steam":
-                    if (src.TryGetProperty("appid", out var appid) &&
-                        appid.ValueKind == JsonValueKind.Number)
-                    {
-                        uri = $"steam://install/{appid.GetInt32()}";
-                    }
-                    break;
-                case "epic":
-                    if (src.TryGetProperty("slug", out var slug))
-                    {
-                        var s = slug.GetString();
-                        if (!string.IsNullOrEmpty(s))
-                            uri = $"com.epicgames.launcher://store/p/{s}";
-                    }
-                    break;
-                case "url":
-                    if (src.TryGetProperty("url", out var u))
-                        uri = u.GetString();
-                    break;
-            }
-
-            if (string.IsNullOrEmpty(uri))
-            {
-                App.Log($"INSTALL_FAIL: bad source type={type} gameId={gameId}");
-                NotifyInstallResult(gameId, false, "bad_source", $"Unsupported install source: {type}");
-                return;
-            }
-
-            App.Log($"INSTALL: gameId={gameId} via {uri}");
-            Process.Start(new ProcessStartInfo(uri) { UseShellExecute = true });
-            // Send a STATUS CODE not a localized string. The web side maps the
-            // code to AR/EN copy so the player sees their own language.
-            var status = type switch
-            {
-                "steam" => "installing_steam",
-                "epic"  => "installing_epic",
-                _       => "installing_url",
-            };
-            NotifyInstallResult(gameId, true, status, "");
-        }
-        catch (Exception ex)
-        {
-            App.Log($"INSTALL_ERROR: {ex.Message}");
-            NotifyInstallResult(gameId, false, "error", ex.Message);
-        }
-    }
-
-    private void NotifyInstallResult(string gameId, bool success, string status, string detail)
-    {
-        try
-        {
-            // `status` is a stable code (installing_steam | installing_epic |
-            // installing_url | error | bad_source). `detail` is the raw
-            // diagnostic — only shown if the web UI decides to.
-            var safeDetail = detail.Replace("\\", "\\\\").Replace("'", "\\'");
-            var script = $"window.dispatchEvent(new CustomEvent('game-install-result', {{ detail: {{ gameId: '{gameId}', success: {(success ? "true" : "false")}, status: '{status}', detail: '{safeDetail}' }} }}));";
-            Dispatcher.BeginInvoke(() => WebView.CoreWebView2?.ExecuteScriptAsync(script));
-        }
-        catch (Exception ex)
-        {
-            App.Log($"NOTIFY_INSTALL_ERROR: {ex.Message}");
-        }
-    }
-
-    // ──────────────────────────────────────────────────────────────────
-    //  INFORM ADMIN (player escalates a problem from the launch popup)
-    // ──────────────────────────────────────────────────────────────────
-    // Writes a doc to `pc-alerts` in Firestore. The admin panel listens
-    // for new alerts and shows a popup with the failing PC + game so
-    // staff can install/fix without the player leaving their seat.
-    private void InformAdmin(JsonElement root)
-    {
-        if (string.IsNullOrEmpty(_stationId)) return;
-        var payload = new Dictionary<string, object?>
-        {
-            ["pcId"]      = _stationId,
-            ["pcName"]    = _stationName,
-            ["playerUid"] = _currentPlayerUid,
-            ["playerName"]= _currentPlayerUsername,
-            ["createdAt"] = DateTime.UtcNow.ToString("o"),
-        };
-        if (root.TryGetProperty("payload", out var p) && p.ValueKind == JsonValueKind.Object)
-        {
-            foreach (var prop in p.EnumerateObject())
-            {
-                payload[prop.Name] = prop.Value.ValueKind switch
-                {
-                    JsonValueKind.String => prop.Value.GetString(),
-                    JsonValueKind.Number => prop.Value.TryGetInt64(out var n) ? (object)n : prop.Value.GetDouble(),
-                    JsonValueKind.True or JsonValueKind.False => prop.Value.GetBoolean(),
-                    _ => prop.Value.ToString(),
-                };
-            }
-        }
-        _ = Task.Run(async () =>
-        {
-            try
-            {
-                await _firebase.PostAlertAsync(payload);
-                App.Log($"INFORM_ADMIN_OK: {payload.GetValueOrDefault("kind")}");
-            }
-            catch (Exception ex)
-            {
-                App.Log($"INFORM_ADMIN_FAIL: {ex.Message}");
-            }
-        });
     }
 
     private void NotifyLaunchResult(string gameId, bool success, string method, string? error = null)
@@ -2371,18 +2094,20 @@ public partial class MainWindow : Window
         if (_exiting) return;
         _exiting = true;
         App.Log("EXIT");
-
-        // Restore the previous Windows shell BEFORE cleanup — the next boot
-        // should land on a normal desktop, not relaunch the kiosk in a loop.
-        try { ShellHost.RestoreShell(); }
-        catch (Exception ex) { App.Log($"SHELL_RESTORE_FAIL: {ex.Message}"); }
-
         Cleanup();
 
-        // Bring back the Windows desktop right now so the admin doesn't
-        // stare at a black screen after exit.
-        try { ShellHost.ShowDesktop(); }
-        catch (Exception ex) { App.Log($"SHOW_DESKTOP_FAIL: {ex.Message}"); }
+        // Launch explorer.exe so admin can use the desktop
+        // (needed when kiosk replaces the Windows shell)
+        try
+        {
+            var explorer = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Windows), "explorer.exe");
+            Process.Start(explorer);
+            App.Log("EXPLORER_LAUNCHED");
+        }
+        catch (Exception ex)
+        {
+            App.Log($"EXPLORER_LAUNCH_FAIL: {ex.Message}");
+        }
 
         System.Windows.Application.Current.Shutdown();
     }

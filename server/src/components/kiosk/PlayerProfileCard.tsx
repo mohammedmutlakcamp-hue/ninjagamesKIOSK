@@ -3,7 +3,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { playerIsOnline } from '@/lib/pc-status';
 import {
   doc, onSnapshot, updateDoc, arrayUnion, arrayRemove, increment,
   collection, addDoc, query, where, getDocs, getDoc,
@@ -135,9 +134,7 @@ export function PlayerProfileCard({ targetUid, currentPlayer, onClose, onStartCa
   const totalXP = targetPlayer ? calculateTotalXP(targetPlayer) : 0;
   const levelInfo = getLevelInfo(totalXP);
   const stats = targetPlayer?.stats || {};
-  // Heartbeat-based liveness — see lib/pc-status.ts. Plain isOnline boolean
-  // goes stale on power-cut/crash and would show ghost activity forever.
-  const isOnline = playerIsOnline(targetPlayer);
+  const isOnline = targetPlayer?.onlineStatus?.isOnline || false;
   const ninjaType = targetPlayer?.ninjaType || 'neon';
   const privacy = targetPlayer?.privacySettings || { profileVisibility: 'public', inventoryVisibility: 'public' };
   const isProfilePrivate = !isSelf && privacy.profileVisibility === 'private';

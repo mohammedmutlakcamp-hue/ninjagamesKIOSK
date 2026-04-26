@@ -2,10 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import {
-  Download, ExternalLink, Search, Bluetooth, Monitor, Volume2, Wifi,
-  Keyboard, Mouse, Settings as SettingsIcon, Gamepad2, Printer, Sun,
-} from 'lucide-react';
+import { Download, ExternalLink, Search } from 'lucide-react';
 import { NinjaInput } from '@/components/kiosk/NinjaInput';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot } from 'firebase/firestore';
@@ -45,32 +42,6 @@ const SOFTWARE_LIST: Software[] = [
 ];
 
 const CATEGORIES = ['All', ...Array.from(new Set(SOFTWARE_LIST.map(s => s.category)))];
-
-// ── System Settings cards ───────────────────────────────────────────
-// Each card opens a Windows Settings page via its ms-settings: deep
-// link. Works without explorer.exe / taskbar — equivalent to Win+I but
-// scoped to the right page (Bluetooth pairing for PS controllers, etc).
-//
-// Why we ship this in the kiosk: the kiosk replaces the Windows shell,
-// so there is no Start menu / taskbar for players to open Settings
-// from. The cards make it discoverable.
-const SYSTEM_SETTINGS = [
-  { id: 'bluetooth',  uri: 'ms-settings:bluetooth',     iconKey: 'bluetooth',  nameEn: 'Bluetooth',           nameAr: 'البلوتوث',            descEn: 'Pair PS / Xbox controller, headphones', descAr: 'اقران ذراع التحكم أو سماعات' },
-  { id: 'devices',    uri: 'ms-settings:connecteddevices', iconKey: 'gamepad', nameEn: 'Devices',             nameAr: 'الأجهزة',             descEn: 'All connected devices',                  descAr: 'جميع الأجهزة المتصلة' },
-  { id: 'sound',      uri: 'ms-settings:sound',         iconKey: 'volume',     nameEn: 'Sound',               nameAr: 'الصوت',               descEn: 'Speakers, mic, default device',          descAr: 'السماعات، الميكروفون، الجهاز الافتراضي' },
-  { id: 'display',    uri: 'ms-settings:display',       iconKey: 'monitor',    nameEn: 'Display',             nameAr: 'الشاشة',              descEn: 'Resolution, scaling, refresh rate',      descAr: 'الدقة، الحجم، معدل التحديث' },
-  { id: 'wifi',       uri: 'ms-settings:network-wifi',  iconKey: 'wifi',       nameEn: 'Wi-Fi',               nameAr: 'الواي فاي',           descEn: 'Connect to a network',                   descAr: 'الاتصال بشبكة' },
-  { id: 'mouse',      uri: 'ms-settings:mousetouchpad', iconKey: 'mouse',      nameEn: 'Mouse',               nameAr: 'الفأرة',              descEn: 'Sensitivity, buttons, pointer',          descAr: 'الحساسية، الأزرار، المؤشر' },
-  { id: 'keyboard',   uri: 'ms-settings:keyboard',      iconKey: 'keyboard',   nameEn: 'Keyboard',            nameAr: 'لوحة المفاتيح',       descEn: 'Layout, shortcuts, language',            descAr: 'التخطيط، الاختصارات، اللغة' },
-  { id: 'brightness', uri: 'ms-settings:display',       iconKey: 'sun',        nameEn: 'Brightness',          nameAr: 'السطوع',              descEn: 'Adjust screen brightness',               descAr: 'ضبط سطوع الشاشة' },
-  { id: 'all',        uri: 'ms-settings:',              iconKey: 'settings',   nameEn: 'All Settings',        nameAr: 'كل الإعدادات',        descEn: 'Open Windows Settings (Win+I)',          descAr: 'فتح إعدادات ويندوز' },
-];
-
-// Lucide icon map — keyed off the iconKey above so the JSX stays simple
-const SETTING_ICON: Record<string, React.ComponentType<any>> = {
-  bluetooth: Bluetooth, gamepad: Gamepad2, volume: Volume2, monitor: Monitor,
-  wifi: Wifi, mouse: Mouse, keyboard: Keyboard, sun: Sun, settings: SettingsIcon,
-};
 
 export function SoftwareTab() {
   const lang: 'en' | 'ar' = typeof window !== 'undefined' ? ((localStorage.getItem('kiosk-lang') as 'en' | 'ar') || 'en') : 'en';
@@ -188,71 +159,6 @@ export function SoftwareTab() {
           <p className="font-ninja text-lg text-gray-600">{ar ? 'لا توجد برامج' : 'NO SOFTWARE FOUND'}</p>
         </div>
       )}
-
-      {/* ═══════════ SYSTEM SETTINGS ═══════════
-          Below the software grid so it doesn't compete with launchers.
-          Each card opens a Windows Settings page (Bluetooth, Display,
-          Sound...) via electronAPI.openUri('ms-settings:*'). Equivalent
-          to Win+I but discoverable — there's no taskbar in kiosk mode. */}
-      <div className="mt-10 pt-6 border-t border-white/5">
-        <div className="flex items-center gap-2 mb-1">
-          <SettingsIcon size={20} className="text-cyan-400" />
-          <h2 className="font-ninja text-2xl text-white tracking-wider">
-            {ar ? 'إعدادات النظام' : 'SYSTEM SETTINGS'}
-          </h2>
-        </div>
-        <p className="font-body text-gray-500 text-sm mb-4">
-          {ar
-            ? 'افتح إعدادات ويندوز مباشرة — مثل اقتران ذراع PlayStation أو ضبط الصوت. (يعادل Win+I)'
-            : 'Open Windows settings directly — pair PS controllers, adjust sound, etc. (Same as Win+I)'}
-        </p>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {SYSTEM_SETTINGS.map((s, i) => {
-            const Icon = SETTING_ICON[s.iconKey] || SettingsIcon;
-            return (
-              <motion.button
-                key={s.id}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: i * 0.04 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => {
-                  const api = (window as any).electronAPI;
-                  if (api?.openUri) api.openUri(s.uri);
-                  // Bring kiosk back so the player still sees the right panel
-                  setTimeout(() => api?.returnToKiosk?.(), 1500);
-                }}
-                className="glass rounded-xl p-4 border border-cyan-500/20 hover:border-cyan-400/50 hover:shadow-lg hover:shadow-cyan-500/10 text-left transition-all flex flex-col gap-2 group"
-              >
-                <div className="w-10 h-10 rounded-lg bg-cyan-500/10 flex items-center justify-center group-hover:bg-cyan-500/20 transition-all">
-                  <Icon size={20} className="text-cyan-300" />
-                </div>
-                <h3 className="font-ninja text-white text-sm">
-                  {ar ? s.nameAr : s.nameEn}
-                </h3>
-                <p className="font-body text-gray-500 text-[11px] leading-snug">
-                  {ar ? s.descAr : s.descEn}
-                </p>
-              </motion.button>
-            );
-          })}
-        </div>
-
-        {/* Friendly hint about Win+I */}
-        <div className="mt-4 px-4 py-2.5 rounded-lg bg-cyan-500/[0.04] border border-cyan-500/15 flex items-center gap-2">
-          <Keyboard size={14} className="text-cyan-400/80 flex-shrink-0" />
-          <p className="font-body text-gray-400 text-xs leading-snug">
-            {ar
-              ? 'نصيحة: يمكنك أيضاً الضغط على'
-              : 'Tip: you can also press'}
-            <kbd className="mx-1.5 px-1.5 py-0.5 rounded bg-white/10 border border-white/15 text-cyan-300 font-mono text-[10px]">Win + I</kbd>
-            {ar
-              ? 'في أي وقت لفتح إعدادات ويندوز.'
-              : 'anytime to open Windows Settings.'}
-          </p>
-        </div>
-      </div>
     </div>
   );
 }

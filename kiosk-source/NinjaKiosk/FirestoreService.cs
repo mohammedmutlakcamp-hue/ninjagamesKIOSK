@@ -499,53 +499,6 @@ public class FirestoreService : IDisposable
         await PatchAsync($"pcs/{stationId}", fields, "commandResponse");
     }
 
-    // ── Player-initiated alerts (Inform Admin button on launch-failure popup)
-    // Writes a new doc into the `pc-alerts` collection. Firestore auto-IDs the
-    // doc. Admin panel listens to this collection and shows a popup.
-    public async Task PostAlertAsync(Dictionary<string, object?> alert)
-    {
-        await EnsureAuthAsync();
-        var fields = new Dictionary<string, object>();
-        foreach (var kv in alert)
-        {
-            if (kv.Value is null) continue;
-            fields[kv.Key] = kv.Value switch
-            {
-                bool b   => BoolField(b),
-                int i    => IntField(i),
-                long l   => new Dictionary<string, object> { ["integerValue"] = l.ToString() },
-                double d => new Dictionary<string, object> { ["doubleValue"] = d },
-                _        => StringField(kv.Value.ToString() ?? ""),
-            };
-        }
-        // Always stamp a server-side timestamp so admin can sort by recency.
-        fields["serverTime"] = TimestampField(DateTime.UtcNow);
-        // Mark as unread so admin UI can highlight it.
-        fields["acknowledged"] = BoolField(false);
-
-        try
-        {
-            var url = $"{BaseUrl}/pc-alerts?key={ApiKey}";
-            var payload = JsonSerializer.Serialize(new { fields });
-            var req = new HttpRequestMessage(HttpMethod.Post, url)
-            {
-                Content = new StringContent(payload, Encoding.UTF8, "application/json")
-            };
-            if (_idToken != null)
-                req.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _idToken);
-            var resp = await _http.SendAsync(req);
-            if (!resp.IsSuccessStatusCode)
-            {
-                var err = await resp.Content.ReadAsStringAsync();
-                App.Log($"FIREBASE_ALERT_FAIL: {resp.StatusCode} {err}");
-            }
-        }
-        catch (Exception ex)
-        {
-            App.Log($"FIREBASE_ALERT_ERROR: {ex.Message}");
-        }
-    }
-
     // ── REST Helpers ──
 
     private async Task PatchAsync(string docPath, Dictionary<string, object> fields, params string[] updateMask)
