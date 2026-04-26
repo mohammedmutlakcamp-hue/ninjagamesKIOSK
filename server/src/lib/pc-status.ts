@@ -83,38 +83,3 @@ export function pcStatusKind(pc: any): PCStatusKind {
   if (status === 'offline') return 'offline'; // explicit offline status overrides heartbeat
   return 'free';
 }
-
-// ─── Player-side liveness ───────────────────────────────────────────
-// Shorter window than PCs because a logged-in player heartbeats from
-// the kiosk dashboard every 30 s. 2 minutes = 4× that interval —
-// tolerates one missed beat plus a short network hiccup, but doesn't
-// keep ghost players in the friends list for half an hour.
-//
-// Why we don't trust onlineStatus.isOnline alone: kiosks that hard-crash,
-// lose power, or get force-shut-down never get to flip the boolean back,
-// so the player shows as "In lobby" forever. The only reliable signal
-// is the heartbeat freshness.
-export const PLAYER_ONLINE_WINDOW_MS = 2 * 60 * 1000;
-
-export function playerLastSeenMs(player: any): number {
-  if (!player) return 0;
-  return tsToMs(player?.onlineStatus?.lastSeen)
-      || tsToMs(player?.lastSeen)
-      || 0;
-}
-
-export function playerIsOnline(player: any): boolean {
-  if (!player?.onlineStatus?.isOnline) return false;
-  const ms = playerLastSeenMs(player);
-  if (!ms) return false;
-  return Date.now() - ms < PLAYER_ONLINE_WINDOW_MS;
-}
-
-// Same liveness check given a (isOnlineFlag, lastSeen) pair — useful
-// when the caller already destructured the player doc.
-export function isLivePlayer(isOnlineFlag: any, lastSeen: any): boolean {
-  if (!isOnlineFlag) return false;
-  const ms = tsToMs(lastSeen);
-  if (!ms) return false;
-  return Date.now() - ms < PLAYER_ONLINE_WINDOW_MS;
-}

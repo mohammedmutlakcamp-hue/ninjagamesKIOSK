@@ -218,49 +218,23 @@ export function MobileDashboard({ player, lang, onLogout }: Props) {
     return () => unsub();
   }, [screen, player?.uid]);
 
-  // ─── Set online status on mount + heartbeat ───────────────────
-  // Writes BOTH the legacy top-level isOnline/lastSeen fields and the
-  // canonical onlineStatus.* shape used by kiosk friends lists. Without
-  // the canonical fields, mobile players show as permanently offline
-  // to kiosk friends.
+  // ─── Set online status on mount ─────────────────────────────
   useEffect(() => {
     if (!player?.uid) return;
-    const ref = doc(db, 'players', player.uid);
-    updateDoc(ref, {
+    // Mark player as online on mobile
+    updateDoc(doc(db, 'players', player.uid), {
       isOnline: true,
       status: 'online',
       platform: 'mobile',
       lastSeen: Date.now(),
-      'onlineStatus.isOnline': true,
-      'onlineStatus.lastSeen': Date.now(),
-      'onlineStatus.currentActivity': 'On mobile',
     }).catch(() => {});
-
-    // Heartbeat — every 30s so kiosk friends keep seeing this player as
-    // online. Skips when the page is hidden so background tabs don't burn
-    // Firestore writes.
-    const beat = () => {
-      if (document.hidden) return;
-      updateDoc(ref, {
-        lastSeen: Date.now(),
-        'onlineStatus.lastSeen': Date.now(),
-      }).catch(() => {});
-    };
-    const heartbeatId = setInterval(beat, 30_000);
-    const onVis = () => { if (!document.hidden) beat(); };
-    document.addEventListener('visibilitychange', onVis);
-
+    // On unmount, set offline
     return () => {
-      clearInterval(heartbeatId);
-      document.removeEventListener('visibilitychange', onVis);
-      updateDoc(ref, {
+      updateDoc(doc(db, 'players', player.uid), {
         isOnline: false,
         status: 'offline',
         platform: null,
         lastSeen: Date.now(),
-        'onlineStatus.isOnline': false,
-        'onlineStatus.lastSeen': Date.now(),
-        'onlineStatus.currentActivity': '',
       }).catch(() => {});
     };
   }, [player?.uid]);

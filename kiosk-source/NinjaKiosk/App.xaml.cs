@@ -25,6 +25,10 @@ public partial class App : Application
             Shutdown();
             return;
         }
+
+        // Lock down our own process token so non-admin Task Manager can't kill us.
+        // No-ops gracefully if we lack rights.
+        Log(ProcessProtection.Apply() ? "PROC_PROTECT: applied" : "PROC_PROTECT: skipped");
         // Log ALL crashes
         AppDomain.CurrentDomain.UnhandledException += (_, args) =>
         {

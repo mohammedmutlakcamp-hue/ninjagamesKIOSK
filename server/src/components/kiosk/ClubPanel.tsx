@@ -9,7 +9,6 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { doc, onSnapshot, collection, query, where, getDocs, getDoc } from 'firebase/firestore';
-import { isLivePlayer } from '@/lib/pc-status';
 import {
   Club, ClubInvite, CLUB_MAX_MEMBERS,
   createClub, inviteToClub, acceptClubInvite, declineClubInvite,
@@ -145,7 +144,7 @@ export function ClubPanel({ player, open, onClose, lang = 'en' }: Props) {
               username: data.username || 'Unknown',
               ninjaType: data.ninjaType || data.character?.ninjaType || 'neon',
               profilePhoto: data.profilePhoto,
-              isOnline: isLivePlayer(data.onlineStatus?.isOnline, data.onlineStatus?.lastSeen),
+              isOnline: data.onlineStatus?.isOnline || false,
             });
           } else {
             results.push({ uid, username: '(missing)', ninjaType: 'neon' });

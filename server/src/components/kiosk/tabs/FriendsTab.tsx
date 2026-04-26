@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { db } from '@/lib/firebase';
-import { playerIsOnline } from '@/lib/pc-status';
 import {
   collection, query, where, getDocs, addDoc, doc, getDoc,
   updateDoc, arrayUnion, arrayRemove, onSnapshot, increment
@@ -318,11 +317,17 @@ export function FriendsTab({ player }: Props) {
     return `${Math.floor(hours / 24)}d`;
   };
 
-  // True online = canonical heartbeat-based liveness check (see lib/pc-status.ts).
-  // Without this check, players whose kiosk crashed / lost power / force-shutdown
-  // would stay "online" forever because no one ever flips the boolean back.
-  const isReallyOnline = (f: FriendData) =>
-    playerIsOnline({ onlineStatus: f.onlineStatus });
+  // True online = isOnline flag AND lastSeen heartbeat within the last 2
+  // minutes. Without the lastSeen check, players who closed the kiosk
+  // without a clean logout (PC crash, force-shutdown, etc.) would stay
+  // "online" forever because no one ever flips the boolean back.
+  const ONLINE_STALE_MS = 2 * 60 * 1000;
+  const isReallyOnline = (f: FriendData) => {
+    if (!f.onlineStatus?.isOnline) return false;
+    const ls = f.onlineStatus?.lastSeen || 0;
+    if (!ls) return false;
+    return Date.now() - ls < ONLINE_STALE_MS;
+  };
   const onlineFriends = friends.filter(isReallyOnline);
   const offlineFriends = friends.filter(f => !isReallyOnline(f));
   const filteredFriends = friendFilter

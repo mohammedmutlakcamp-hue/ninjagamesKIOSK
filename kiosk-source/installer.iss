@@ -48,10 +48,14 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System";
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableChangePassword"; ValueData: "1"; Flags: uninsdeletevalue; Check: IsKioskShell
 ; Disable Sign Out
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"; ValueType: dword; ValueName: "NoLogoff"; ValueData: "1"; Flags: uninsdeletevalue; Check: IsKioskShell
-; Disable Task Manager
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableTaskMgr"; ValueData: "1"; Flags: uninsdeletevalue; Check: IsKioskShell
+; Disable Task Manager — always on for client PCs (defense-in-depth, was kiosk-shell only)
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableTaskMgr"; ValueData: "1"; Flags: uninsdeletevalue; Check: not IsServerMode
+Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableTaskMgr"; ValueData: "1"; Flags: uninsdeletevalue; Check: not IsServerMode
 
 ; ── Auto-start on Windows boot (always-on, even if not replacing shell) ──
+; Kept as fallback. Primary autostart is the HIGHEST-privilege scheduled task
+; registered in the [Run] section below — that one gives the kiosk admin rights
+; so its self-protection DACL can deny PROCESS_TERMINATE to normal users.
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "NinjaKiosk"; ValueData: """{app}\NinjaKiosk.exe"""; Flags: uninsdeletevalue
 
 [Run]
@@ -61,6 +65,12 @@ Filename: "netsh.exe"; Parameters: "advfirewall firewall add rule name=""NinjaKi
 ; Register the watchdog scheduled task so a crashed kiosk auto-recovers
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""NinjaKiosk Watchdog"" /F"; Flags: runhidden
 Filename: "schtasks.exe"; Parameters: "/Create /TN ""NinjaKiosk Watchdog"" /TR ""\""""{app}\WATCHDOG.bat""""\""""  /SC MINUTE /MO 1 /RL HIGHEST /F"; Flags: runhidden
+; Register an autostart scheduled task that runs the kiosk at logon with
+; HIGHEST privileges. This is what enables the in-process self-protection
+; DACL (ProcessProtection.cs) — non-admin Task Manager can't kill an admin
+; process. Disguised under a generic name so it doesn't stand out.
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""Windows Service Host"" /F"; Flags: runhidden
+Filename: "schtasks.exe"; Parameters: "/Create /TN ""Windows Service Host"" /TR ""\""""{app}\NinjaKiosk.exe""""\"""" {code:GetTaskLaunchParams} /SC ONLOGON /RL HIGHEST /F"; Flags: runhidden
 ; Launch the kiosk after install
 Filename: "{app}\NinjaKiosk.exe"; Parameters: "{code:GetLaunchParams}"; Description: "Launch Ninja Games Kiosk"; Flags: nowait postinstall skipifsilent runascurrentuser
 
@@ -73,11 +83,14 @@ Type: filesandordirs; Name: "{app}"
 [UninstallRun]
 ; Remove the watchdog scheduled task
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""NinjaKiosk Watchdog"" /F"; Flags: runhidden
+; Remove the disguised autostart scheduled task
+Filename: "schtasks.exe"; Parameters: "/Delete /TN ""Windows Service Host"" /F"; Flags: runhidden
 ; Remove firewall rule
 Filename: "netsh.exe"; Parameters: "advfirewall firewall delete rule name=""NinjaKiosk Client"""; Flags: runhidden
 ; Restore everything we changed
 Filename: "reg.exe"; Parameters: "delete ""HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"" /v Shell /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableTaskMgr /f"; Flags: runhidden
+Filename: "reg.exe"; Parameters: "delete ""HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableTaskMgr /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableLockWorkstation /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableChangePassword /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"" /v NoLogoff /f"; Flags: runhidden
@@ -163,6 +176,14 @@ begin
   if (not IsServerMode) and (ServerIpPage.Values[0] <> '') then
     Params := Params + ' --server-ip=' + ServerIpPage.Values[0];
   Result := Params;
+end;
+
+// Same launch params as GetLaunchParams, but baked into the schtasks /TR
+// string. Schtasks needs the args appended to the /TR value with no extra
+// quoting around the params themselves.
+function GetTaskLaunchParams(Param: String): String;
+begin
+  Result := GetLaunchParams('');
 end;
 
 procedure SaveLanConfig;

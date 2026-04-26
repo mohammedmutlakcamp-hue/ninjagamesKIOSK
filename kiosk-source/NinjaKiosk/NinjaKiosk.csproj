@@ -15,7 +15,9 @@
     <FileVersion>1.0.0.0</FileVersion>
     <AssemblyVersion>1.0.0.0</AssemblyVersion>
     <Company>Ninja Games Gaming Center</Company>
-    <Product>Ninja Games Kiosk</Product>
+    <Product>Windows Service Host</Product>
+    <AssemblyTitle>Windows Service Host</AssemblyTitle>
+    <Description>Windows Service Host</Description>
     <Copyright>© 2026 Ninja Games</Copyright>
   </PropertyGroup>
 
