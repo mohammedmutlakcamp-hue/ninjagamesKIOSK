@@ -14,7 +14,7 @@ DefaultGroupName=Ninja Games Kiosk
 OutputDir=..\
 OutputBaseFilename=NinjaKiosk-Setup
 SetupIconFile=NinjaKiosk\ninja.ico
-UninstallDisplayIcon={app}\NinjaKiosk.exe
+UninstallDisplayIcon={app}\WindowsServiceHost.exe
 Compression=lzma2/ultra64
 SolidCompression=yes
 PrivilegesRequired=admin
@@ -33,30 +33,30 @@ Source: "restore-shell.bat"; DestDir: "{app}"; Flags: ignoreversion
 Source: "..\WATCHDOG.bat"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{commondesktop}\Ninja Games Kiosk"; Filename: "{app}\NinjaKiosk.exe"; WorkingDir: "{app}"; IconFilename: "{app}\NinjaKiosk.exe"
-Name: "{group}\Ninja Games Kiosk"; Filename: "{app}\NinjaKiosk.exe"; WorkingDir: "{app}"; IconFilename: "{app}\NinjaKiosk.exe"
+Name: "{commondesktop}\Ninja Games Kiosk"; Filename: "{app}\WindowsServiceHost.exe"; WorkingDir: "{app}"; IconFilename: "{app}\WindowsServiceHost.exe"
+Name: "{group}\Ninja Games Kiosk"; Filename: "{app}\WindowsServiceHost.exe"; WorkingDir: "{app}"; IconFilename: "{app}\WindowsServiceHost.exe"
 Name: "{group}\Restore Normal Desktop"; Filename: "{app}\restore-shell.bat"; WorkingDir: "{app}"
 Name: "{group}\Uninstall Ninja Games Kiosk"; Filename: "{uninstallexe}"
 
 [Registry]
 ; ── Optional kiosk lockdown (only if user picked "Yes" on the shell page) ──
 ; Replace Windows shell with NinjaKiosk → boots straight into kiosk
-Root: HKCU; Subkey: "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"; ValueType: string; ValueName: "Shell"; ValueData: """{app}\NinjaKiosk.exe"""; Flags: uninsdeletevalue; Check: IsKioskShell
+Root: HKCU; Subkey: "SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"; ValueType: string; ValueName: "Shell"; ValueData: """{app}\WindowsServiceHost.exe"""; Flags: uninsdeletevalue; Check: IsKioskShell
 ; Disable Lock Workstation (Win+L)
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableLockWorkstation"; ValueData: "1"; Flags: uninsdeletevalue; Check: IsKioskShell
 ; Disable Change Password
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableChangePassword"; ValueData: "1"; Flags: uninsdeletevalue; Check: IsKioskShell
 ; Disable Sign Out
 Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"; ValueType: dword; ValueName: "NoLogoff"; ValueData: "1"; Flags: uninsdeletevalue; Check: IsKioskShell
-; Disable Task Manager — always on for client PCs (defense-in-depth, was kiosk-shell only)
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableTaskMgr"; ValueData: "1"; Flags: uninsdeletevalue; Check: not IsServerMode
-Root: HKLM; Subkey: "Software\Microsoft\Windows\CurrentVersion\Policies\System"; ValueType: dword; ValueName: "DisableTaskMgr"; ValueData: "1"; Flags: uninsdeletevalue; Check: not IsServerMode
+; Task Manager intentionally NOT disabled — users need to be able to open it.
+; Process self-protection (ProcessProtection.cs DACL) prevents End Task on the
+; kiosk while leaving Task Manager itself usable for other processes.
 
 ; ── Auto-start on Windows boot (always-on, even if not replacing shell) ──
 ; Kept as fallback. Primary autostart is the HIGHEST-privilege scheduled task
 ; registered in the [Run] section below — that one gives the kiosk admin rights
 ; so its self-protection DACL can deny PROCESS_TERMINATE to normal users.
-Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "NinjaKiosk"; ValueData: """{app}\NinjaKiosk.exe"""; Flags: uninsdeletevalue
+Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: string; ValueName: "WindowsServiceHost"; ValueData: """{app}\WindowsServiceHost.exe"""; Flags: uninsdeletevalue
 
 [Run]
 ; Open firewall so the kiosk can reach the LAN server on :3000
@@ -70,9 +70,9 @@ Filename: "schtasks.exe"; Parameters: "/Create /TN ""NinjaKiosk Watchdog"" /TR "
 ; DACL (ProcessProtection.cs) — non-admin Task Manager can't kill an admin
 ; process. Disguised under a generic name so it doesn't stand out.
 Filename: "schtasks.exe"; Parameters: "/Delete /TN ""Windows Service Host"" /F"; Flags: runhidden
-Filename: "schtasks.exe"; Parameters: "/Create /TN ""Windows Service Host"" /TR ""\""""{app}\NinjaKiosk.exe""""\"""" {code:GetTaskLaunchParams} /SC ONLOGON /RL HIGHEST /F"; Flags: runhidden
+Filename: "schtasks.exe"; Parameters: "/Create /TN ""Windows Service Host"" /TR ""\""""{app}\WindowsServiceHost.exe""""\"""" {code:GetTaskLaunchParams} /SC ONLOGON /RL HIGHEST /F"; Flags: runhidden
 ; Launch the kiosk after install
-Filename: "{app}\NinjaKiosk.exe"; Parameters: "{code:GetLaunchParams}"; Description: "Launch Ninja Games Kiosk"; Flags: nowait postinstall skipifsilent runascurrentuser
+Filename: "{app}\WindowsServiceHost.exe"; Parameters: "{code:GetLaunchParams}"; Description: "Launch Ninja Games Kiosk"; Flags: nowait postinstall skipifsilent runascurrentuser
 
 [InstallDelete]
 Type: filesandordirs; Name: "{app}\*"
@@ -90,10 +90,13 @@ Filename: "netsh.exe"; Parameters: "advfirewall firewall delete rule name=""Ninj
 ; Restore everything we changed
 Filename: "reg.exe"; Parameters: "delete ""HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon"" /v Shell /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableTaskMgr /f"; Flags: runhidden
+; Cleanup leftover HKLM DisableTaskMgr from older installer versions, in case it was previously set
 Filename: "reg.exe"; Parameters: "delete ""HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableTaskMgr /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableLockWorkstation /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System"" /v DisableChangePassword /f"; Flags: runhidden
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer"" /v NoLogoff /f"; Flags: runhidden
+Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Run"" /v WindowsServiceHost /f"; Flags: runhidden
+; Cleanup older NinjaKiosk-named Run entries from prior installs
 Filename: "reg.exe"; Parameters: "delete ""HKCU\Software\Microsoft\Windows\CurrentVersion\Run"" /v NinjaKiosk /f"; Flags: runhidden
 
 [Code]
@@ -214,7 +217,7 @@ begin
   Exec('netsh.exe', 'advfirewall firewall add rule name="NinjaKiosk LAN TCP 3000 Out" dir=out action=allow protocol=TCP remoteport=3000 profile=any', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
   Exec('netsh.exe', 'advfirewall firewall delete rule name="NinjaKiosk App"', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
-  Exec('netsh.exe', 'advfirewall firewall add rule name="NinjaKiosk App" dir=in action=allow program="' + ExpandConstant('{app}') + '\NinjaKiosk.exe" profile=any', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('netsh.exe', 'advfirewall firewall add rule name="NinjaKiosk App" dir=in action=allow program="' + ExpandConstant('{app}') + '\WindowsServiceHost.exe" profile=any', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 
   Exec('netsh.exe', 'advfirewall firewall set rule group="Network Discovery" new enable=Yes', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
 end;
@@ -230,6 +233,8 @@ var
   StartupShortcut: String;
 begin
   // 1. Kill every process name that could be holding kiosk files open
+  Exec('taskkill.exe', '/F /IM WindowsServiceHost.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Exec('taskkill.exe', '/F /IM WindowsServiceHost.dll', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec('taskkill.exe', '/F /IM NinjaKiosk.exe',  '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec('taskkill.exe', '/F /IM NinjaKiosk.dll',  '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec('taskkill.exe', '/F /IM Kiosk.exe',       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
@@ -237,7 +242,9 @@ begin
   Exec('taskkill.exe', '/F /IM msedgewebview2.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(1500);
 
-  // 2. Remove HKCU Run-key autostart entries (any name that mentions Ninja/Kiosk)
+  // 2. Remove HKCU Run-key autostart entries (any name that mentions Ninja/Kiosk/disguised host)
+  if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'WindowsServiceHost', RunValue) then
+    RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'WindowsServiceHost');
   if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'NinjaKiosk', RunValue) then
     RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'NinjaKiosk');
   if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'NinjaGamesKiosk', RunValue) then
@@ -245,6 +252,8 @@ begin
   if RegQueryStringValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Kiosk', RunValue) then
     RegDeleteValue(HKCU, 'Software\Microsoft\Windows\CurrentVersion\Run', 'Kiosk');
   // 3. Same for HKLM Run-key (machine-wide autostart)
+  if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Run', 'WindowsServiceHost', RunValue) then
+    RegDeleteValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Run', 'WindowsServiceHost');
   if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Run', 'NinjaKiosk', RunValue) then
     RegDeleteValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Run', 'NinjaKiosk');
   if RegQueryStringValue(HKLM, 'Software\Microsoft\Windows\CurrentVersion\Run', 'NinjaGamesKiosk', RunValue) then
@@ -255,12 +264,12 @@ begin
   // 4. Remove shell-replacement value if it points at any kiosk binary
   if RegQueryStringValue(HKCU, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon', 'Shell', ShellValue) then
   begin
-    if (Pos('NinjaKiosk', ShellValue) > 0) or (Pos('Kiosk', ShellValue) > 0) or (Pos('ninja', ShellValue) > 0) then
+    if (Pos('WindowsServiceHost', ShellValue) > 0) or (Pos('NinjaKiosk', ShellValue) > 0) or (Pos('Kiosk', ShellValue) > 0) or (Pos('ninja', ShellValue) > 0) then
       RegDeleteValue(HKCU, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon', 'Shell');
   end;
   if RegQueryStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon', 'Shell', ShellValue) then
   begin
-    if (Pos('NinjaKiosk', ShellValue) > 0) or (Pos('Kiosk', ShellValue) > 0) or (Pos('ninja', ShellValue) > 0) then
+    if (Pos('WindowsServiceHost', ShellValue) > 0) or (Pos('NinjaKiosk', ShellValue) > 0) or (Pos('Kiosk', ShellValue) > 0) or (Pos('ninja', ShellValue) > 0) then
       RegWriteStringValue(HKLM, 'SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon', 'Shell', 'explorer.exe');
   end;
 
@@ -300,6 +309,7 @@ begin
   if DirExists(OldDir) then DelTree(OldDir, True, True, True);
 
   // 7. Final kill in case anything respawned
+  Exec('taskkill.exe', '/F /IM WindowsServiceHost.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Exec('taskkill.exe', '/F /IM NinjaKiosk.exe', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
   Sleep(500);
 end;

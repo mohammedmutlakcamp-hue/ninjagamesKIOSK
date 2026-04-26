@@ -28,6 +28,7 @@ if /i not "%CONFIRM%"=="YES" (
 echo.
 
 echo  [1/10] Killing kiosk processes...
+taskkill /F /IM WindowsServiceHost.exe >nul 2>&1
 taskkill /F /IM NinjaKiosk.exe >nul 2>&1
 taskkill /F /IM "NG Kiosk.exe" >nul 2>&1
 taskkill /F /IM Kiosk.exe >nul 2>&1
@@ -40,11 +41,15 @@ reg delete "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell
 echo          DONE
 
 echo  [3/10] Removing autostart entries...
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v WindowsServiceHost /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaKiosk /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaGamesKiosk /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Kiosk /f >nul 2>&1
+reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v WindowsServiceHost /f >nul 2>&1
 reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaKiosk /f >nul 2>&1
 reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaGamesKiosk /f >nul 2>&1
+schtasks /Delete /TN "Windows Service Host" /F >nul 2>&1
+schtasks /Delete /TN "NinjaKiosk Watchdog" /F >nul 2>&1
 del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\NinjaKiosk.lnk" >nul 2>&1
 del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\Ninja Games Kiosk.lnk" >nul 2>&1
 del "%ProgramData%\Microsoft\Windows\Start Menu\Programs\Startup\NinjaKiosk.lnk" >nul 2>&1
@@ -52,6 +57,7 @@ echo          DONE
 
 echo  [4/10] Re-enabling Task Manager + Ctrl+Alt+Del...
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /f >nul 2>&1
+reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableLockWorkstation /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableChangePassword /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoLogoff /f >nul 2>&1
