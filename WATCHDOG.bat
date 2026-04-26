@@ -13,8 +13,8 @@
 :: ────────────────────────────────────────────────────────────────────────
 setlocal
 
-set "EXE_NAME=NinjaKiosk.exe"
-set "EXE_PATH=%~dp0client\NinjaKiosk.exe"
+set "EXE_NAME=WindowsServiceHost.exe"
+set "EXE_PATH=%~dp0client\WindowsServiceHost.exe"
 set "LOG=%TEMP%\ninja-watchdog.log"
 
 tasklist /FI "IMAGENAME eq %EXE_NAME%" 2>NUL | find /I "%EXE_NAME%" >NUL

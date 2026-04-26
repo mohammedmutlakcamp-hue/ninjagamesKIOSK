@@ -23,10 +23,10 @@ if %errorlevel% neq 0 (
 )
 
 set "BASEDIR=%~dp0"
-set "CLIENT=%BASEDIR%client\NinjaKiosk.exe"
+set "CLIENT=%BASEDIR%client\WindowsServiceHost.exe"
 if not exist "%CLIENT%" (
     color 0C
-    echo  ERROR: client\NinjaKiosk.exe not found!
+    echo  ERROR: client\WindowsServiceHost.exe not found!
     echo  Make sure you're running this from the kiosk folder.
     echo.
     pause
@@ -76,15 +76,18 @@ echo.
 :: STEP 1: Kill any running kiosk
 :: ============================================
 echo  [1/9] Killing old kiosk instances...
+taskkill /F /IM WindowsServiceHost.exe >nul 2>&1
 taskkill /F /IM NinjaKiosk.exe >nul 2>&1
 taskkill /F /IM "NG Kiosk.exe" >nul 2>&1
 taskkill /F /IM Kiosk.exe >nul 2>&1
 taskkill /F /IM msedgewebview2.exe >nul 2>&1
 timeout /t 1 /nobreak >nul
 :: Clean old autostart entries
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v WindowsServiceHost /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaKiosk /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaGamesKiosk /f >nul 2>&1
 reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v Kiosk /f >nul 2>&1
+reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v WindowsServiceHost /f >nul 2>&1
 reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaKiosk /f >nul 2>&1
 reg delete "HKCU\SOFTWARE\Microsoft\Windows NT\CurrentVersion\Winlogon" /v Shell /f >nul 2>&1
 del "%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\NinjaKiosk.lnk" >nul 2>&1
@@ -209,8 +212,12 @@ if %errorlevel% equ 0 (
 :: ============================================
 :: STEP 5: Lock down the PC
 :: ============================================
-echo  [5/9] Locking Task Manager + Ctrl+Alt+Del...
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /t REG_DWORD /d 1 /f >nul 2>&1
+echo  [5/9] Locking Ctrl+Alt+Del + sign-out...
+:: Task Manager intentionally LEFT ENABLED — process self-protection prevents
+:: End Task on the kiosk while keeping Task Manager itself usable. Cleanup any
+:: legacy DisableTaskMgr value so it doesn't linger from older installs.
+reg delete "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /f >nul 2>&1
+reg delete "HKLM\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableTaskMgr /f >nul 2>&1
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableLockWorkstation /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\System" /v DisableChangePassword /t REG_DWORD /d 1 /f >nul 2>&1
 reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Policies\Explorer" /v NoLogoff /t REG_DWORD /d 1 /f >nul 2>&1
@@ -241,7 +248,7 @@ echo          DONE
 :: ============================================
 if /i "%LOCKDOWN%"=="Y" goto :LOCKDOWN_YES
 
-reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v NinjaKiosk /d "\"%CLIENT%\"" /f >nul 2>&1
+reg add "HKCU\Software\Microsoft\Windows\CurrentVersion\Run" /v WindowsServiceHost /d "\"%CLIENT%\"" /f >nul 2>&1
 echo  [7/9] Autostart: normal app mode — DONE
 goto :STEP8
 
@@ -318,7 +325,7 @@ if "%MODE%"=="1" (
     echo   Mode:           SERVER
     echo   Player Share:   \\%COMPUTERNAME%\NinjaKioskPlayers
 )
-echo   Task Manager:   DISABLED
+echo   Task Manager:   ENABLED (kiosk process is self-protected from End Task)
 if /i "%LOCKDOWN%"=="Y" (
     echo   Lockdown:       FULL (shell replacement^)
 ) else (
