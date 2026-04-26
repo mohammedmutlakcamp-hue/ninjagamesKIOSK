@@ -37,6 +37,8 @@ const SOFTWARE_LIST: Software[] = [
   { id: 'razer', name: 'Razer Synapse', icon: '/software/razer.png', category: 'Peripherals', description: 'Razer mouse & keyboard', exePath: 'C:\\Program Files (x86)\\Razer\\Synapse3\\UserProcess\\Razer Synapse 3.exe' },
   { id: 'streamlabs', name: 'Streamlabs', icon: '/software/streamlabs.png', category: 'Streaming', description: 'Stream to Twitch/YouTube', exePath: 'C:\\Program Files\\Streamlabs OBS\\Streamlabs OBS.exe' },
   { id: 'obs', name: 'OBS Studio', icon: '/software/obs.png', category: 'Streaming', description: 'Open source streaming', exePath: 'C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe' },
+  { id: 'controlpanel', name: 'Control Panel', icon: '/software/controlpanel.png', category: 'System', description: 'Windows system settings', exePath: 'C:\\Windows\\System32\\control.exe' },
+  { id: 'notepad', name: 'Notepad', icon: '/software/notepad.png', category: 'Utilities', description: 'Plain text editor', exePath: 'C:\\Windows\\System32\\notepad.exe' },
 ];
 
 const CATEGORIES = ['All', ...Array.from(new Set(SOFTWARE_LIST.map(s => s.category)))];

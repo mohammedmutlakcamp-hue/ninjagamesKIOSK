@@ -1744,6 +1744,8 @@ export function KioskDashboard({ player: initialPlayer, onLogout }: Props) {
                           { id: 'hyperx', name: 'HyperX NGENUITY', exePath: 'C:\\Program Files\\HyperX\\HyperX NGENUITY\\HyperXNGENUITY.exe', icon: '/software/hyperx.png', color: '#FF0000' },
                           { id: 'geforce', name: 'GeForce Experience', exePath: 'C:\\Program Files\\NVIDIA Corporation\\NVIDIA GeForce Experience\\NVIDIA GeForce Experience.exe', icon: '/software/geforce.png', color: '#76B900' },
                           { id: 'razer', name: 'Razer Synapse', exePath: 'C:\\Program Files (x86)\\Razer\\Synapse3\\UserProcess\\Razer Synapse 3.exe', icon: '/software/razer.png', color: '#44D62C' },
+                          { id: 'controlpanel', name: 'Control Panel', exePath: 'C:\\Windows\\System32\\control.exe', icon: '/software/controlpanel.png', color: '#0078D4' },
+                          { id: 'notepad', name: 'Notepad', exePath: 'C:\\Windows\\System32\\notepad.exe', icon: '/software/notepad.png', color: '#F2C811' },
                         ].map(sw => (
                           <button key={sw.id}
                             onClick={() => launchOnPc(sw.id, sw.exePath)}
